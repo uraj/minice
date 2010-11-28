@@ -65,6 +65,7 @@ struct triargtable * new_table(char *name)//malloc a newtable
     newtable -> table = gtriargexpr_table;
 	newtable -> index_to_list = new_index_to_list();
 	newtable -> expr_num = gtriargexpr_table_index;
+	newtable -> var_id_num = g_var_id_num;
 	return newtable;
 }
 
@@ -99,6 +100,7 @@ void new_global_table()//init a new global table
 	gtail = NULL;
 	gtriargexpr_table_bound = INITIALCODESIZE;
 	gtriargexpr_table_index = 0;
+	g_var_id_num = g_global_id_num;//init visible var with global id num
 }
 
 int insert_triargexpr(struct triargexpr expr)//should be in triargexpr.c
