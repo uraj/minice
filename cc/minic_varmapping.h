@@ -12,6 +12,8 @@
 struct var_info//the struct to contain var's flags
 {
 	/* some flags */
+	int is_define;
+	int is_use;
 	int index;
 };
 
