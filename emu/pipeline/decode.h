@@ -11,6 +11,6 @@ typedef enum
     RotateRight
 } ShiftType;
 
-extern void ID_phrase(StoreArch * storage, PipeState * pipe_state);
+extern void IDStage(StoreArch * storage, PipeState * pipe_state);
 
 #endif

@@ -3,6 +3,6 @@
 
 #include <pipeline/globdefs.h>
 
-extern void fetch(StoreArch * storage, PipeState * pipe_state);
+extern void IFStage(StoreArch * storage, PipeState * pipe_state);
 
 #endif
