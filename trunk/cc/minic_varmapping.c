@@ -8,6 +8,7 @@
 
 static struct value_info * cur_func_info;//used only in varmap
 static int cur_expr_num;
+static int cur_var_id_num;
 
 static inline int set_cur_func(int func_index)
 {
@@ -15,6 +16,7 @@ static inline int set_cur_func(int func_index)
 	{
 		cur_func_info = symt_search(simb_table ,table_list[func_index] -> funcname);
 		cur_expr_num = table_list[func_index] -> expr_num;
+		cur_var_id_num = table_list[func_index] -> var_id_num;
 		return 1;
 	}
 	else 
@@ -26,10 +28,10 @@ static inline int set_cur_func(int func_index)
 
 int get_index_of_temp(int expr)
 {
-	if(var_info_table[g_var_id_num + expr] == NULL)
+	if(var_info_table[cur_var_id_num + expr] == NULL)
 		return -1;
 	else
-		return var_info_table[g_var_id_num + expr] -> index;
+		return var_info_table[cur_var_id_num + expr] -> index;
 }
 
 int get_index_of_id(char * idname)
@@ -40,24 +42,25 @@ int get_index_of_id(char * idname)
 
 struct var_info * get_info_from_index(int index)
 {
-	if(index < g_var_id_num)
+	if(index < cur_var_id_num)
 		return var_info_table[index];
 	else
-		return var_info_table[map_bridge[cur_expr_num - g_var_id_num]];
+		return var_info_table[map_bridge[cur_expr_num - cur_var_id_num]];
 }
 
 int new_var_map(int func_index)
 {
 	if(!set_cur_func(func_index))
 		return 0;
-	var_info_table = malloc(sizeof(struct var_info *) * (cur_expr_num + g_var_id_num));
+	//cur_var_id_num = table_list[]
+	var_info_table = malloc(sizeof(struct var_info *) * (cur_expr_num + cur_var_id_num));
 	return 1;
 }
 
 void free_var_map()
 {
 	int i;
-	for(i = 0; i < cur_expr_num + g_var_id_num; i++)
+	for(i = 0; i < cur_expr_num + cur_var_id_num; i++)
 	{
 		if(var_info_table[i] != NULL)
 			free(var_info_table[i]);
@@ -76,10 +79,10 @@ void new_map_bridge()
 
 int insert_tempvar(int exprindex)
 {
-	if(var_info_table[exprindex + g_var_id_num] != NULL)
+	if(var_info_table[exprindex + cur_var_id_num] != NULL)
 		return 0;
-	var_info_table[exprindex + g_var_id_num] = malloc(sizeof(struct var_info));
-	var_info_table[exprindex + g_var_id_num] -> index = map_bridge_cur_index;
+	var_info_table[exprindex + cur_var_id_num] = malloc(sizeof(struct var_info));
+	var_info_table[exprindex + cur_var_id_num] -> index = map_bridge_cur_index;
 	//malloc the flags in the var_info_table
     if(map_bridge_cur_index >= map_bridge_bound)
     {
@@ -91,7 +94,7 @@ int insert_tempvar(int exprindex)
         free(map_bridge);
         map_bridge = tmp_map_bridge;
     }
-    map_bridge[map_bridge_cur_index++] = exprindex + g_var_id_num;
+    map_bridge[map_bridge_cur_index++] = exprindex + cur_var_id_num;
 	//total_var_num ++;
 	return 1;
 }
