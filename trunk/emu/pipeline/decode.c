@@ -1,19 +1,8 @@
 #include <pipeline/decode.h>
 #include <stdlib.h>
 
-#ifdef DEBUG
-static uint32_t GET_FIELD(const instr code,const int hi,const int lo)
-{
-    uint32_t ret;
-    int i;
-    ret = code >> lo;
-    ret &= 0x8ffffff >> 31 - (hi - lo + 1);
-    return ret;
-}
-#else
 #define GET_FIELD(code, hi, lo)                         \
-    (((code) >> (lo)) & (0x8ffffff >> 31 -((hi)-(lo) + 1)))
-#endif
+    (((code) >> (lo)) & (0x7fffffff >> 31 -((hi)-(lo) + 1)))
 
 static InstrFields get_fields(instr instruction)
 {
@@ -55,7 +44,7 @@ static InstrType get_instr_type(instr code)
         case 3U:
             return LS_ImmOff;
         case 5U:
-            return Branch_Link;
+            return Branch_Cond;
         default:
             exit(1);
     }
@@ -286,23 +275,92 @@ static ALUop gen_ALUop(const InstrFields * ifields, InstrType itype)
     return ALU_Nop;
 }
 
+static int test_branch_cond(const PSW * cmsr, uint8_t condcode)
+{
+    switch(condcode)
+    {
+        case 0x0U:              /* EQ */
+            return cmsr->Z;
+        case 0x1U:              /* NE */
+            return !(cmsr->Z);
+        case 0x2U:              /* UGE */
+            return cmsr->C;
+        case 0x3U:              /* ULT */
+            return !(cmsr->C);
+        case 0x4U:              /* N */
+            return cmsr->N;
+        case 0x5U:              /* NN */
+            return !(cmsr->N);
+        case 0x6U:              /* OV */
+            return cmsr->V;
+        case 0x7U:              /* NV */
+            return !(cmsr->V);
+        case 0x8U:              /* UGT */
+            return cmsr->C && !(cmsr->Z);
+        case 0x9U:              /* ULE */
+            return !(cmsr->C) || cmsr->Z;
+        case 0xaU:              /* SGE */
+            return cmsr->N == cmsr->V;
+        case 0xbU:              /* SLT */
+            return cmsr->N != cmsr->V;
+        case 0xcU:              /* SGT */
+            return !(cmsr->Z) && (cmsr->N == cmsr->V);
+        case 0xdU:              /* SLE */
+            return cmsr->Z || (cmsr->N != cmsr->V);
+        case 0xeU:              /* AL */
+            return 1;
+        default:
+            exit(1);
+    }        
+}
+
 void D_phrase(StoreArch * storage, PipeState * pipe_state)
 {
     InstrFields ifields = get_fields(pipe_state->id_in.instruction);
     InstrType itype = get_instr_type(pipe_state->id_in.instruction);
-    pipe_state->ex_in.ifields = ifields;
+    
+    /* deal with branch first */
+    
+    if(itype == Branch_Ex)
+    {
+        pipe_state->ex_in.nop = 1; /* gen bubbles */
+        if(ifields.flags.L == 1) /* Branch and link */
+            storage->reg[RA] = storage->reg[PC];
+        storage->reg[PC] = storage->reg[ifields.rm];
+        return;
+    }
+    else if(itype == Branch_Cond)
+    {
+        pipe_state->ex_in.nop = 1; /* gen bubbles */
+        if(ifields.flags.L == 1) /* Branch and link */
+            storage->reg[RA] = storage->reg[PC];
+        if(test_branch_cond(&(storage->CMSR), ifields.cond))
+        {
+            storage->reg[PC] = 1;
+        }
+        return;
+    }
+    else
+        pipe_state->ex_in.nop = 0;
+
+    pipe_state->ex_in.S = ifields.flags.S;
     pipe_state->ex_in.operand1 = gen_operand1(&ifields, itype, storage);
     pipe_state->ex_in.operand2 = gen_operand2(&ifields, itype, storage);
-    pipe_state->ex_in.S = ifields.flags.S;
-    pipe_state->ex_in.aluop = gen_ALUop(&ifields, itype);
+
+    /* then deal with multiply */
     if(itype == Multiply)
     {
         if(ifields.flags.A == 1)
             pipe_state->ex_in.mulop = MulAdd;
         else
             pipe_state->ex_in.mulop = Mul;
+        return;
     }
     else
         pipe_state->ex_in.mulop = MulNop;
+    
+    /* ALU has work to do in next EX stage */
+    pipe_state->ex_in.aluop = gen_ALUop(&ifields, itype);
+    
     return;
 }
