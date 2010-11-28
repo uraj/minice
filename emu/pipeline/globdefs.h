@@ -45,7 +45,7 @@ typedef enum
     D_Immidiate,
     Multiply,
     Branch_Ex,
-    Branch_Link,
+    Branch_Cond,
     LS_RegOff,
     LS_ImmOff,
     LS_Hw_RegOff,
@@ -88,7 +88,7 @@ typedef enum
 
 typedef struct
 {
-    InstrFields ifields;
+    int nop;
     uint32_t operand1, operand2;
     int S;
     ALUop aluop;
@@ -98,7 +98,7 @@ typedef struct
 
 typedef struct
 {
-    int token;
+    int nop;
 } MEM_input;
 
 typedef struct
