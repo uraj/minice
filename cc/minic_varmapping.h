@@ -23,7 +23,7 @@ extern int map_bridge_cur_index;
 extern struct var_info ** var_info_table;//var_info contains some flags, name is tmperary, shall be modified later
 extern struct symbol_table *simb_table; 
 extern struct triargtable **table_list;
-extern int g_var_id_num;//is known
+
 extern int g_table_list_size; 
 
 extern int get_index_of_temp(int expr);
