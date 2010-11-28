@@ -54,7 +54,14 @@ typedef enum
 
 typedef struct
 {
+    uint8_t fwdreg;
+    uint32_t fwddata;
+} FwdData;
+
+typedef struct
+{
     instr instruction;
+    FwdData ex_fwd, mem_fwd;
 } ID_input;
 
 typedef enum

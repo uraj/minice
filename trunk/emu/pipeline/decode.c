@@ -314,7 +314,7 @@ static int test_branch_cond(const PSW * cmsr, uint8_t condcode)
     }        
 }
 
-void D_phrase(StoreArch * storage, PipeState * pipe_state)
+void IDStage(StoreArch * storage, PipeState * pipe_state)
 {
     InstrFields ifields = get_fields(pipe_state->id_in.instruction);
     InstrType itype = get_instr_type(pipe_state->id_in.instruction);
@@ -344,6 +344,8 @@ void D_phrase(StoreArch * storage, PipeState * pipe_state)
         pipe_state->ex_in.nop = 0;
 
     pipe_state->ex_in.S = ifields.flags.S;
+    
+    /* data hazard not resolved yet */
     pipe_state->ex_in.operand1 = gen_operand1(&ifields, itype, storage);
     pipe_state->ex_in.operand2 = gen_operand2(&ifields, itype, storage);
 
@@ -359,7 +361,7 @@ void D_phrase(StoreArch * storage, PipeState * pipe_state)
     else
         pipe_state->ex_in.mulop = MulNop;
     
-    /* ALU has work to do in next EX stage */
+    /* ALU's execuation in next EX stage */
     pipe_state->ex_in.aluop = gen_ALUop(&ifields, itype);
     
     return;

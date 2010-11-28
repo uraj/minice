@@ -1,7 +1,7 @@
 #include <pipeline/fetch.h>
 #include <memory/vmem.h>
 
-void fetch(StoreArch * storage, PipeState * pipe_state)
+void IFStage(StoreArch * storage, PipeState * pipe_state)
 {
     uint32_t instr;
     mem_read(storage->reg[PC], &instr);
@@ -9,4 +9,3 @@ void fetch(StoreArch * storage, PipeState * pipe_state)
     storage->reg[PC] += 4;
     return;
 }
-
