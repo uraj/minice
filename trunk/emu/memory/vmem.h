@@ -23,17 +23,19 @@ typedef PTelem * L2PT;
 
 extern L2PT L1PageTable[L1PTSIZE];
 
-extern void mem_load(uint32_t addr, size_t size, const uint32_t * source, PageAttr flag);
+extern void vmem_load(uint32_t addr, size_t size, const uint32_t * source, PageAttr flag);
 
 /* 0: success
  * 1: mem readonly
  */
-extern int mem_write(uint32_t addr, uint32_t data);
+extern int vmem_write(uint32_t addr, uint32_t data);
 
 /* 0: success
  * 1: mem not allocated
  * 2: mem unreadable
  */
-extern int mem_read(uint32_t addr, uint32_t * dest);
+extern int vmem_read(uint32_t addr, uint32_t * dest);
+
+extern void vmem_free();
 
 #endif

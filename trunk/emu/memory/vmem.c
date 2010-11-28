@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int mem_read(uint32_t addr, uint32_t * dest)
+int vmem_read(uint32_t addr, uint32_t * dest)
 {
     if(L1PageTable[addr >> 22] == NULL)
         return 1;
@@ -15,7 +15,7 @@ int mem_read(uint32_t addr, uint32_t * dest)
     return 0;
 }
 
-int mem_write(uint32_t addr, uint32_t data)
+int vmem_write(uint32_t addr, uint32_t data)
 {
     int L1PTindex = addr >> 22;
     PTelem * ptelem;
@@ -49,7 +49,7 @@ int mem_write(uint32_t addr, uint32_t data)
     return 0;
 }
 
-void mem_load(uint32_t addr, size_t size, const uint32_t * source, PageAttr flag)
+void vmem_load(uint32_t addr, size_t size, const uint32_t * source, PageAttr flag)
 {
     int L1PTindex, L2PTindex;
     PTelem * ptelem;
@@ -71,6 +71,22 @@ void mem_load(uint32_t addr, size_t size, const uint32_t * source, PageAttr flag
         addr += wsize;
         source += wsize;
         size -= wsize;
+    }
+    return;
+}
+
+void vmem_free()
+{
+    int i, j;
+    for(i = 0; i < L1PTSIZE; ++i)
+    {
+        if(L1PageTable[i] != NULL)
+        {
+            for(j = 0; j < L2PTSIZE; ++j)
+                if(L1PageTable[i][j].flag != NAPage)
+                    free(L1PageTable[i][j].pageref);
+            free(L1PageTable[i]);
+        }
     }
     return;
 }
