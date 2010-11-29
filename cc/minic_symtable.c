@@ -33,6 +33,8 @@ struct symbol_table * symt_new()
 		t->head[i].value = NULL;
 		t->head[i].next = NULL;
 	}
+    t->arglist = NULL;
+    t->func = NULL
 	return t;
 }
 
@@ -185,6 +187,14 @@ void delete_valueinfo(struct value_info *v)
 	typet_free_typetree(v->type);
 	symt_delete(v->func_symt);
 	free(v);
+}
+
+void append_arglist(struct symbol_table *t , struct value_info *value)
+{
+     struct symt_node *app_node = (struct symt_node *)malloc(sizeof(struct symt_node));
+     app_node->value = value;
+     app_node->next = t->arglist;
+     t->arglist = app_node;
 }
 
 struct symbol_stack * syms_new()
