@@ -60,13 +60,13 @@ static inline void generate_gen_for_each(struct basic_block * block)
 		struct int index;
 		switch(expr -> op)
 		{
-			case Assign:
+			case Assign://Nullop?
 				if(expr -> arg1.type == IdArg)
 				{
 					index = get_index_of_id(expr -> arg1.idname);
-					id_info = get_info_from_index(index);
-					id_info -> latest_define = expr -> index;
+					local_var_id_flag[index] = expr -> index;
 				}
+
 				
 		temp_node = temp_node -> next;	
 	}
