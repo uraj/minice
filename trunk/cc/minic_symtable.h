@@ -7,14 +7,16 @@
 struct symbol_table;
 struct symt_node;
 struct syms_node;
+extern int g_var_id_num;
 
 
 struct value_info
 {
-	char *name;
-	enum modifier modi;
-	struct typetree *type;
-	struct symbol_table *func_symt;//if it is a function,the member head is its symbol table.Or,it is NULL
+     char *name;
+     enum modifier modi;
+     struct typetree *type;
+     struct symbol_table *func_symt;//if it is a function,the member head is its symbol table.Or,it is NULL
+     int no;
 };
 
 struct symt_node
@@ -50,6 +52,7 @@ struct symbol_stack
 extern int ELFhash(char *str);
 
 extern struct symbol_table * symt_new();/*modified*/
+extern void var_no_update(struct value_info *value);
 extern int symt_insert(struct symbol_table *t , struct value_info *value);
 extern void symt_delete(struct symbol_table *t);
 extern struct value_info * symt_search(struct symbol_table *t , char *name);
