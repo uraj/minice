@@ -211,7 +211,7 @@ static void generate_gen_for_all()
 				list_node = list_node -> next;
 			}
 			
-			for(
+			for()
 		}
 	}
 }

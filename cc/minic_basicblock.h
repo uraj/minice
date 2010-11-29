@@ -9,7 +9,7 @@
 struct var_list_node
 {
 	int var_map_index;
-	struct var_list * next;
+	struct var_list_node * next;
 };
 
 struct basic_block
