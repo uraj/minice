@@ -224,57 +224,6 @@ static uint32_t gen_operand2(const InstrFields * ifields, InstrType itype, Store
     return 0;
 }
 
-static ALUop gen_ALUop(const InstrFields * ifields, InstrType itype)
-{
-    uint8_t tmp_opcode = ifields->opcode;
-    if((itype == LS_RegOff) ||
-       (itype == LS_ImmOff) ||
-       (itype == LS_Hw_RegOff) ||
-       (itype == LS_Hw_ImmOff))
-    {
-        if((ifields->flags).U == 1)
-            tmp_opcode = 0xbU;
-        else
-            tmp_opcode = 0xaU;
-    }
-    switch(tmp_opcode)
-    {
-        case 0x0U:
-            return ALU_And;
-        case 0x1U:
-            return ALU_Xor;
-        case 0x2U:
-            return ALU_Sub;
-        case 0x3U:
-            return ALU_Rsb;
-        case 0x4U:
-            return ALU_Add;
-        case 0x5U:
-            return ALU_Adc;
-        case 0x6U:
-            return ALU_Sbc;
-        case 0x7U:
-            return ALU_Rsc;
-        case 0x8U:
-            return ALU_Cand;
-        case 0x9U:
-            return ALU_Cxor;
-        case 0xaU:
-            return ALU_Csub;
-        case 0xbU:
-            return ALU_Cadd;
-        case 0xcU:
-            return ALU_Or;
-        case 0xdU:
-            return ALU_Mov;
-        case 0xeU:
-            return ALU_Clb;
-        case 0xfU:
-            return ALU_Mvn;
-    }
-    return ALU_Nop;
-}
-
 static int test_branch_cond(const PSW * cmsr, uint8_t condcode)
 {
     switch(condcode)
@@ -314,34 +263,37 @@ static int test_branch_cond(const PSW * cmsr, uint8_t condcode)
     }        
 }
 
-void IDStage(StoreArch * storage, PipeState * pipe_state)
+/* retrun cycle count (including flush or stalling penalty) */
+int IDStage(StoreArch * storage, PipeState * pipe_state)
 {
     InstrFields ifields = get_fields(pipe_state->id_in.instruction);
     InstrType itype = get_instr_type(pipe_state->id_in.instruction);
     
     /* deal with branch first */
-    
     if(itype == Branch_Ex)
     {
-        pipe_state->ex_in.nop = 1; /* gen bubbles */
+        pipe_state->ex_in.bubble = 1; /* gen bubbles */
         if(ifields.flags.L == 1) /* Branch and link */
             storage->reg[RA] = storage->reg[PC];
         storage->reg[PC] = storage->reg[ifields.rm];
-        return;
+        storage->reg[PC] &= 0xfffffffc; /* PC word align */
+        return 2;
     }
     else if(itype == Branch_Cond)
     {
-        pipe_state->ex_in.nop = 1; /* gen bubbles */
+        pipe_state->ex_in.bubble = 1; /* gen bubbles */
         if(ifields.flags.L == 1) /* Branch and link */
             storage->reg[RA] = storage->reg[PC];
         if(test_branch_cond(&(storage->CMSR), ifields.cond))
         {
-            storage->reg[PC] = 1;
+            uint32_t offset = ifields.signed_off_imm24 << 2;
+            if((signed int)(offset << 6) < 0)
+                offset |= 0xfc000000U;
+            storage->reg[PC] += offset;
         }
-        return;
+        return 2;
     }
-    else
-        pipe_state->ex_in.nop = 0;
+
 
     pipe_state->ex_in.S = ifields.flags.S;
     
@@ -349,6 +301,7 @@ void IDStage(StoreArch * storage, PipeState * pipe_state)
     pipe_state->ex_in.operand1 = gen_operand1(&ifields, itype, storage);
     pipe_state->ex_in.operand2 = gen_operand2(&ifields, itype, storage);
 
+    pipe_state->ex_in.bubble = 0;
     /* then deal with multiply */
     if(itype == Multiply)
     {
@@ -356,13 +309,25 @@ void IDStage(StoreArch * storage, PipeState * pipe_state)
             pipe_state->ex_in.mulop = MulAdd;
         else
             pipe_state->ex_in.mulop = Mul;
-        return;
+        pipe_state->ex_in.aluopcode = ALU_NOP;
+        return 1;
     }
     else
         pipe_state->ex_in.mulop = MulNop;
     
     /* ALU's execuation in next EX stage */
-    pipe_state->ex_in.aluop = gen_ALUop(&ifields, itype);
+    if((itype == LS_RegOff) ||
+       (itype == LS_ImmOff) ||
+       (itype == LS_Hw_RegOff) ||
+       (itype == LS_Hw_ImmOff))
+    {
+        if((ifields.flags).U == 1)
+            pipe_state->ex_in.aluopcode =  0xbU;
+        else
+            pipe_state->ex_in.aluopcode =  0xaU;
+    }
+    else
+        pipe_state->ex_in.aluopcode = ifields.opcode;
     
-    return;
+    return 1;
 }

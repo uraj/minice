@@ -11,6 +11,7 @@ typedef enum
     RotateRight
 } ShiftType;
 
-extern void IDStage(StoreArch * storage, PipeState * pipe_state);
+/* retrun cycle count (including flush or stalling penalty) */
+extern int IDStage(StoreArch * storage, PipeState * pipe_state);
 
 #endif

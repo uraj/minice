@@ -64,27 +64,7 @@ typedef struct
     FwdData ex_fwd, mem_fwd;
 } ID_input;
 
-typedef enum
-{
-    ALU_Add,
-    ALU_Sub,
-    ALU_Mul,
-    ALU_And,
-    ALU_Xor,
-    ALU_Adc,
-    ALU_Sbc,
-    ALU_Rsb,
-    ALU_Rsc,
-    ALU_Cand,
-    ALU_Cxor,
-    ALU_Csub,
-    ALU_Cadd,
-    ALU_Or,
-    ALU_Mov,
-    ALU_Clb,
-    ALU_Mvn,
-    ALU_Nop
-} ALUop;
+#define ALU_NOP 0xffU
 
 typedef enum
 {
@@ -95,21 +75,22 @@ typedef enum
 
 typedef struct
 {
-    int nop;
-    uint32_t operand1, operand2;
-    int S;
-    ALUop aluop;
+    int bubble;
+    uint8_t aluopcode;
     MULop mulop;
+    int S;
+    uint32_t operand1, operand2;
     uint8_t rn, rm, rs, rd;
 } EX_input;
 
 typedef struct
 {
-    int nop;
+    int bubble;
 } MEM_input;
 
 typedef struct
 {
+    int bubble;
     int WBrn;
     uint32_t val_rn;
     uint8_t rn;
