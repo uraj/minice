@@ -8,12 +8,12 @@ static struct var_list *** ud_in;
 static struct var_list *** ud_out;
 static struct var_list *** ud_gen;
 
-static int set_cur_function(int function_index)
+static inline int set_cur_function(int function_index)
 {
 	cur_var_id_num = table_list[function_index] -> var_id_num;
 }
 
-static void new_temp_list()
+static inline void new_temp_list()
 {
 	ud_in = malloc(sizeof(struct var_list **) * g_block_num);
 	ud_out = malloc(sizeof(struct var_list **) * g_block_num);
@@ -27,7 +27,7 @@ static void new_temp_list()
 	}
 }
 
-static void free_temp_list()
+static inline void free_temp_list()
 {
 	int index;
 	for(index = 0; index < g_block_num; index ++)
@@ -41,7 +41,36 @@ static void free_temp_list()
 	free(ud_gen);
 }
 
-void ud_analyse(struct basic_block * block_head, int function_index)
+static inline void generate_gen_for_each(struct basic_block * block)
+{
+	struct triargexpr_list * temp_node = block -> head;
+	while(temp_node != NULL)
+	{
+		struct triargexpr * expr = temp_node -> entity;
+		struct var_info * id_info;
+		struct int index;
+		switch(expr -> op)
+		{
+			case Assign:
+				if(expr -> arg1.type == IdArg)
+				{
+					index = get_index_of_id(expr -> arg1.idname);
+					id_info = get_info_from_index(index);
+					id_info -> latest_define = expr -> index;
+					generate -> latest_define = 
+				}
+		temp_node = temp_node -> next;	
+	}
+}
+
+static void generate_gen_for_all()
+{
+	int index;
+	for(index = 0; index < g_block_num; index ++)
+		generate_gen_for_each(DFS_array[index]);
+}
+
+void ud_analyse(int function_index)
 {
 	set_cur_function(function_index);//set the function	
 	new_temp_list();

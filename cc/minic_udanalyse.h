@@ -6,8 +6,10 @@
 //ud_kill is not used in our method
 
 extern struct triargtable **table_list;
-
+extern struct basic_block ** DFS_array;
+extern int g_block_num;
+  
 extern void var_list_sort(struct var_list * list_array);
-extern void ud_analyse(struct basic_block * block_head);
+extern void ud_analyse(int function_index);/* The DFS_array should have been filled */
 
 #endif
