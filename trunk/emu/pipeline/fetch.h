@@ -3,6 +3,6 @@
 
 #include <pipeline/globdefs.h>
 
-extern void IFStage(StoreArch * storage, PipeState * pipe_state);
+extern int IFStage(StoreArch * storage, PipeState * pipe_state);
 
 #endif
