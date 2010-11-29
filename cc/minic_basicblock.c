@@ -12,7 +12,7 @@ static struct basic_block ** entry_index_to_block;//waste some space, but is mor
 static int cur_func_index;
 static struct basic_block_list * DFS_list = NULL;
 
-static void new_temp_list(int size)//called first
+static inline void new_temp_list(int size)//called first
 {
 	flag_list = malloc(sizeof(char) * size);
 	entry_index_to_block = malloc(sizeof(struct basic_block *) * size);
@@ -21,13 +21,13 @@ static void new_temp_list(int size)//called first
 	/* to make sure */
 }
 
-static void free_temp_list()
+static inline void free_temp_list()
 {
 	free(flag_list);
 	free(entry_index_to_block);
 }
 
-static struct basic_block_list * basic_block_list_append(struct basic_block_list * list, struct basic_block * newblock)//append block to the list
+static inline struct basic_block_list * basic_block_list_append(struct basic_block_list * list, struct basic_block * newblock)//append block to the list
 {
 	struct basic_block_list * newnode = malloc(sizeof(struct basic_block_list));
 	newnode -> entity = newblock;
@@ -155,7 +155,7 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 	}
 }
 
-static struct basic_block * new_block()
+static inline struct basic_block * new_block()
 {
 	struct basic_block * newblock = malloc(sizeof(struct basic_block));
 	newblock -> index = 0;
