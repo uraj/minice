@@ -7,6 +7,7 @@ static int cur_var_id_num;
 static struct var_list *** ud_in;
 static struct var_list *** ud_out;
 static struct var_list *** ud_gen;
+static int * local_var_id_flag;
 
 static inline int set_cur_function(int function_index)
 {
@@ -18,6 +19,7 @@ static inline void new_temp_list()
 	ud_in = malloc(sizeof(struct var_list **) * g_block_num);
 	ud_out = malloc(sizeof(struct var_list **) * g_block_num);
 	ud_gen = malloc(sizeof(struct var_list **) * g_block_num);
+	local_var_id_flag = malloc(sizeof(int) * cur_var_id_num); 
 	int index;
 	for(index = 0; index < g_block_num; index ++)
 	{
@@ -25,6 +27,11 @@ static inline void new_temp_list()
 		ud_out[index] = malloc(sizeof(struct var_list *) * cur_var_id_num);
 		ud_gen[index] = malloc(sizeof(struct var_list *) * cur_var_id_num);
 	}
+}
+
+static inline void clear_local_var_id_flag()
+{
+	memset(local_var_id_flag, 0, sizeof(int) * cur_var_id_num);
 }
 
 static inline void free_temp_list()
@@ -36,6 +43,7 @@ static inline void free_temp_list()
 		free(ud_out[index]);
 		free(ud_gen[index]);
 	}
+	free(local_var_id_flag);
 	free(ud_in);
 	free(ud_out);
 	free(ud_gen);
@@ -43,6 +51,7 @@ static inline void free_temp_list()
 
 static inline void generate_gen_for_each(struct basic_block * block)
 {
+	clear_local_var_id_flag();
 	struct triargexpr_list * temp_node = block -> head;
 	while(temp_node != NULL)
 	{
@@ -57,8 +66,8 @@ static inline void generate_gen_for_each(struct basic_block * block)
 					index = get_index_of_id(expr -> arg1.idname);
 					id_info = get_info_from_index(index);
 					id_info -> latest_define = expr -> index;
-					generate -> latest_define = 
 				}
+				
 		temp_node = temp_node -> next;	
 	}
 }

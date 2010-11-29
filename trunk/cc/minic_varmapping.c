@@ -49,7 +49,6 @@ static inline void free_map_bridge()//free the global table list
 static inline struct var_info *  new_var_info()
 {
 	struct var_info * new_info = malloc(sizeof(struct var_info));
-	new_info -> latest_define = -1;
 	new_info -> is_define = -1;
 	new_info -> is_use = -1;
 	new_info -> index =map_bridge_cur_index;
