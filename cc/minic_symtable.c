@@ -59,6 +59,12 @@ void symt_delete(struct symbol_table *t)
 	free(t);
 }
 
+void var_no_update(struct value_info *value)
+{
+	value->no = g_var_id_num;
+	g_var_id_num ++;
+}
+
 int symt_insert(struct symbol_table *t , struct value_info *value)
 {
 	if(t == NULL || value == NULL)
@@ -66,6 +72,7 @@ int symt_insert(struct symbol_table *t , struct value_info *value)
 	int index = ELFhash(value->name)%(t->size);
 	if(t->head[index].value == NULL)
 	{
+		var_no_update(value);
 		t->head[index].value = value;
 		return 1;
 	}
@@ -108,6 +115,7 @@ int symt_insert(struct symbol_table *t , struct value_info *value)
 		temp = temp->next;
 	}
 	struct symt_node *temp_node = (struct symt_node *)malloc(sizeof(struct symt_node));
+	var_no_update(value);
 	temp_node->value = value;
 	temp_node->next = NULL;
 	temp->next = temp_node;
