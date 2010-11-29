@@ -1,6 +1,8 @@
 #include "minic_flowanalyse.h"
 #include "minic_varmapping.h"
 #include "minic_triargexpr.h"
+#include "minic_symtable.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 /*extern basic_block **block_array;
@@ -396,20 +398,20 @@ static inline void analyse_expr_index(int expr_index , int type , int block_inde
 
 static void malloc_active_var()
 {
-     var_in = (struct var_list *)(malloc(sizeof(struct var_list)) * g_block_num);
-     var_out = (struct var_list *)(malloc(sizeof(struct var_list)) * g_block_num);
-     def = (struct var_list *)(malloc(sizeof(struct var_list)) * g_block_num);
-     use = (struct var_list *)(malloc(sizeof(struct var_list)) * g_block_num);
-     def_size = (int *)malloc(sizeof(int) * g_block_num);
-     use_size = (int *)malloc(sizeof(int) * g_block_num);
+     var_in = (struct var_list *)malloc((sizeof(struct var_list)) * g_block_num);
+     var_out = (struct var_list *)malloc((sizeof(struct var_list)) * g_block_num);
+     def = (struct var_list *)malloc((sizeof(struct var_list)) * g_block_num);
+     use = (struct var_list *)malloc((sizeof(struct var_list)) * g_block_num);
+     def_size = (int *)malloc((sizeof(int)) * g_block_num);
+     use_size = (int *)malloc((sizeof(int)) * g_block_num);
      
      int i;
      for(i = 0 ; i < g_block_num ; i++)
      {
-          var_in[i]->head = var_in[i]->tail = NULL;
-          var_out[i]->head = var_out[i]->tail = NULL;
-          def[i]->head = def[i]->tail = NULL;
-          use[i]->head = use[i]->tail = NULL;
+          var_in[i].head = var_in[i].tail = NULL;
+          var_out[i].head = var_out[i].tail = NULL;
+          def[i].head = def[i].tail = NULL;
+          use[i].head = use[i].tail = NULL;
           def_size[i] = use_size[i] = 0;
      }
 }
@@ -421,6 +423,19 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
      struct triargexpr_list *temp;
      for(i = 0 ; i < g_block_num ; i++)
      {
+          if(i == 0)//第一个块要把函数参数放入def[0]当中
+          {
+               struct symt_node *temp_value = curr_table->arglist;
+               int value_index;
+               while(1)
+               {
+                    if(temp_value == NULL)
+                         break;
+                    value_index = get_index_of_id(temp_value->value->name);
+                    var_list_append(def , value_index);
+                    temp_value = temp_value->next;
+               }
+          }
           temp = DFS_array[i]->head;
           while(temp != NULL)
           {
@@ -579,7 +594,7 @@ void analyse_actvar()//活跃变量分析
                case Deref:
                case Arglist:
                     add1 = -1;
-                    add2 = get_index_of_arg(&(temp_expr->entity->arg1);
+                    add2 = get_index_of_arg(&(temp_expr->entity->arg1));
                     push_changes_into_expr(temp_expr , del1 , del2 , add1 , add2);
                     del1 = -1;
                     del2 = get_index_of_temp(temp_expr->entity->index);
@@ -587,3 +602,8 @@ void analyse_actvar()//活跃变量分析
                default:
                     break;
                }
+          }
+     }
+}
+
+               
