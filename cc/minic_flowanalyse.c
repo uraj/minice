@@ -484,17 +484,3 @@ void solve_equa_ud()//求解活跃变量方程组
      }
 }
 
-extern void make_udlist();
-
-extern void equation_expr();
-
-extern void equation_var();
-extern void make_actvarlist();
-
-extern void add_set_local(point_list de , point_list add);//将de和add求并，结果在de中
-extern void add_set(point_list de , point_list a1 , point_list a2);//de=a1并a2
-extern void mul_set_local(point_list de , point_list add);//将de和add求交，结果在de中
-extern void mul_set(point_list de , point_list a1 , point_list a2);//de=a1交a2
-extern void sub_add_set(point_list de , point_list a , point_list b , point_list c);//集合de=(a-b)并c
-
-extern void free_point_list(point_list head);
