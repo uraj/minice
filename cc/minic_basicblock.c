@@ -6,11 +6,11 @@
 #include <string.h>
 
 //some local data
-char * flag_list;
-struct basic_block ** entry_index_to_block;//waste some space, but is more faster
+static char * flag_list;
+static struct basic_block ** entry_index_to_block;//waste some space, but is more faster
 //the two list are all temp, must be free at once after used.
-int cur_func_index;
-struct basic_block_list * DFS_list = NULL;
+static int cur_func_index;
+static struct basic_block_list * DFS_list = NULL;
 
 static void new_temp_list(int size)//called first
 {
