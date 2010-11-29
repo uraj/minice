@@ -10,6 +10,11 @@ static struct value_info * cur_func_info;//used only in varmap
 static int cur_expr_num;
 static int cur_var_id_num;
 
+static int * map_bridge;//connect index with var_info_index, the indexs are sequential. The length of the array is not sure.
+static int map_bridge_bound;
+static int map_bridge_cur_index;
+static struct var_info ** var_info_table;//var_info contains some flags, name is tmperary, shall be modified later
+
 static inline int set_cur_func(int func_index)
 {
 	if(func_index < g_table_list_size)//just in case
@@ -24,6 +29,76 @@ static inline int set_cur_func(int func_index)
 		printf("the index has overflow.");
 		return 0;
 	}
+}
+
+/* also need some functions for dynamic array ----- var_bridge*/
+static inline void new_map_bridge()
+{
+    map_bridge =
+        malloc(sizeof(int) * cur_var_id_num * 2);
+    map_bridge_bound = cur_var_id_num * 2;
+    map_bridge_cur_index = 0;
+}
+
+static inline void free_map_bridge()//free the global table list
+{
+    if(map_bridge != NULL)
+        free(map_bridge);
+}
+
+static inline struct var_info *  new_var_info()
+{
+	struct var_info * new_info = malloc(sizeof(struct var_info));
+	new_info -> latest_define = -1;
+	new_info -> is_define = -1;
+	new_info -> is_use = -1;
+	new_info -> index =map_bridge_cur_index;
+	return new_info;
+}
+
+int new_var_map(int func_index)
+{
+	if(!set_cur_func(func_index))
+		return 0;
+	var_info_table = malloc(sizeof(struct var_info *) * (cur_expr_num + cur_var_id_num));
+	int index = 0;
+	while(index < cur_var_id_num)//malloc var info for id
+		var_info_table[index++] = new_var_info();
+	new_map_bridge();
+	return 1;
+}
+
+void free_var_map()
+{
+	int i;
+	free_map_bridge();
+	for(i = 0; i < cur_expr_num + cur_var_id_num; i++)
+	{
+		if(var_info_table[i] != NULL)
+			free(var_info_table[i]);
+	}
+	free(var_info_table);
+}
+
+int insert_tempvar(int exprindex)
+{
+	if(var_info_table[exprindex + cur_var_id_num] != NULL)
+		return 0;
+	var_info_table[exprindex + cur_var_id_num] = new_var_info();
+	//malloc the flags in the var_info_table
+    if(map_bridge_cur_index >= map_bridge_bound)
+    {
+        int * tmp_map_bridge =
+            malloc(sizeof(int) * map_bridge_bound * 2);
+        memcpy(tmp_map_bridge, map_bridge,
+               sizeof(int) * map_bridge_bound); 
+        map_bridge_bound *= 2;
+        free(map_bridge);
+        map_bridge = tmp_map_bridge;
+    }
+    map_bridge[map_bridge_cur_index++] = exprindex + cur_var_id_num;
+	//total_var_num ++;
+	return 1;
 }
 
 int get_index_of_temp(int expr)
@@ -42,65 +117,10 @@ int get_index_of_id(char * idname)
 
 struct var_info * get_info_from_index(int index)
 {
+	if(index < 0 || index >= map_bridge_cur_index )
+		return NULL;
 	if(index < cur_var_id_num)
 		return var_info_table[index];
 	else
 		return var_info_table[map_bridge[cur_expr_num - cur_var_id_num]];
-}
-
-int new_var_map(int func_index)
-{
-	if(!set_cur_func(func_index))
-		return 0;
-	//cur_var_id_num = table_list[]
-	var_info_table = malloc(sizeof(struct var_info *) * (cur_expr_num + cur_var_id_num));
-	return 1;
-}
-
-void free_var_map()
-{
-	int i;
-	for(i = 0; i < cur_expr_num + cur_var_id_num; i++)
-	{
-		if(var_info_table[i] != NULL)
-			free(var_info_table[i]);
-	}
-	free(var_info_table);
-}
-
-/* also need some functions for dynamic array ----- var_bridge*/
-void new_map_bridge()
-{
-    map_bridge =
-        malloc(sizeof(int) * INITIALTEMPVARSIZE);
-    map_bridge_bound = INITIALTEMPVARSIZE;
-    map_bridge_cur_index = 0;
-}
-
-int insert_tempvar(int exprindex)
-{
-	if(var_info_table[exprindex + cur_var_id_num] != NULL)
-		return 0;
-	var_info_table[exprindex + cur_var_id_num] = malloc(sizeof(struct var_info));
-	var_info_table[exprindex + cur_var_id_num] -> index = map_bridge_cur_index;
-	//malloc the flags in the var_info_table
-    if(map_bridge_cur_index >= map_bridge_bound)
-    {
-        int * tmp_map_bridge =
-            malloc(sizeof(int) * map_bridge_bound * 2);
-        memcpy(tmp_map_bridge, map_bridge,
-               sizeof(int) * map_bridge_bound); 
-        map_bridge_bound *= 2;
-        free(map_bridge);
-        map_bridge = tmp_map_bridge;
-    }
-    map_bridge[map_bridge_cur_index++] = exprindex + cur_var_id_num;
-	//total_var_num ++;
-	return 1;
-}
-
-void free_map_bridge()//free the global table list
-{
-    if(map_bridge != NULL)
-        free(map_bridge);
 }

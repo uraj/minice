@@ -46,12 +46,6 @@ struct triargexpr_list *ghead, *gtail;/*the tmp indirect table*/
 struct triargexpr *gtriargexpr_table;/*the tmp direct table*/
 int gtriargexpr_table_index;/*the current index of the direct table*/
 int gtriargexpr_table_bound;/*the current capacity of the direct table*/
-
-int * map_bridge;/*connect index with var_info_index, the indexs are sequential.*/
-int map_bridge_bound;/* the current capacity of the bridge */
-//extern int total_var_num;//may be useful
-int map_bridge_cur_index;
-struct var_info ** var_info_table;//var_info contains some flags, name is tmperary, shall be modified later
 %}
 %locations
 %start program
