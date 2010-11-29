@@ -28,8 +28,9 @@ struct symt_node
 struct symbol_table
 {
      int size;
-     struct symt_node *head;
-     struct value_info *func;
+     struct symt_node *head;//hash表头
+     struct symt_node *arglist;//如果是函数的话，要有参数链
+     struct value_info *func;//便于从符号表找到他是什么函数的
 };
 
 struct value_type
@@ -62,6 +63,7 @@ extern struct value_info * new_valueinfo(char *name);/*modified*/
 extern struct value_type * new_valuetype(char *name);/*modified*/
 extern void delete_valuetype(struct value_type *v);
 extern void delete_valueinfo(struct value_info *v);
+extern void append_arglist(struct symbol_table *t , struct value_info *value);//函数参数放入符号表的时候会用到
 
 extern struct symbol_stack * syms_new();/*modified*/
 extern void syms_delete(struct symbol_stack *stack);
