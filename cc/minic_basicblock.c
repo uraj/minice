@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
+//#define COMPLETED
 //some local data
 static char * flag_list;
 static struct basic_block ** entry_index_to_block;//waste some space, but is more faster
@@ -46,7 +46,12 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 		expr = table[i];
 		switch(expr.op)
 		{
-			case Assign:					 /* = */	
+			case Assign:					 /* = */
+#ifdef	COMPLETED
+				if(expr.arg1.type == ExprArg)
+					insert_tempvar(expr.arg1.expr);
+#endif
+				break;//Current now, don't treat assign reference as real reference, can be optimizing some, and will be optimized some
 			case Eq:                         /* == */
 			case Neq:                        /* != */
 			case Ge:                         /* >= */
