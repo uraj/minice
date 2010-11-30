@@ -80,19 +80,10 @@ static InstrType get_instr_type(instr code)
     }
 }
 
-static uint32_t gen_operand1(const InstrFields * ifield, InstrType itype, StoreArch * storage)
+static int read_register(const StoreArch * storage, uint8_t reg_index, uint32_t * dest)
 {
-    
-    switch(itype)
-    {
-        case D_ImmShift:
-        case D_RegShift:
-        case D_Immidiate:
-            return storage->reg[ifield->rn];
-        default:
-            exit(1);
-    }
-    return 0;
+    *dest = storage->reg[reg_index];
+    return 0;  
 }
 
 static uint32_t operand2_shift(uint32_t base, uint8_t bias, ShiftType stype, int setMSR, PSW * MSR)
@@ -266,14 +257,13 @@ static int test_branch_cond(const PSW * cmsr, uint8_t condcode)
 }
 
 /* retrun cycle count (including flush or stalling penalty) */
+/* if retrun -1, pipeline stalls */
 int IDStage(StoreArch * storage, PipeState * pipe_state)
 {
     InstrFields ifields = get_fields(pipe_state->id_in.instruction);
     InstrType itype = get_instr_type(pipe_state->id_in.instruction);
-    pipe_state->ex_in.rn = ifields.rn;
-    pipe_state->ex_in.rd = ifields.rd;
-    pipe_state->ex_in.rs = ifields.rs;
-    pipe_state->ex_in.rm = ifields.rm;
+    int data_hazard;
+    uint32_t data;
 
     gen_control_signals(&ifields, itype, &(pipe_state->ex_in));
     
@@ -308,19 +298,59 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
     /* then deal with multiply */
     if(itype == Multiply)
     {
+        data_hazard = read_register(storage, ifields.rn, &data);
+        if(data_hazard)
+        {
+            pipe_state->ex_in.bubble = 1;
+            return -1;
+        }
+        pipe_state->ex_in.val_rn = data;
+        data_hazard = read_register(storage, ifields.rm, &data);
+        if(data_hazard)
+        {
+            pipe_state->ex_in.bubble = 1;
+            return -1;
+        }
+        pipe_state->ex_in.val_rm = data;
+        
         if(ifields.flags.A == 1)
+        {
             pipe_state->ex_in.mulop = MulAdd;
+            data_hazard = read_register(storage, ifields.rs, &data);
+            if(data_hazard)
+            {
+                pipe_state->ex_in.bubble = 1;
+                return -1;
+            }
+            pipe_state->ex_in.val_rs = data;
+        }
         else
             pipe_state->ex_in.mulop = Mul;
+        
         pipe_state->ex_in.aluopcode = ALU_NOP;
         return 1;
     }
     else
         pipe_state->ex_in.mulop = MulNop;
     
-    /* data hazard not resolved yet */
-    pipe_state->ex_in.operand1 = gen_operand1(&ifields, itype, storage);
-    pipe_state->ex_in.operand2 = gen_operand2(&ifields, itype, storage);
+    /* gen operand1. operand1 is always reg[rn] */
+    data_hazard = read_register(storage, ifields.rn, &data);
+    if(data_hazard)
+    {
+        pipe_state->ex_in.bubble = 1;
+        return -1;
+    }
+    else
+        pipe_state->ex_in.operand1 = data;
+    
+    data_hazard = gen_operand2(&ifields, itype, storage);
+    if(data_hazard)
+    {
+        pipe_state->ex_in.bubble = 1;
+        return -1;
+    }
+    else
+        pipe_state->ex_in.operand2 = data;
     
     /* ALU's execuation in next EX stage */
     if((itype == LS_RegOff) ||
