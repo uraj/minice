@@ -7,22 +7,18 @@ static uint32_t ALUcal(uint8_t aluopcode, uint32_t operand1, uint32_t operand2, 
     switch(aluopcode)
     {
         case 0x0U:              /* and */
-        case 0x8U:              /* cand */
             ret = operand1 & operand2;                
             break;
         case 0x1U:              /* xor */
-        case 0x9U:              /* cxor */
             ret = operand1 ^ operand2;
             break;
         case 0x2U:              /* sub */
-        case 0xaU:              /* csub */
             ret = operand1 - operand2;
             break;
         case 0x3U:              /* rsb */
             ret = operand2 - operand1;
             break;
         case 0x4U:              /* add */
-        case 0xbU:              /* cadd */
             ret = operand1 + operand2;
             break;
         case 0x5U:              /* adc */
@@ -130,32 +126,61 @@ static uint32_t ALUcal_setCMSR(uint8_t aluopcode, uint32_t operand1, uint32_t op
     return ret;
 }
 
+static uint32_t Mulcal(StoreArch * storage, const EX_input * ex_in)
+{
+    uint32_t ret;
+    switch(ex_in->mulop)
+    {
+        case Mul:
+            ret = storage->reg[ex_in->rn] * storage->reg[ex_in->rm];
+        case MulAdd:
+            ret =
+                storage->reg[ex_in->rn] *
+                storage->reg[ex_in->rm] +
+                storage->reg[ex_in->rs];
+        default:
+            exit(2);
+    }
+    if(ex_in->S)
+    {
+        storage->CMSR.N = ret >> 31;
+        storage->CMSR.Z = !ret;
+        storage->CMSR.C = 2;    /* C set to be undefined */
+    }
+    return ret;
+}
+
 int EXStage(StoreArch * storage, PipeState * pipe_state)
 {
+    uint32_t ex_ret;
     if(pipe_state->ex_in.bubble)
     {
         pipe_state->mem_in.bubble = 1;
         return 1;
     }
-    if(pipe_state->ex_in.mulop != MulNop)
-    {
-        Mul_cal();
+    else if(pipe_state->ex_in.mulop != MulNop)
+    {    
+        ex_ret = Mulcal(storage, &(pipe_state->ex_in));
+        pipe_state->mem_in.val_ex = ex_ret;
+        pipe_state->wb_in.val_ex = ex_ret;
         return 2;
     }
-    if(pipe_state->ex_in.aluopcode != ALU_NOP)
+    else if(pipe_state->ex_in.aluopcode != ALU_NOP)
     {
         if(pipe_state->ex_in.S)
-            ALUcal_setCMSR(
+            ex_ret = ALUcal_setCMSR(
                 pipe_state->ex_in.aluopcode,
                 pipe_state->ex_in.operand1,
                 pipe_state->ex_in.operand2,
                 &(storage->CMSR));
         else
-            ALUcal(
+            ex_ret = ALUcal(
                 pipe_state->ex_in.aluopcode,
                 pipe_state->ex_in.operand1,
                 pipe_state->ex_in.operand2,
                 &(storage->CMSR));
+        pipe_state->mem_in.val_ex = ex_ret;
+        pipe_state->wb_in.val_ex = ex_ret;
         return 1;
     }
     return 1;

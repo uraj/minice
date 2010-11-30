@@ -85,18 +85,24 @@ typedef struct
 
 typedef struct
 {
-    int bubble;
+    short bubble;
+    short addr_sel;
+    
+    /* addr_sel = 0 */
+    uint32_t val_ex;
+    /* addr_set = 1 */
+    uint32_t val_base;
 } MEM_input;
 
 typedef struct
 {
     int bubble;
+    int WBrd;
+    uint32_t val_ex;
+    uint8_t val_ex_dest;
     int WBrn;
-    uint32_t val_rn;
-    uint8_t rn;
-    int WBrm;
-    uint32_t val_rm;
-    uint8_t rm;
+    uint32_t val_mem;
+    uint8_t val_mem_dest;
 } WB_input;
 
 typedef struct
