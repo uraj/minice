@@ -32,19 +32,19 @@ static struct def_point_list * new_def_point_list()
 	int index;
 	for(index = 0; index < cur_var_id_num; index++)
 	{
-		if(local_var_id_flag != -1)
+		if(local_var_id_flag[index] != -1)
 		{
-			local_var_id_flag = -1;
+			local_var_id_flag[index] = -1;
 			tmpnode = malloc(sizeof(struct def_point_list));
-			tmpnode -> index = index;
+			tmpnode -> id_index = index;
 			tmpnode -> define_point = malloc(sizeof(struct var_list));
 			var_list_append(tmpnode -> define_point, local_var_id_flag[index]);
 			tmpnode -> next = NULL;
 			if(head == NULL)
-				head = tempnode;
+				head = tmpnode;
 			else
-				lastnode -> next = tempnode;
-			lastnode = tempnode;
+				lastnode -> next = tmpnode;
+			lastnode = tmpnode;
 		}
 	}
 	return head;//if no def, then return NULL
@@ -91,16 +91,16 @@ static void free_temp_list()
 static inline struct def_point_list * def_point_list_node_copy(struct def_point_list * list_node)//next is NULL
 {
 	struct def_point_list * new_node = malloc(sizeof(struct def_point_list));
-	newnode -> id_index = list_node -> id_index;
-	newnode -> define_point = malloc(sizeof(struct var_list));
-	var_list_copy(list_node -> define_point, new_node -> define_ponint);
-	newnode -> next = NULL;
+	new_node -> id_index = list_node -> id_index;
+	new_node -> define_point = malloc(sizeof(struct var_list));
+	var_list_copy(list_node -> define_point, new_node -> define_point);
+	new_node -> next = NULL;
 	return new_node;
 }
 
 static struct def_point_list * def_point_list_copy(struct def_point_list * list_head)
 {
-	struct def_point_list * head == NULL;
+	struct def_point_list * head = NULL;
 	struct def_point_list * temp_node = list_head;
 	struct def_point_list * last_node = NULL;
 	while(temp_node != NULL)
@@ -134,17 +134,12 @@ static struct def_point_list * def_point_list_merge(struct def_point_list * adde
 			return head;
 		else if(dest_cur_node == NULL)//head can't be NULL here, either 
 		{
-			while(adder_cur_node != NULL)
-			{
-				dest_new_node = def_point_list_node_copy(adder_cur_node);
-				dest_last_node -> next = dest_new_node;
-				dest_new_node -> next = dest_cur_node;
-				dest_last_node = dest_new_node;
-				adder_cur_node = adder_cur_node -> next;
-			}
+			if(adder_cur_node != NULL)
+				dest_new_node = def_point_list_copy(adder_cur_node);
+			dest_last_node -> next = dest_new_node;	
 			return head;
 		}
-		else if(adder_cur_node -> index < dest_cur_node -> index)
+		else if(adder_cur_node -> id_index < dest_cur_node -> id_index)
 		{
 			dest_new_node = def_point_list_node_copy(adder_cur_node);
 			if(head == NULL)
@@ -156,7 +151,7 @@ static struct def_point_list * def_point_list_merge(struct def_point_list * adde
 
 			adder_cur_node = adder_cur_node -> next;
 		}
-		else if(adder_cur_node -> index > dest_cur_node -> index)
+		else if(adder_cur_node -> id_index > dest_cur_node -> id_index)
 		{
 			if(head == NULL)
 				head = dest_cur_node;
@@ -173,6 +168,82 @@ static struct def_point_list * def_point_list_merge(struct def_point_list * adde
 			adder_cur_node = adder_cur_node -> next;
 		}
 	}
+}
+
+static struct def_point_list * def_point_list_sub_merge(struct def_point_list *cur_in, struct def_point_list * cur_gen)
+{
+	if(cur_gen == NULL)
+		return def_point_list_copy(cur_in);//if cur_in is NULL, will return NULL
+	else if(cur_in == NULL)
+		return def_point_list_copy(cur_gen);
+	
+	struct def_point_list * head = NULL;
+	struct def_point_list * in_cur_node = cur_in;
+	struct def_point_list * gen_cur_node = cur_gen;
+	struct def_point_list * out_last_node = NULL;
+	struct def_point_list * out_new_node = NULL;
+	
+	while(1)
+	{
+		if(gen_cur_node == NULL)//head can't be NULL here
+		{
+			if(in_cur_node != NULL)
+			{
+				out_new_node = def_point_list_copy(in_cur_node);
+				out_last_node -> next = out_new_node;
+			}
+			return head;
+		}
+		else if(in_cur_node == NULL)
+		{
+			if(gen_cur_node != NULL)
+			{
+				out_new_node = def_point_list_copy(gen_cur_node);
+				out_last_node -> next = out_new_node;
+			}
+			return head;
+		}
+		else if(in_cur_node -> id_index < gen_cur_node -> id_index)
+		{
+			out_new_node = def_point_list_node_copy(in_cur_node);
+			if(head == NULL)
+				head = out_new_node;
+			else out_last_node -> next = out_new_node;
+			out_last_node = out_new_node;
+			in_cur_node = in_cur_node -> next;
+		}
+		else
+		{
+			out_new_node = def_point_list_node_copy(gen_cur_node);
+			if(head == NULL)
+				head = out_new_node;
+			else out_last_node -> next = out_new_node;
+			out_last_node = out_new_node;
+			gen_cur_node = gen_cur_node -> next;
+			
+			if(in_cur_node -> id_index == gen_cur_node -> id_index)
+				in_cur_node = in_cur_node -> next;
+		}	
+	}	
+}
+
+static int def_point_list_is_equal(struct def_point_list * first_list, struct def_point_list * second_list)
+{
+	if(first_list == NULL && second_list == NULL)
+		return 1;
+	struct def_point_list * first_tmp = first_list, * second_tmp = second_list;
+	while(first_tmp != NULL && second_tmp != NULL)
+	{
+		if(first_tmp -> id_index != second_tmp -> id_index)
+			return 0;
+		else if(var_list_isequal(first_tmp -> define_point, second_tmp -> define_point) != 1)
+			return 0;
+		first_tmp = first_tmp -> next;
+		second_tmp = second_tmp -> next;
+	}
+	if(first_tmp == NULL && second_tmp == NULL)
+		return 1;
+	else return 0;
 }
 
 static struct def_point_list * generate_gen_for_each(struct basic_block * block)
@@ -197,6 +268,13 @@ static void generate_gen_for_all()
 {
 	int index;
 	for(index = 0; index < g_block_num; index ++)
+		ud_gen[index] = generate_gen_for_each(DFS_array[index]);	
+}
+
+static void generate_in_out_for_all()
+{
+	int index;
+	for(index = 0; index < g_block_num; index ++)
 		ud_out[index] = def_point_list_copy(generate_gen_for_each(DFS_array[index]));
 	int change = 1;
 	while(change)
@@ -207,21 +285,20 @@ static void generate_gen_for_all()
 			struct basic_block_list * list_node = DFS_array[index] -> prev;
 			while(list_node != NULL)
 			{
-				in[index] = def_point_list_merge(out[list_node -> entity-> index], in[index]);
+				ud_in[index] = def_point_list_merge(ud_out[list_node -> entity-> index], ud_in[index]);
 				list_node = list_node -> next;
 			}
-			
-			for()
+
+			struct def_point_list * newout;
+			newout = def_point_list_sub_merge(ud_in[index], ud_gen[index]);
+			if(def_point_list_is_equal(newout, ud_out[index]) != 1)
+			{
+				change = 1;
+				def_point_list_free(ud_out[index]);
+				ud_out[index] = newout;//see what the function is next
+			}
 		}
 	}
-}
-
-static void generate_in_out_for_all()
-{
-	int index;
-	for(index = 0; index < g_block_num; index++)
-		ud_out[index] = ud_gen[index];
-
 }
 
 void ud_analyse(int function_index)
