@@ -64,7 +64,6 @@ extern struct value_info * new_valueinfo(char *name);/*modified*/
 extern struct value_type * new_valuetype(char *name);/*modified*/
 extern void delete_valuetype(struct value_type *v);
 extern void delete_valueinfo(struct value_info *v);
-extern void append_arglist(struct symbol_table *t , struct value_info *value);//函数参数放入符号表的时候会用到
 
 extern struct symbol_stack * syms_new();/*modified*/
 extern void syms_delete(struct symbol_stack *stack);
