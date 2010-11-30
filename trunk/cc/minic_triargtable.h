@@ -34,6 +34,7 @@ extern struct triargtable **table_list;
 extern int g_var_id_num;//the visible id num for cur func
 extern int g_global_id_num;//the global id num
 
+extern int g_table_list_size;//the size of the table list
 //function for index_to_list
 extern struct triargexpr_list ** new_index_to_list();//Malloc and redirect
 

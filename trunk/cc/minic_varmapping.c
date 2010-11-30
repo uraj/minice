@@ -60,6 +60,7 @@ int new_var_map(int func_index)
 	if(!set_cur_func(func_index))
 		return 0;
 	var_info_table = malloc(sizeof(struct var_info *) * (cur_expr_num + cur_var_id_num));
+	memset(var_info_table, 0, sizeof(struct var_info *) * (cur_expr_num + cur_var_id_num));
 	int index = 0;
 	while(index < cur_var_id_num)//malloc var info for id
 		var_info_table[index++] = new_var_info();

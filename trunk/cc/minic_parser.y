@@ -609,9 +609,12 @@ int main(int argc, char* argv[])
 	new_global_table();/*new global table for current function*/
 	yyparse();
 	fclose(yyin);
-	make_fd(1);//test
-	/* g_table_list_size = table_list_index; */
-	free_global_table();/*there should be a extra tmp table*/
+	free_global_table();/*there should be an extra tmp table, and g_table_list_size is set in this*/
+	int i;
+	for(i = 0; i <= g_table_list_size; i++)
+	{
+		make_fd(i);
+	}
     syms_delete(parm_stack);
     syms_delete(type_stack);
     symt_delete(curr_table);

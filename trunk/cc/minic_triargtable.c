@@ -126,6 +126,7 @@ void free_global_table()//specially for the extra table
 	ghead = NULL;
 	gtail = NULL;
 	gtriargexpr_table_bound = 0;
+	g_table_list_size = table_list_index;//record the table list size
 }
 
 struct taexpr_list_header * new_taexprlist(int begin, int end)
