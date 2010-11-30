@@ -139,6 +139,7 @@ void def_insert_func(char * name, struct symbol_stack * parm_stack, struct symbo
     struct typetree * tmptype;
     newinfo = new_valueinfo(name);
     newinfo -> type = typet_new_type(Function);
+    start_arglist();
     while(parm_stack -> top != NULL)
     {
         parmvalue = syms_pop(parm_stack);
@@ -155,7 +156,8 @@ void def_insert_func(char * name, struct symbol_stack * parm_stack, struct symbo
         newinfo -> type -> parm_list = parmtype;
         newinfo -> type -> parm_list -> next_parm = tmptype;
     }
- 
+    end_arglist();
+    
     if(pointer_type == Pointer)
     {
         newinfo -> type -> return_type = typet_new_type(Pointer);
