@@ -24,3 +24,5 @@ new:
 
 17.Deal with pointer
 18.Deal with Nullop in udanalyse
+19.Same arg name in arglist? should be a symtable too?
+20.Unknow error.....

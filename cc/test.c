@@ -1,6 +1,7 @@
-int b(int k)
+int b()
 {
-	k = k + 1;
+	int k;
+	k =  k + 1;
 	return k;
 }
 
