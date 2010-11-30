@@ -1,8 +1,9 @@
 #include <pipeline/decode.h>
+#include <pipeline/control.h>
 #include <stdlib.h>
 
 #define GET_FIELD(code, hi, lo)                         \
-    (((code) >> (lo)) & (0x7fffffff >> 31 -((hi)-(lo) + 1)))
+    (((code) >> (lo)) & (0x7fffffff >> (31 - (hi)+ (lo) - 1)))
 
 static InstrFields get_fields(instr instruction)
 {
@@ -219,6 +220,8 @@ static uint32_t gen_operand2(const InstrFields * ifields, InstrType itype, Store
             return
                 (((uint32_t)(ifields->high_off)) << 5) |
                 (((uint32_t)(ifields->low_off)));
+        default:
+            ;
     }
     return 0;
 }
@@ -271,6 +274,8 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
     pipe_state->ex_in.rd = ifields.rd;
     pipe_state->ex_in.rs = ifields.rs;
     pipe_state->ex_in.rm = ifields.rm;
+
+    gen_control_signals(&ifields, itype, &(pipe_state->ex_in));
     
     /* deal with branch first */
     if(itype == Branch_Ex)
@@ -279,7 +284,7 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
         if(ifields.flags.L == 1) /* Branch and link */
             storage->reg[RA] = storage->reg[PC];
         storage->reg[PC] = storage->reg[ifields.rm];
-        storage->reg[PC] &= 0xfffffffc; /* PC word align */
+        storage->reg[PC] &= 0xfffffffcU; /* PC word align */
         return 2;
     }
     else if(itype == Branch_Cond)
@@ -330,6 +335,6 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
     }
     else
         pipe_state->ex_in.aluopcode = ifields.opcode;
-    
+
     return 1;
 }
