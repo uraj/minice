@@ -34,7 +34,7 @@ struct symbol_table * symt_new()
 		t->head[i].next = NULL;
 	}
     t->arglist = NULL;
-    t->func = NULL
+    t->func = NULL;
 	return t;
 }
 
@@ -189,7 +189,7 @@ void delete_valueinfo(struct value_info *v)
 	free(v);
 }
 
-void append_arglist(struct symbol_table *t , struct value_info *value)
+void append_arglist(struct symbol_table *t , struct value_info *value)//same arg name?
 {
      struct symt_node *app_node = (struct symt_node *)malloc(sizeof(struct symt_node));
      app_node->value = value;
