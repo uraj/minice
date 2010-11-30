@@ -404,23 +404,18 @@ static void malloc_active_var()
 
 static void initial_active_var()//活跃变量分析的初始化部分def和use
 {
-     int i , j;
+     int i;
      
      struct triargexpr_list *temp;
      for(i = 0 ; i < g_block_num ; i++)
      {
           if(i == 0)//第一个块要把函数参数放入def[0]当中
           {
-               struct symt_node *temp_value = curr_table->arglist;
-               int value_index;
-               while(1)
-               {
-                    if(temp_value == NULL)
-                         break;
-                    value_index = get_index_of_id(temp_value->value->name);
-                    var_list_append(def , value_index);
-                    temp_value = temp_value->next;
-               }
+               int start = curr_table->arg_no_min;
+               int end = curr_table->arg_no_max;
+               int j;
+               for(j = start ; j < end ; j++)
+                    var_list_append(def , j);
           }
           temp = DFS_array[i]->head;
           while(temp != NULL)

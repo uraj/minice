@@ -41,13 +41,4 @@ extern void var_list_inter(struct var_list *inter , struct var_list *dest);//将
 //extern void solve_equa_ud();//解活跃变量分析方程组
 extern void analyse_actvar();//活跃变量分析
 
-/*extern void sort_list(point_list head , int size);//将一个定值点链表或者变量编号链表排序
-extern void add_set_local(point_list de , point_list add);//将de和add求并，结果在de中
-extern void add_set(point_list de , point_list a1 , point_list a2);//de=a1并a2
-extern void mul_set_local(point_list de , point_list add);//将de和add求交，结果在de中
-extern void mul_set(point_list de , point_list a1 , point_list a2);//de=a1交a2
-extern void sub_add_set(point_list de , point_list a , point_list b , point_list c);//集合de=(a-b)并c
-
-extern void free_point_list(point_list head);*/
-
 #endif
