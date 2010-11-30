@@ -132,12 +132,9 @@ static uint32_t Mulcal(StoreArch * storage, const EX_input * ex_in)
     switch(ex_in->mulop)
     {
         case Mul:
-            ret = storage->reg[ex_in->rn] * storage->reg[ex_in->rm];
+            ret = ex_in->val_rn * ex_in->val_rm;
         case MulAdd:
-            ret =
-                storage->reg[ex_in->rn] *
-                storage->reg[ex_in->rm] +
-                storage->reg[ex_in->rs];
+            ret = ex_in->val_rn * ex_in->val_rm + ex_in->val_rs;
         default:
             exit(2);
     }
@@ -152,35 +149,50 @@ static uint32_t Mulcal(StoreArch * storage, const EX_input * ex_in)
 
 int EXStage(StoreArch * storage, PipeState * pipe_state)
 {
-    uint32_t ex_ret;
     if(pipe_state->ex_in.bubble)
     {
         pipe_state->mem_in.bubble = 1;
         return 1;
     }
-    else if(pipe_state->ex_in.mulop != MulNop)
+    FwdData ex_fwd;
+    ex_fwd.freg = pipe_state->ex_in.wb_val_ex_dest;
+    
+    /* push control signals */
+    pipe_state->mem_in.addr_sel = pipe_state->ex_in.mem_addr_sel;
+    pipe_state->mem_in.data_size = pipe_state->ex_in.mem_data_size;
+    pipe_state->mem_in.sign_ext = pipe_state->ex_in.mem_sign_ext;
+    
+    pipe_state->mem_in.wb_dest_sel = pipe_state->ex_in.wb_dest_sel;
+    pipe_state->mem_in.wb_val_ex_dest = pipe_state->ex_in.wb_val_ex_dest;
+    pipe_state->mem_in.wb_val_mem_dest = pipe_state->ex_in.wb_val_mem_dest;
+
+    if(pipe_state->ex_in.mulop != MulNop)
     {    
-        ex_ret = Mulcal(storage, &(pipe_state->ex_in));
-        pipe_state->mem_in.val_ex = ex_ret;
-        pipe_state->wb_in.val_ex = ex_ret;
+        ex_fwd.fdata = Mulcal(storage, &(pipe_state->ex_in));
+        pipe_state->mem_in.val_ex = ex_fwd.fdata;
+        pipe_state->wb_in.val_ex = ex_fwd.fdata;
+        /* data forwading */
+        pipe_state->id_in.ex_fwd = ex_fwd;
         return 2;
     }
     else if(pipe_state->ex_in.aluopcode != ALU_NOP)
     {
         if(pipe_state->ex_in.S)
-            ex_ret = ALUcal_setCMSR(
+            ex_fwd.fdata = ALUcal_setCMSR(
                 pipe_state->ex_in.aluopcode,
                 pipe_state->ex_in.operand1,
                 pipe_state->ex_in.operand2,
                 &(storage->CMSR));
         else
-            ex_ret = ALUcal(
+            ex_fwd.fdata = ALUcal(
                 pipe_state->ex_in.aluopcode,
                 pipe_state->ex_in.operand1,
                 pipe_state->ex_in.operand2,
                 &(storage->CMSR));
-        pipe_state->mem_in.val_ex = ex_ret;
-        pipe_state->wb_in.val_ex = ex_ret;
+        pipe_state->mem_in.val_ex = ex_fwd.fdata;
+        pipe_state->wb_in.val_ex = ex_fwd.fdata;
+        /* data forwarding */
+        pipe_state->id_in.ex_fwd = ex_fwd;
         return 1;
     }
     return 1;

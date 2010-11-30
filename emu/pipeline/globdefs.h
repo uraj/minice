@@ -54,8 +54,8 @@ typedef enum
 
 typedef struct
 {
-    uint8_t fwdreg;
-    uint32_t fwddata;
+    uint8_t freg;
+    uint32_t fdata;
 } FwdData;
 
 typedef struct
@@ -74,8 +74,18 @@ typedef struct
     short S;
     uint8_t aluopcode;
     MULop mulop;
-    uint32_t operand1, operand2;
-    uint8_t rn, rm, rs, rd;
+    union
+    {
+        uint32_t operand1;
+        uint32_t val_base;
+        uint32_t val_rn;
+    };
+    union
+    {
+        uint32_t operand2;
+        uint32_t val_rm;
+    };
+    uint32_t val_rs;
 
     /* the following will be pushed to MEM Stage */
     short mem_addr_sel;
@@ -100,7 +110,7 @@ typedef struct
     short data_size;
     short sign_ext;
     uint32_t val_ex;            /* from EX stage */
-    uint32_t val_base;          /* from EX stage */
+    uint32_t val_base;          /* from val_rn in EX stage */
     
     /* the following will be pushed to WB stage */
     int wb_dest_sel;
