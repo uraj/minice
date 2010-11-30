@@ -137,7 +137,7 @@ struct taexpr_list_header * new_taexprlist(int begin, int end)
 	newnode -> entity = &gtriargexpr_table[i];
 	newnode -> prev = NULL;
 	newnode -> next = NULL;
-	newnode -> active_var = NULL;//may need more list later
+//	newnode -> active_var = NULL;//may need more list later
 	i++;
 	while(i <= end)
 	{
@@ -147,7 +147,7 @@ struct taexpr_list_header * new_taexprlist(int begin, int end)
 		newnode -> prev = lastnode;
 		lastnode -> next = newnode;
 		newnode -> next = NULL;
-		newnode -> active_var = NULL;
+//		newnode -> active_var = NULL;
 	}
 	new_list -> tail = newnode;
 	new_list -> nextlist = NULL;
