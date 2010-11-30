@@ -1,10 +1,11 @@
 #include "minic_basicblock.h"
 #include "minic_triargtable.h"
 #include "minic_triargexpr.h"
+#include "minic_varmapping.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-//#define COMPLETED
+#define COMPLETED
 //some local data
 static char * flag_list;
 static struct basic_block ** entry_index_to_block;//waste some space, but is more faster
@@ -367,6 +368,7 @@ static void print_fd()
 struct basic_block * make_fd(int function_index)
 {
 	cur_func_index = function_index;
+	new_var_map(function_index);
 	new_temp_list(table_list[function_index] -> expr_num);	
 	g_block_num = 0;	
 	scan_for_entry(table_list[function_index] -> table, table_list[function_index] -> expr_num);
@@ -376,5 +378,8 @@ struct basic_block * make_fd(int function_index)
 	print_fd();
 #endif
 	free_temp_list();
+	free_var_map();	
 	return head;
 }
+
+
