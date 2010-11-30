@@ -9,7 +9,7 @@ struct symt_node;
 struct syms_node;
 
 extern int g_var_id_num;
-extern symbol_table *curr_table;
+extern struct symbol_table *curr_table;
 
 struct value_info
 {
