@@ -59,6 +59,10 @@ extern int symt_insert(struct symbol_table *t , struct value_info *value);
 extern void symt_delete(struct symbol_table *t);
 extern struct value_info * symt_search(struct symbol_table *t , char *name);
 extern struct value_info * symbol_search(struct symbol_table *whole , struct symbol_table *curfunc , char *name);
+extern void start_arglist();//参数开始计数
+extern void end_arglist(); 
+
+
 
 extern struct value_info * new_valueinfo(char *name);/*modified*/
 extern struct value_type * new_valuetype(char *name);/*modified*/
