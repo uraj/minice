@@ -66,43 +66,65 @@ typedef struct
 
 #define ALU_NOP 0xffU
 
-typedef enum
-{
-    Mul,
-    MulAdd,
-    MulNop
-} MULop;
+typedef enum { Mul, MulAdd, MulNop } MULop;
 
 typedef struct
 {
-    int bubble;
+    short bubble;
+    short S;
     uint8_t aluopcode;
     MULop mulop;
-    int S;
     uint32_t operand1, operand2;
     uint8_t rn, rm, rs, rd;
+
+    /* the following will be pushed to MEM Stage */
+    short mem_addr_sel;
+    short mem_data_size;
+    short mem_sign_ext;
+    
+    short wb_dest_sel;
+    uint8_t wb_val_ex_dest;
+    uint8_t wb_val_mem_dest;
 } EX_input;
 
 typedef struct
 {
     short bubble;
+    /* addr_sel = 0: addr = val_ex */
+    /* addr_sel = 1: addr = val_base */
+    /* addr_sel = 2: addr undefined(no mem acsess) */
     short addr_sel;
+    /* data_size = 4: word */
+    /* data_size = 2: half word */
+    /* data_size = 1: byte */
+    short data_size;
+    short sign_ext;
+    uint32_t val_ex;            /* from EX stage */
+    uint32_t val_base;          /* from EX stage */
     
-    /* addr_sel = 0 */
-    uint32_t val_ex;
-    /* addr_set = 1 */
-    uint32_t val_base;
+    /* the following will be pushed to WB stage */
+    int wb_dest_sel;
+    uint8_t wb_val_ex_dest;
+    uint8_t wb_val_mem_dest;
+    
 } MEM_input;
 
 typedef struct
 {
-    int bubble;
-    int WBrd;
-    uint32_t val_ex;
+    short bubble;
+
+    /* dest_sel = 0: wb val_ex */
+    /* dest_sel = 1: wb val_mem */
+    /* dest_sel = 2: both */
+    /* dest_sel = 3: neither */
+    short dest_sel;
+    
     uint8_t val_ex_dest;
-    int WBrn;
-    uint32_t val_mem;
     uint8_t val_mem_dest;
+    
+    uint32_t val_ex;            /* from EX stage */
+    uint32_t val_mem;           /* from MEM stage */
+
 } WB_input;
 
 typedef struct
