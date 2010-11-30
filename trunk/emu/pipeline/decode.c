@@ -87,7 +87,6 @@ static uint32_t gen_operand1(const InstrFields * ifield, InstrType itype, StoreA
         case D_ImmShift:
         case D_RegShift:
         case D_Immidiate:
-        case Multiply:
             return storage->reg[ifield->rn];
         default:
             exit(1);
@@ -268,6 +267,10 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
 {
     InstrFields ifields = get_fields(pipe_state->id_in.instruction);
     InstrType itype = get_instr_type(pipe_state->id_in.instruction);
+    pipe_state->ex_in.rn = ifields.rn;
+    pipe_state->ex_in.rd = ifields.rd;
+    pipe_state->ex_in.rs = ifields.rs;
+    pipe_state->ex_in.rm = ifields.rm;
     
     /* deal with branch first */
     if(itype == Branch_Ex)
@@ -294,14 +297,9 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
         return 2;
     }
 
-
+    pipe_state->ex_in.bubble = 0;
     pipe_state->ex_in.S = ifields.flags.S;
     
-    /* data hazard not resolved yet */
-    pipe_state->ex_in.operand1 = gen_operand1(&ifields, itype, storage);
-    pipe_state->ex_in.operand2 = gen_operand2(&ifields, itype, storage);
-
-    pipe_state->ex_in.bubble = 0;
     /* then deal with multiply */
     if(itype == Multiply)
     {
@@ -314,6 +312,10 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
     }
     else
         pipe_state->ex_in.mulop = MulNop;
+    
+    /* data hazard not resolved yet */
+    pipe_state->ex_in.operand1 = gen_operand1(&ifields, itype, storage);
+    pipe_state->ex_in.operand2 = gen_operand2(&ifields, itype, storage);
     
     /* ALU's execuation in next EX stage */
     if((itype == LS_RegOff) ||
