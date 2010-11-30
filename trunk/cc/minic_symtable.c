@@ -33,7 +33,8 @@ struct symbol_table * symt_new()
 		t->head[i].value = NULL;
 		t->head[i].next = NULL;
 	}
-    t->arglist = NULL;
+    t->arg_no_min = 0;
+    t->arg_no_max = 0;
     t->func = NULL;
 	return t;
 }
@@ -189,12 +190,14 @@ void delete_valueinfo(struct value_info *v)
 	free(v);
 }
 
-void append_arglist(struct symbol_table *t , struct value_info *value)//same arg name?
+void start_arglist()//参数开始计数
 {
-     struct symt_node *app_node = (struct symt_node *)malloc(sizeof(struct symt_node));
-     app_node->value = value;
-     app_node->next = t->arglist;
-     t->arglist = app_node;
+     curr_table->arg_no_min = g_var_id_num;
+}
+
+void end_arglist()//参数计数结束
+{
+     curr_table->arg_no_max = g_var_id_num;
 }
 
 struct symbol_stack * syms_new()
