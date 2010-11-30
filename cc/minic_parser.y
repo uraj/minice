@@ -611,7 +611,7 @@ int main(int argc, char* argv[])
 	fclose(yyin);
 	free_global_table();/*there should be an extra tmp table, and g_table_list_size is set in this*/
 	int i;
-	for(i = 0; i <= g_table_list_size; i++)
+	for(i = 0; i < g_table_list_size; i++)
 	{
 		make_fd(i);
 	}

@@ -300,12 +300,17 @@ static void trans_to_array()//DFS_array should be free later
 	DFS_array = malloc(sizeof(struct basic_block *) * g_block_num);
 	int index = 0;
 	struct basic_block_list * list_node = DFS_list;
+	struct basic_block_list * tmp_node = NULL;
 	while(list_node != NULL)
 	{
+		//printf("%d\n", index);
+		//if(index == 7)
+		//	printf("%d", list_node -> next);
 		list_node -> entity -> index = index;
 		DFS_array[index++] = list_node -> entity;
-		free(list_node);
+		tmp_node = list_node;
 		list_node = list_node -> next;
+		free(tmp_node);
 	}
 
 	for(index = 0; index < g_block_num; index++)
