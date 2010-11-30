@@ -13,6 +13,7 @@
 #include "minic_triargtable.h"
 #include "minic_triargexpr.h"
 #include "minic_basicblock.h"
+#include "minic_flowanalyse.h"
 /* #define DEBUG */
 /* #define SHOWBNF */
 /* #define SHOWLOCALCODE */
@@ -610,11 +611,17 @@ int main(int argc, char* argv[])
 	yyparse();
 	fclose(yyin);
 	free_global_table();/*there should be an extra tmp table, and g_table_list_size is set in this*/
-	int i;
-	for(i = 0; i < g_table_list_size; i++)
-	{
-		make_fd(i);
-	}
+	int i = 0;
+    struct value_info *cur_func_info;
+//	for(i = 0; i < g_table_list_size; i++)
+//	{
+    cur_func_info = symt_search(simb_table ,table_list[i] -> funcname);
+    char *s = table_list[i] -> funcname;
+    printf("%s\n",s);
+    curr_table = cur_func_info->func_symt;
+    make_fd(i);
+    analyse_actvar();
+//	}
     syms_delete(parm_stack);
     syms_delete(type_stack);
     symt_delete(curr_table);

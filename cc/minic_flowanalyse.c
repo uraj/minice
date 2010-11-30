@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define SHOWACTVAR 1
+
 static struct var_list *var_in;
 struct var_list *var_out;
 static struct var_list *def;
@@ -111,6 +113,7 @@ inline void var_list_clear(struct var_list *list)
 
 inline void var_list_append(struct var_list *list , int num)
 {
+     printf("append ");//*********************************
      if(list == NULL)
           list = (struct var_list *)malloc(sizeof(struct var_list *));
 	if(list->head == NULL && list->tail != NULL)
@@ -139,6 +142,7 @@ inline void var_list_append(struct var_list *list , int num)
 
 inline void var_list_insert(struct var_list_node *cur , int num)
 {
+     printf("insert ");//*********************************8
 	struct var_list_node *in_node = (struct var_list_node *)malloc(sizeof(struct var_list_node));
 	in_node->var_map_index = num;
 	in_node->next = NULL;
@@ -336,10 +340,18 @@ void var_list_inter(struct var_list *inter , struct var_list *dest)//dest = inte
 
 static inline void analyse_map_index(int i , int type , int block_index)
 {
+     printf("%d " , i);//**************************
+     if(type == DEFINE)//**************************
+          printf("DEFINE\n");
+     else
+          printf("USE\n");//**********************
      struct var_info *temp;
      temp = get_info_from_index(i);
      if(temp == NULL)
+     {
+          printf("Can't get var_info of map_id %d\n" , i);//*********************8
           return;
+     }
      if(type == DEFINE)
      {
           temp->is_define = block_index;
@@ -364,9 +376,15 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
 {
      int i;
      if(arg->type == IdArg)
+     {
           i = get_index_of_id(arg->idname);
+          printf("%d->%s\n" , i , arg->idname);//*****************************
+     }
      else if(arg->type == ExprArg)
+     {
           i = get_index_of_temp(arg->expr);
+          printf("%d->expr%d\n" , i , arg->expr);//*************************
+     }
      else
           return;
      if(i == -1)
@@ -420,6 +438,7 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
           temp = DFS_array[i]->head;
           while(temp != NULL)
           {
+               print_triargexpr(*(temp->entity));
                switch(temp->entity->op)//没考虑指针和函数调用时的参数部分
                {
                case Assign:
@@ -475,7 +494,7 @@ static void solve_equa_ud()//求解活跃变量方程组
      while(change)
      {
           change = 0;
-          for(i = g_block_num ; i >= 1 ; i--)
+          for(i = g_block_num - 1; i >= 0 ; i--)
           {
                //var_out[Bi] = +var_in[s];s属于NEXT[Bi]
                temp_block = DFS_array[i]->next;
@@ -498,6 +517,17 @@ static void solve_equa_ud()//求解活跃变量方程组
      }
      for(i = 0 ; i < g_block_num ; i++)//解方程组后，def，use和var_in都没用了
      {
+#ifdef SHOWACTVAR
+          printf("DEF %d :" , i);
+          var_list_print(def + i);
+          printf("USE %d :" , i);
+          var_list_print(use + i);
+          printf("VIN %d :" , i);
+          var_list_print(var_in + i);
+          printf("OUT %d :" , i);
+          var_list_print(var_out + i);
+          printf("\n");
+#endif
           var_list_free_bynode(def[i].head);
           var_list_free_bynode(use[i].head);
           var_list_free_bynode(var_in[i].head);
@@ -544,10 +574,16 @@ void analyse_actvar()//活跃变量分析
      malloc_active_var();//活跃变量分析相关的数组空间分配
      initial_active_var();//完成活跃变量分析的初始化部分，生成def和use
      solve_equa_ud();//求解活跃变量方程组，得到var_in和var_out
+#ifdef SHOWACTVAR
+     struct var_list show_list;
+#endif
      for(i = 0 ; i < g_block_num ; i++)
      {
           struct triargexpr_list *temp_expr = DFS_array[i]->tail;
-          while(temp_expr == NULL)
+#ifdef SHOWACTVAR
+          var_list_copy(var_out + i , &show_list);
+#endif
+          while(temp_expr != NULL)
           {
                int add1 , add2 , del1 = -1 , del2 = -1;
                switch(temp_expr->entity->op)
@@ -592,6 +628,69 @@ void analyse_actvar()//活跃变量分析
                default:
                     break;
                }
+#ifdef SHOWACTVAR
+               struct var_list_node *former , *cur;
+               int d = 0 , a = 2 , del , add;
+               cur = former = show_list.head;
+               if(cur == NULL)
+                    printf("%d NO ACTIVE VAR!\n" , temp_expr->entity->index);
+               else
+               {
+                    while(temp_expr->actvar_change[d] == -1 && d < 2)
+                         d++;
+                    while(temp_expr->actvar_change[a] == -1 && a < 4)
+                         a++;
+                    while(former != show_list.tail)
+                    {
+                         if(d < 2)
+                         {
+                              if((temp_expr->actvar_change[d]) == (cur->var_map_index))
+                              {
+                                   if(cur == show_list.head)
+                                   {
+                                        show_list.head = cur->next;
+                                        free(cur);
+                                        cur = former = show_list.head;
+                                   }
+                                   else
+                                   {
+                                        var_list_delete(former , cur);
+                                        cur = former->next;
+                                   }
+                                   d++;
+                                   continue;
+                              }
+                         }
+                         if(a < 4)
+                         {
+                              if((temp_expr->actvar_change[a]) == (cur->var_map_index))
+                                   a++;
+                              else if((temp_expr->actvar_change[a]) > (cur->var_map_index))
+                              {
+                                   if(former == show_list.head)
+                                   {
+                                        struct var_list_node *add_head = (struct var_list_node *)malloc(sizeof(struct var_list_node));
+                                        add_head->var_map_index = temp_expr->actvar_change[a];
+                                        add_head->next = show_list.head;
+                                        show_list.head = add_head;
+                                        former = cur = show_list.head;
+                                   }
+                                   else
+                                   {
+                                        var_list_insert(former , temp_expr->actvar_change[a]);
+                                        cur = former->next;
+                                   }
+                                   a++;
+                              }
+                         }
+                         printf("%d " , cur->var_map_index);
+                         former = cur;
+                         cur = cur->next;
+                    }
+                    printf("\n");
+               }
+#endif
+               temp_expr = temp_expr->prev;
           }
      }
 }
