@@ -5,26 +5,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/*extern basic_block **block_array;
-
-typedef struct adjlist *point_list;//记录定值点的链表节点
-extern point_list *gen;
-extern point_list *kill;
-extern point_list *in;
-extern point_list *out;
-
-typedef struct adjlist *expr_list;//记录三元式编号的链表节点
-extern expr_list *expr_gen;
-extern expr_list *expr_kill;
-extern expr_list *expr_in;
-extern expr_list *expr_out;
-
-
-extern var_list *var_in;
-extern var_list *var_out;
-extern var_list *def;
-extern var_list *use;*/
-
+static struct var_list *var_in;
+struct var_list *var_out;
+static struct var_list *def;
+static struct var_list *use;
+static int *def_size;
+static int *use_size;
 
 static inline int compare (const void * a, const void * b) 
 {
@@ -515,6 +501,15 @@ static void solve_equa_ud()//求解活跃变量方程组
                }
           }
      }
+     for(i = 0 ; i < g_block_num ; i++)//解方程组后，def，use和var_in都没用了
+     {
+          var_list_free_bynode(def[i].head);
+          var_list_free_bynode(use[i].head);
+          var_list_free_bynode(var_in[i].head);
+     }
+     free(def);
+     free(use);
+     free(var_in);
 }
 
 static inline int get_index_of_arg(struct triarg *arg)

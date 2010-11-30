@@ -2,7 +2,6 @@
 #define __MINIC_FLOW_ANALYSE_H__
 
 #include "minic_basicblock.h"
-#include "minic_regalloc.h"
 #include "minic_symtable.h"
 
 #define DEFINE 0
@@ -14,27 +13,9 @@ struct var_list
      struct var_list_node *tail;
 };
 
-/*extern basic_block **block_array;
-
-typedef struct adjlist *point_list;//记录定值点的链表节点
-extern point_list *gen;
-extern point_list *kill;
-extern point_list *in;
-extern point_list *out;
-
-typedef struct adjlist *expr_list;//记录三元式编号的链表节点
-extern expr_list *expr_gen;
-extern expr_list *expr_kill;
-extern expr_list *expr_in;
-extern expr_list *expr_out;*/
-struct symbol_table *curr_table;
-
-extern struct var_list *var_in;
 extern struct var_list *var_out;
-extern struct var_list *def;
-extern struct var_list *use;
-extern int *def_size;
-extern int *use_size;
+
+extern struct symbol_table *curr_table;
 
 extern void var_list_sort(struct var_list *list_array , int size);//将一个定值点链表或者变量编号链表排序
 extern void var_list_free_bynode(struct var_list_node *head);//给定一个节点，释放node以后的链
