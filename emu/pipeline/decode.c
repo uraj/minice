@@ -362,6 +362,17 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
             pipe_state->ex_in.aluopcode =  0xbU;
         else
             pipe_state->ex_in.aluopcode =  0xaU;
+        if(ifields.flags.L == 0) /* store instruction */
+        {
+            data_hazard = read_register(storage, ifields.rd, &data);
+            if(data_hazard)
+            {
+                pipe_state->ex_in.bubble = 1;
+                return -1;
+            }
+            else
+                pipe_state->ex_in.val_rd = data;
+        }
     }
     else
         pipe_state->ex_in.aluopcode = ifields.opcode;

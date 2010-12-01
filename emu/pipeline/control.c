@@ -34,6 +34,7 @@ void gen_control_signals(const InstrFields * ifields, InstrType itype, EX_input 
         case LS_ImmOff:
             ex_in->bubble = 0;
             ex_in->wb_val_mem_dest = ifields->rd;
+            ex_in->mem_load = ifields->flags.L;
             
             if(ifields->flags.B == 1)
             {
@@ -67,6 +68,7 @@ void gen_control_signals(const InstrFields * ifields, InstrType itype, EX_input 
             ex_in->bubble = 0;
             ex_in->wb_val_mem_dest = ifields->rd;
             ex_in->mem_sign_ext = ifields->flags.LSsign;
+            ex_in->mem_load = ifields->flags.L;
             
             if(ifields->flags.LShalf == 1)
                 ex_in->mem_data_size = 2;
