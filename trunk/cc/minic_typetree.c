@@ -79,9 +79,9 @@ void typet_free_typetree(struct typetree * oldtype)
         typet_free_typetree(oldtype -> return_type);
     else if(oldtype -> next_parm != NULL)
         typet_free_typetree(oldtype -> next_parm);
-    if(oldtype -> base_type != NULL && oldtype -> base_type != 1)//**************************
+    if(oldtype -> base_type != NULL)// && oldtype -> base_type != 1)//**************************
         typet_free_typetree(oldtype -> base_type);
-    else if(oldtype -> parm_list != NULL && oldtype -> parm_list != 1)//***********************
+        else if(oldtype -> parm_list != NULL) && oldtype -> parm_list != 1)//***********************
         typet_free_typetree(oldtype -> parm_list);
 	free(oldtype);
     return;
