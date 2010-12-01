@@ -113,7 +113,7 @@ inline void var_list_clear(struct var_list *list)
 
 inline void var_list_append(struct var_list *list , int num)
 {
-     printf("append %d\n" , num);//*********************************
+     printf("append %d " , num);//*********************************
      if(list == NULL)
           list = (struct var_list *)malloc(sizeof(struct var_list *));
 	if(list->head == NULL && list->tail != NULL)
@@ -340,7 +340,6 @@ void var_list_inter(struct var_list *inter , struct var_list *dest)//dest = inte
 
 static inline void analyse_map_index(int i , int type , int block_index)
 {
-     printf("%d " , i);//**************************
      if(type == DEFINE)//**************************
           printf("DEFINE ");
      else
@@ -370,7 +369,7 @@ static inline void analyse_map_index(int i , int type , int block_index)
                use_size[block_index]++;
           }
      }
-	 printf("\n");
+     printf("\n");
 }
 
 static inline void analyse_arg(struct triarg *arg , int type , int block_index)//活跃变量分析中的内存分配函数
@@ -379,12 +378,12 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
      if(arg->type == IdArg)
      {
           i = get_index_of_id(arg->idname);
-          printf("%d->%s " , i , arg->idname);//*****************************
+          printf("      mapid:%d->idname:%s " , i , arg->idname);//*****************************
      }
      else if(arg->type == ExprArg)
      {
           i = get_index_of_temp(arg->expr);
-          printf("%d->expr%d " , i , arg->expr);//*************************
+          printf("      mapid:%d->expr:%d " , i , arg->expr);//*************************
      }
      else
           return;
@@ -398,7 +397,7 @@ static inline void analyse_expr_index(int expr_index , int type , int block_inde
      int i = get_index_of_temp(expr_index);
      if(i == -1)
           return;
-	 printf("%d->expr%d " , i , expr_index);
+	 printf("      mapid:%d->expr:%d " , i , expr_index);
      analyse_map_index(i ,type , block_index);
 }
 
@@ -425,10 +424,11 @@ static void malloc_active_var()
 static void initial_active_var()//活跃变量分析的初始化部分def和use
 {
      int i;
-     
+     printf("id_num:%d\n" , g_var_id_num);
      struct triargexpr_list *temp;
      for(i = 0 ; i < g_block_num ; i++)
      {
+          printf("block:%d\n" , i);
           if(i == 0)//第一个块要把函数参数放入def[0]当中
           {
                int start = curr_table->arg_no_min;
@@ -440,7 +440,11 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
           temp = DFS_array[i]->head;
           while(temp != NULL)
           {
+               /**/
                print_triargexpr(*(temp->entity));
+               int k = get_index_of_temp(temp->entity->index);
+               printf("      mapid:%d->expr:%d\n" , k , temp->entity->index);
+               /**/
                switch(temp->entity->op)//没考虑指针和函数调用时的参数部分
                {
                case Assign:
@@ -473,13 +477,19 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                     analyse_expr_index(temp->entity->index , DEFINE , i);
                     analyse_arg(&(temp->entity->arg1) , USE , i);
                     break;
+               case TrueJump:
+               case FalseJump:
+                    analyse_arg(&(temp->entity->arg1) , USE , i);
+                    break;
                default:
                     break;
                }
+               
                temp = temp->next;
           }
           var_list_sort(def + i , def_size[i]);//when DEFs and USEs are made
           var_list_sort(use + i , use_size[i]);//sort them so that we can op
+          printf("\n");
      }
      free(def_size);
      free(use_size);

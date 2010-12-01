@@ -51,7 +51,6 @@ static inline struct var_info *  new_var_info()
 	struct var_info * new_info = malloc(sizeof(struct var_info));
 	new_info -> is_define = -1;
 	new_info -> is_use = -1;
-	new_info -> index =map_bridge_cur_index;
 	return new_info;
 }
 
@@ -63,7 +62,10 @@ int new_var_map(int func_index)
 	memset(var_info_table, 0, sizeof(struct var_info *) * (cur_expr_num + cur_var_id_num));
 	int index = 0;
 	while(index < cur_var_id_num)//malloc var info for id
-		var_info_table[index++] = new_var_info();
+    {
+		var_info_table[index] = new_var_info();
+        var_info_table[index++]->index = map_bridge_cur_index;
+    }
 	new_map_bridge();
 	return 1;
 }
@@ -86,6 +88,9 @@ int insert_tempvar(int exprindex)
 	if(var_info_table[exprindex + cur_var_id_num] != NULL)
 		return 0;
 	var_info_table[exprindex + cur_var_id_num] = new_var_info();
+	var_info_table[exprindex + cur_var_id_num] -> index = map_bridge_cur_index + cur_var_id_num;
+    if(var_info_table[exprindex + cur_var_id_num] -> index == 5)//*******************
+         printf("expr%d****5" , exprindex);//************************
 	//malloc the flags in the var_info_table
     if(map_bridge_cur_index >= map_bridge_bound)
     {
@@ -119,7 +124,7 @@ int get_index_of_id(char * idname)
 struct var_info * get_info_from_index(int index)
 {
   //   printf("index:%d max:%d\n" , index , map_bridge_cur_index);//****************************
-	if(index < 0 || index >= map_bridge_cur_index )
+     if(index < 0 || index >= (map_bridge_cur_index + cur_var_id_num))
 		return NULL;
 	if(index < cur_var_id_num)
 		return var_info_table[index];
