@@ -611,11 +611,11 @@ int main(int argc, char* argv[])
 	yyparse();
 	fclose(yyin);
 	free_global_table();/*there should be an extra tmp table, and g_table_list_size is set in this*/
-	int i = 1;
+	int i = 0;
     struct value_info *cur_func_info;
 //	for(i = 0; i < g_table_list_size; i++)
 //	{
-	printf("%s\n", table_list[0] -> funcname);
+	printf("%s\n", table_list[i] -> funcname);
     cur_func_info = symt_search(simb_table ,table_list[i] -> funcname);
     curr_table = cur_func_info->func_symt;
     make_fd(i);

@@ -292,12 +292,7 @@ struct subexpr_info triargexpr_gen(struct ast* root)
             break;
 
         case Uplus:
-            ret = triargexpr_gen(root -> left);
-            break;
-            
         case Uminus:
-            break;
-            
         case Plusplus:
         case Minusminus:
         case Ref:
