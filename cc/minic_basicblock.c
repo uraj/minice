@@ -27,9 +27,11 @@ static inline void free_temp_list()
 	free(flag_list);
 	free(entry_index_to_block);
 }
-
+static int lala;//**************
 static inline struct basic_block_list * basic_block_list_append(struct basic_block_list * list, struct basic_block * newblock)//append block to the list
 {
+	lala++;/**/
+	printf("%d\n", lala);/**/
 	struct basic_block_list * newnode = malloc(sizeof(struct basic_block_list));
 	newnode -> entity = newblock;
 	newnode -> next = NULL;
@@ -375,7 +377,8 @@ struct basic_block * make_fd(int function_index)
 	cur_func_index = function_index;
 	new_var_map(function_index);//********************************
 	new_temp_list(table_list[function_index] -> expr_num);	
-	g_block_num = 0;	
+	g_block_num = 0;
+	lala = 0;//*************888
 	scan_for_entry(table_list[function_index] -> table, table_list[function_index] -> expr_num);
 	struct basic_block * head = make_block(table_list[function_index] -> head);
 	trans_to_array();

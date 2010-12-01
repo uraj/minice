@@ -4,6 +4,7 @@ int b()
 	k =  k + 1;
 	return k;
 }
+
 int loop()
 {
 	int a, c;

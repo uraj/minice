@@ -113,7 +113,7 @@ inline void var_list_clear(struct var_list *list)
 
 inline void var_list_append(struct var_list *list , int num)
 {
-     printf("append ");//*********************************
+     printf("append %d\n" , num);//*********************************
      if(list == NULL)
           list = (struct var_list *)malloc(sizeof(struct var_list *));
 	if(list->head == NULL && list->tail != NULL)
@@ -342,9 +342,9 @@ static inline void analyse_map_index(int i , int type , int block_index)
 {
      printf("%d " , i);//**************************
      if(type == DEFINE)//**************************
-          printf("DEFINE\n");
+          printf("DEFINE ");
      else
-          printf("USE\n");//**********************
+          printf("USE ");//**********************
      struct var_info *temp;
      temp = get_info_from_index(i);
      if(temp == NULL)
@@ -370,6 +370,7 @@ static inline void analyse_map_index(int i , int type , int block_index)
                use_size[block_index]++;
           }
      }
+	 printf("\n");
 }
 
 static inline void analyse_arg(struct triarg *arg , int type , int block_index)//活跃变量分析中的内存分配函数
@@ -378,12 +379,12 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
      if(arg->type == IdArg)
      {
           i = get_index_of_id(arg->idname);
-          printf("%d->%s\n" , i , arg->idname);//*****************************
+          printf("%d->%s " , i , arg->idname);//*****************************
      }
      else if(arg->type == ExprArg)
      {
           i = get_index_of_temp(arg->expr);
-          printf("%d->expr%d\n" , i , arg->expr);//*************************
+          printf("%d->expr%d " , i , arg->expr);//*************************
      }
      else
           return;
@@ -397,6 +398,7 @@ static inline void analyse_expr_index(int expr_index , int type , int block_inde
      int i = get_index_of_temp(expr_index);
      if(i == -1)
           return;
+	 printf("%d->expr%d " , i , expr_index);
      analyse_map_index(i ,type , block_index);
 }
 
@@ -630,7 +632,7 @@ void analyse_actvar()//活跃变量分析
                }
 #ifdef SHOWACTVAR
                struct var_list_node *former , *cur;
-               int d = 0 , a = 2 , del , add;
+               int d = 0 , a = 2;
                cur = former = show_list.head;
                if(cur == NULL)
                     printf("%d NO ACTIVE VAR!\n" , temp_expr->entity->index);
