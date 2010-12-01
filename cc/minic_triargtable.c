@@ -437,40 +437,62 @@ struct taexpr_list_header * while_list_merge(struct subexpr_info * condition, st
 struct taexpr_list_header * for_list_merge(struct subexpr_info * init_expr,struct subexpr_info * cond_expr,
                                            struct subexpr_info * change_expr, struct taexpr_list_header * loopbody)
 {
-//order:init->cond->change->loopbody->goto_cond
+//order:init->cond->loopbody->change->goto_cond
      struct taexpr_list_header * temp_header = new_taexprlist(init_expr->begin , init_expr->end);
 	 struct taexpr_list_header * cond_header = new_taexprlist(cond_expr->begin , cond_expr->end); 
-	 struct taexpr_list_header * change_header = new_taexprlist(change_expr->begin , change_expr->end); 
-	 struct triargexpr_list * goto_expr_list = (struct triargexpr_list *)malloc(sizeof(struct triargexpr_list));
-     int loop_index = cond_expr->begin;
-     
+	 struct taexpr_list_header * change_header = new_taexprlist(change_expr->begin , change_expr->end);
+     struct triargexpr_list * goto_expr_list = (struct triargexpr_list *)malloc(sizeof(struct triargexpr_list));
+     int cond_expr_index = cond_expr->begin;
+
      struct triargexpr goto_expr;//the last UncondJump tri_expr
      goto_expr.op = UncondJump;
      goto_expr.width = -1;
      goto_expr.arg1.type = ExprArg;
-     goto_expr.arg1.expr = loop_index;
+     goto_expr.arg1.expr = cond_expr_index;
      int goto_index = insert_triargexpr(goto_expr);//insert the UncondJump tri_expr to the table 
      goto_expr_list->entity = gtriargexpr_table + goto_index;
+     
+     if(init_expr->arithtype == 0)//如果初始化表达式或者改变表达式是逻辑表达式，要把他们的truelist和falselist合并成nextlist，并回填
+     {
+          temp_header->nextlist = patch_list_merge(init_expr->truelist , init_expr->falselist);
+          patch_list_backpatch(temp_header->nextlist , cond_expr_index);//初始化表达式的下一步是条件判断
+     }
+     if(change_expr->arithtype == 0)
+     {
+          change_header->nextlist = patch_list_merge(change_expr->truelist , change_expr->falselist);
+          patch_list_backpatch(change_header->nextlist , cond_expr_index);//变化表达式下一步也是条件判断，这样省略了UncondJump
+     }
 
      //this part is to merge the for part and the last UncondJump tri_expr
      temp_header->tail->next = cond_header->head;
      cond_header->head->prev = temp_header->tail;
      temp_header->tail = cond_header->tail;//merge initial part and condition part
+
+     int cond_true_to_index;//计算条件正确时的跳转位置，如果循环体为空，则跳转到变化表达式
+     if(loopbody == NULL)
+          cond_true_to_index = change_expr->begin;
+     else
+          cond_true_to_index = loopbody->head->entity->index;
      if(cond_expr->arithtype == 0)//condition is a bool expression
      {
           temp_header->nextlist = cond_expr->falselist;//the direct table's nextlist is the condition part's falselist
-          patch_list_backpatch(cond_expr->truelist , change_expr->begin);//if the condition is true,goto the change part
+          patch_list_backpatch(cond_expr->truelist , cond_true_to_index);//if the condition is true,goto the change part
      }
      else if(cond_expr->arithtype == 1)//condition is an arithmetic expression
      {
-          struct triargexpr arith_goto;
+          struct triargexpr arith_goto;//如果条件是算术表达式，需要加一条语句：FalseJump arg1 nextlist
           arith_goto.op = FalseJump;
           arith_goto.width = -1;
-          arith_goto.arg1 = cond_expr->subexpr_arg;
+          arith_goto.arg1 = cond_expr->subexpr_arg;//arg1就是条件表达式变成链的最后一条语句
           arith_goto.arg2.type = ExprArg;
           arith_goto.arg2.expr = -1;
-          struct triargexpr_list * arith_goto_list = (struct triargexpr_list *)malloc(sizeof(struct triargexpr_list));
           int arith_goto_index = insert_triargexpr(arith_goto);
+          temp_header->nextlist = (struct patch_list *)malloc(sizeof(struct patch_list));
+          temp_header->nextlist->index = arith_goto_index;//nextlist也就是该for语句的nextlist
+          temp_header->nextlist->next = NULL;
+          
+          //将FalseJump arg1 nextlist封装成triargexpr_list，穿成链
+          struct triargexpr_list * arith_goto_list = (struct triargexpr_list *)malloc(sizeof(struct triargexpr_list));
           arith_goto_list->entity = gtriargexpr_table + arith_goto_index;
           temp_header->tail->next = arith_goto_list;//
           arith_goto_list->prev = temp_header->tail;
@@ -481,7 +503,7 @@ struct taexpr_list_header * for_list_merge(struct subexpr_info * init_expr,struc
      if(loopbody == NULL)
           goto after_loop;
           
-     patch_list_backpatch(loopbody -> nextlist, loop_index); 
+     patch_list_backpatch(loopbody -> nextlist, change_expr->begin); 
 	 
      temp_header->tail->next = loopbody->head;
      loopbody->head->prev = temp_header->tail;
@@ -492,12 +514,11 @@ after_loop:
      change_header->head->prev = temp_header->tail;
      temp_header->tail = change_header->tail;//append the change part
 
-     temp_header->tail->next = goto_expr_list;//
+     temp_header->tail->next = goto_expr_list;//最后加上UncondJump con_expr_index
      goto_expr_list->prev = temp_header->tail;
      goto_expr_list->next = NULL;
      temp_header->tail = goto_expr_list;
-    	 
-	 
+     
      free_taexprlist(cond_header);
      free_taexprlist(change_header);
      free_taexprlist(loopbody);
