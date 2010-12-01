@@ -85,14 +85,19 @@ typedef struct
         uint32_t operand2;
         uint32_t val_rm;
     };
-    uint32_t val_rs;
-
-    /* the following will be pushed to MEM Stage */
-    short mem_addr_sel;
-    short mem_data_size;
-    short mem_sign_ext;
+    union
+    {
+        uint32_t val_rd;        /* for store */
+        uint32_t val_rs;        /* for multiply */
+    };
     
-    short wb_dest_sel;
+    /* the following will be pushed to MEM Stage */
+    uint8_t mem_load;
+    uint8_t mem_addr_sel;
+    uint8_t mem_data_size;
+    uint8_t mem_sign_ext;
+    
+    uint8_t wb_dest_sel;
     uint8_t wb_val_ex_dest;
     uint8_t wb_val_mem_dest;
 } EX_input;
@@ -100,17 +105,24 @@ typedef struct
 typedef struct
 {
     short bubble;
+    
+    /* load = 0: store */
+    /* load = 1: load */
+    uint8_t load;
+    
     /* addr_sel = 0: addr = val_ex */
     /* addr_sel = 1: addr = val_base */
     /* addr_sel = 2: addr undefined(no mem acsess) */
-    short addr_sel;
+    uint8_t addr_sel;
+    
     /* data_size = 4: word */
     /* data_size = 2: half word */
     /* data_size = 1: byte */
-    short data_size;
-    short sign_ext;
+    uint8_t data_size;
+    uint8_t sign_ext;
     uint32_t val_ex;            /* from EX stage */
     uint32_t val_base;          /* from val_rn in EX stage */
+    uint32_t val_store;         /* from val_rd in EX stage */
     
     /* the following will be pushed to WB stage */
     int wb_dest_sel;

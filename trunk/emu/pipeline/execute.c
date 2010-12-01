@@ -158,9 +158,13 @@ int EXStage(StoreArch * storage, PipeState * pipe_state)
     ex_fwd.freg = pipe_state->ex_in.wb_val_ex_dest;
     
     /* push control signals */
+    pipe_state->mem_in.load = pipe_state->ex_in.mem_load;
     pipe_state->mem_in.addr_sel = pipe_state->ex_in.mem_addr_sel;
     pipe_state->mem_in.data_size = pipe_state->ex_in.mem_data_size;
     pipe_state->mem_in.sign_ext = pipe_state->ex_in.mem_sign_ext;
+
+    pipe_state->mem_in.val_base = pipe_state->ex_in.val_base;
+    pipe_state->mem_in.val_store = pipe_state->ex_in.val_rd;
     
     pipe_state->mem_in.wb_dest_sel = pipe_state->ex_in.wb_dest_sel;
     pipe_state->mem_in.wb_val_ex_dest = pipe_state->ex_in.wb_val_ex_dest;
@@ -171,6 +175,7 @@ int EXStage(StoreArch * storage, PipeState * pipe_state)
         ex_fwd.fdata = Mulcal(storage, &(pipe_state->ex_in));
         pipe_state->mem_in.val_ex = ex_fwd.fdata;
         pipe_state->wb_in.val_ex = ex_fwd.fdata;
+        
         /* data forwading */
         pipe_state->id_in.ex_fwd = ex_fwd;
         return 2;
@@ -191,6 +196,7 @@ int EXStage(StoreArch * storage, PipeState * pipe_state)
                 &(storage->CMSR));
         pipe_state->mem_in.val_ex = ex_fwd.fdata;
         pipe_state->wb_in.val_ex = ex_fwd.fdata;
+        
         /* data forwarding */
         pipe_state->id_in.ex_fwd = ex_fwd;
         return 1;

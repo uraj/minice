@@ -73,7 +73,7 @@ void load_elf_segments(FILE * file, Elf32_Ehdr ehdr)
                 default:
                     exit(1);
             }
-            mem_load(phdrtable[i].p_vaddr, size, buffer, flag);
+            vmem_load(phdrtable[i].p_vaddr, size, buffer, flag);
             free(buffer);
         }
     }

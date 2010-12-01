@@ -2,8 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-int vmem_read(uint32_t addr, uint32_t * dest)
+int mem_read_direct(uint32_t addr, uint32_t * dest)
 {
+    /* alignment */
+    addr & = 0xfffffffc;
+    
     if(L1PageTable[addr >> 22] == NULL)
         return 1;
     PTelem * ptelem = &L1PageTable[addr >> 22][(addr >> 12) & 0x3ff];
@@ -15,8 +18,11 @@ int vmem_read(uint32_t addr, uint32_t * dest)
     return 0;
 }
 
-int vmem_write(uint32_t addr, uint32_t data)
+int mem_write_direct(uint32_t addr, uint32_t data)
 {
+    /* alignment */
+    addr & = 0xfffffffc;
+
     int L1PTindex = addr >> 22;
     PTelem * ptelem;
     if(L1PageTable[L1PTindex] == NULL)
@@ -49,7 +55,7 @@ int vmem_write(uint32_t addr, uint32_t data)
     return 0;
 }
 
-void vmem_load(uint32_t addr, size_t size, const uint32_t * source, PageAttr flag)
+void mem_load(uint32_t addr, size_t size, const uint32_t * source, PageAttr flag)
 {
     int L1PTindex, L2PTindex;
     PTelem * ptelem;
@@ -75,7 +81,7 @@ void vmem_load(uint32_t addr, size_t size, const uint32_t * source, PageAttr fla
     return;
 }
 
-void vmem_free()
+void mem_free()
 {
     int i, j;
     for(i = 0; i < L1PTSIZE; ++i)
