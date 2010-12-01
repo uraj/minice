@@ -59,7 +59,7 @@ struct triargexpr_list ** new_index_to_list()//Malloc and redirect, be free in f
 struct triargtable * new_table(char *name)//malloc a newtable
 {
     struct triargtable * newtable = malloc(sizeof(struct triargtable));
-    newtable -> funcname = name;
+    newtable -> funcname = strdup(name);
     newtable -> head = ghead;
     newtable -> tail = gtail;
     newtable -> table = gtriargexpr_table;

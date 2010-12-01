@@ -189,7 +189,7 @@ scalar_var: id %prec VAR {
 
 function_def : function_hdr "{" function_body "}" {
                                                       curr_table = NULL;/*is not necessary*/
-                                                      struct triargtable * tmp_table = new_table($1);
+													  struct triargtable * tmp_table = new_table($1);
 													  insert_table(tmp_table);/*add new function triargtable to the list,
 																			   g_total_expr_num is modified in the function.*/
 													  #ifdef SHOWCODE
@@ -611,13 +611,12 @@ int main(int argc, char* argv[])
 	yyparse();
 	fclose(yyin);
 	free_global_table();/*there should be an extra tmp table, and g_table_list_size is set in this*/
-	int i = 0;
+	int i = 1;
     struct value_info *cur_func_info;
 //	for(i = 0; i < g_table_list_size; i++)
 //	{
+	printf("%s\n", table_list[i] -> funcname);
     cur_func_info = symt_search(simb_table ,table_list[i] -> funcname);
-    char *s = table_list[i] -> funcname;
-    printf("%s\n",s);
     curr_table = cur_func_info->func_symt;
     make_fd(i);
     analyse_actvar();

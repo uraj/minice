@@ -82,7 +82,7 @@ void free_var_map()
 
 int insert_tempvar(int exprindex)
 {
-     printf("insert :%d\n" , map_bridge_cur_index);//************************************8
+//     printf("insert :%d\n" , map_bridge_cur_index);//************************************8
 	if(var_info_table[exprindex + cur_var_id_num] != NULL)
 		return 0;
 	var_info_table[exprindex + cur_var_id_num] = new_var_info();
@@ -118,7 +118,7 @@ int get_index_of_id(char * idname)
 
 struct var_info * get_info_from_index(int index)
 {
-     printf("index:%d max:%d\n" , index , map_bridge_cur_index);//****************************
+  //   printf("index:%d max:%d\n" , index , map_bridge_cur_index);//****************************
 	if(index < 0 || index >= map_bridge_cur_index )
 		return NULL;
 	if(index < cur_var_id_num)
