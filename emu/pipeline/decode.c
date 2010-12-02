@@ -80,10 +80,19 @@ static InstrType get_instr_type(instr code)
     }
 }
 
-static int read_register(const StoreArch * storage, uint8_t reg_index, uint32_t * dest)
+/* detect data hazard, return 1: hazard exists, stall the pipeline; return 0: secure */
+static int read_register(const StoreArch * storage, const PipeState * pipe_state, uint8_t reg_index, uint32_t * dest)
 {
-    *dest = storage->reg[reg_index];
-    return 0;  
+    if(reg_index == pipe_state->id_in.ex_fwd.freg)
+        *dest = pipe_state->id_in.ex_fwd.fdata;
+    else if(reg_index == pipe_state->id_in.mem_fwd.freg)
+        *dest = pipe_state->id_in.mem_fwd.fdata;
+    else if((pipe_state->mem_in.wb_dest_sel == 1 || pipe_state->mem_in.wb_dest_sel == 2) &&
+            (reg_index == pipe_state->mem_in.wb_val_mem_dest))
+            return 1;
+    else
+        *dest = storage->reg[reg_index];
+    return 0;
 }
 
 static uint32_t operand2_shift(uint32_t base, uint8_t bias, ShiftType stype, int setMSR, PSW * MSR)
@@ -144,11 +153,12 @@ static uint32_t operand2_shift(uint32_t base, uint8_t bias, ShiftType stype, int
     return ret;
 }
 
-static uint32_t gen_operand2(const InstrFields * ifields, InstrType itype, StoreArch * storage)
+static uint32_t gen_operand2(StoreArch * storage, const PipeState * pipe_state, const InstrFields * ifields, InstrType itype, uint32_t * data)
 {
     uint32_t temp;
     ShiftType stype;
     int setMSR = 0;
+    uint32_t rdata1, rdata2;
     
     /* when ALU operation is logical, MSR is set whet generating operand2 */
     if(((ifields->opcode < 0x1U) || (ifields->opcode > 0x7U)) &&
@@ -178,39 +188,58 @@ static uint32_t gen_operand2(const InstrFields * ifields, InstrType itype, Store
         case LS_RegOff:
             if((stype == RotateRight) && (ifields->shift_imm == 0)) /* RRX */
             {
+                if(read_register(storage, pipe_state, ifields->rm, &rdata1))
+                    return 1;
                 temp = (storage->CMSR).C;
-                (storage->CMSR).C = storage->reg[ifields->rm] & 1U;
-                return (storage->reg[ifields->rm] >> 1) | (temp << 31);
+                (storage->CMSR).C = rdata1 & 1U; /* rdata1 = reg[rm] */
+                *data =  (rdata1 >> 1) | (temp << 31);
             }
-            return operand2_shift(
-                storage->reg[ifields->rm],
-                ifields->shift_imm,
-                stype,
-                setMSR,
-                &(storage->CMSR));
+            else
+            {
+                if(read_register(storage, pipe_state, ifields->rm, &rdata1))
+                    return 1;
+                *data = operand2_shift(
+                    rdata1,     /* rdata1 = reg[rm] */
+                    ifields->shift_imm,
+                    stype,
+                    setMSR,
+                    &(storage->CMSR));
+            }
+            break;
         case D_RegShift:
-            return operand2_shift(
-                storage->reg[ifields->rm],
-                (uint8_t)storage->reg[ifields->rs],
+            if(read_register(storage, pipe_state, ifields->rm, &rdata1) ||
+               read_register(storage, pipe_state, ifields->rs, &rdata2))
+                return 1;
+            *data = operand2_shift(
+                rdata1,          /* rdata1 = rm */
+                (uint8_t)rdata2, /* rdata2 = rs */
                 stype,
                 setMSR,
                 &(storage->CMSR));
+            break;
         case D_Immidiate:
-            return operand2_shift(
+            *data =  operand2_shift(
                 ifields->rotate_imm9,
                 ifields->rotate,
                 stype,
                 setMSR,
                 &(storage->CMSR));
+            break;
         case Multiply:
         case LS_Hw_RegOff:
-            return storage->reg[ifields->rm];
+            if(read_register(storage, pipe_state, ifields->rm, &rdata1))
+                return 1;           
+            *data = rdata1;
+            break;
+            
         case LS_ImmOff:
-            return (uint32_t)(ifields->high_imm14);
+            *data = (uint32_t)(ifields->high_imm14);
+            break;
         case LS_Hw_ImmOff:
-            return
+            *data =
                 (((uint32_t)(ifields->high_off)) << 5) |
                 (((uint32_t)(ifields->low_off)));
+            break;
         default:
             ;
     }
@@ -298,14 +327,14 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
     /* then deal with multiply */
     if(itype == Multiply)
     {
-        data_hazard = read_register(storage, ifields.rn, &data);
+        data_hazard = read_register(storage, pipe_state, ifields.rn, &data);
         if(data_hazard)
         {
             pipe_state->ex_in.bubble = 1;
             return -1;
         }
         pipe_state->ex_in.val_rn = data;
-        data_hazard = read_register(storage, ifields.rm, &data);
+        data_hazard = read_register(storage, pipe_state, ifields.rm, &data);
         if(data_hazard)
         {
             pipe_state->ex_in.bubble = 1;
@@ -316,7 +345,7 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
         if(ifields.flags.A == 1)
         {
             pipe_state->ex_in.mulop = MulAdd;
-            data_hazard = read_register(storage, ifields.rs, &data);
+            data_hazard = read_register(storage, pipe_state, ifields.rs, &data);
             if(data_hazard)
             {
                 pipe_state->ex_in.bubble = 1;
@@ -334,7 +363,7 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
         pipe_state->ex_in.mulop = MulNop;
     
     /* gen operand1. operand1 is always reg[rn] */
-    data_hazard = read_register(storage, ifields.rn, &data);
+    data_hazard = read_register(storage, pipe_state, ifields.rn, &data);
     if(data_hazard)
     {
         pipe_state->ex_in.bubble = 1;
@@ -343,7 +372,7 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
     else
         pipe_state->ex_in.operand1 = data;
     
-    data_hazard = gen_operand2(&ifields, itype, storage);
+    data_hazard = gen_operand2(storage, pipe_state, &ifields, itype, &data);
     if(data_hazard)
     {
         pipe_state->ex_in.bubble = 1;
@@ -364,7 +393,7 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
             pipe_state->ex_in.aluopcode =  0xaU;
         if(ifields.flags.L == 0) /* store instruction */
         {
-            data_hazard = read_register(storage, ifields.rd, &data);
+            data_hazard = read_register(storage, pipe_state, ifields.rd, &data);
             if(data_hazard)
             {
                 pipe_state->ex_in.bubble = 1;
