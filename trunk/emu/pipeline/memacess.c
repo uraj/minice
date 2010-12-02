@@ -23,6 +23,7 @@ int MEMStage(StoreArch * storage, PipeState * pipe_state)
         {
             uint32_t data;
             int readinfo;
+            FwdData mem_fwd;
             if(pipe_state->mem_in.addr_sel == 0)
                 readinfo = mem_read(
                     pipe_state->mem_in.val_ex,
@@ -41,6 +42,11 @@ int MEMStage(StoreArch * storage, PipeState * pipe_state)
                 exit(3);
             }
             pipe_state->wb_in.val_mem = data;
+            
+            /* data forwarding */
+            mem_fwd.fdata = data;
+            mem_fwd.freg = pipe_state->mem_in.val_mem_dest;
+            pipe_state->id_in.mem_fwd = mem_fwd;
         }
         else
         {
