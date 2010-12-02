@@ -28,7 +28,8 @@ extern void mem_load(uint32_t addr, size_t size, const uint32_t * source, PageAt
 /* 0: success
  * 1: mem readonly
  */
-extern int mem_write_direct(uint32_t addr, uint32_t data);
+extern int mem_write_direct_word(uint32_t addr, uint32_t data);
+extern int mem_write_direct_byte(uint32_t addr, uint8_t data);
 
 /* 0: success
  * 1: mem not allocated
