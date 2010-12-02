@@ -1,6 +1,7 @@
 #ifndef __MINIEMU_MEMORY_H__
 #define __MINIEMU_MEMORY_H__
 
+#include <memory/vmem.h>
 #include <stdint.h>
 #include <stddef.h>
 
