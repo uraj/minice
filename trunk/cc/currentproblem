@@ -26,9 +26,6 @@ new:
 18.Deal with Nullop in udanalyse
 19.Same arg name in arglist? should be a symtable too?//Done
 20.Unknow error.....
-<<<<<<< .mine
-21.deal with allocating register for jump condition 
-=======
+21.deal with allocating register for condition jump
 
-21 typet_free_typetree中的base_type莫名其妙等于1，问题出在测试文件zero.c的16行，minic_paser.y的359行
->>>>>>> .r58
+22 typet_free_typetree中的base_type莫名其妙等于1，问题出在测试文件zero.c的16行，minic_paser.y的359行
