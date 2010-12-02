@@ -27,7 +27,7 @@ int mem_write_direct(uint32_t addr, uint32_t data)
     PTelem * ptelem;
     if(L1PageTable[L1PTindex] == NULL)
     {
-        L1PageTable[L1PTindex] = calloc(sizeof(PTelem), L1PTSIZE);
+        L1PageTable[L1PTindex] = calloc(sizeof(PTelem), L1PTSIZE);//??
         ptelem = &L1PageTable[L1PTindex][(addr >> 12) & 0x3ff];
         ptelem->flag = RWPage;
         ptelem->pageref = malloc(VMEMPAGE_SIZE);
