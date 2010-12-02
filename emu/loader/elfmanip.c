@@ -13,15 +13,12 @@ int elf_check(FILE * file)
     size_t get = fread(magic, sizeof(unsigned char), 16, file);
     fseek(file, sindicator, SEEK_SET);
     if(get != 16)
-        return 0;
+        return 1;
     if((*(uint32_t*)magic != 0x464c457fU) ||
        (magic[4] != 1) ||
        (magic[5] != 1))
-    {
-        fprintf(stderr, "Not a suitable ELF file!\n");
-        return 0;
-    }
-    return 1;
+        return 1;
+    return 0;
 }
 
 Elf32_Ehdr get_elf_hdr(FILE * file)
