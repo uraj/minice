@@ -10,8 +10,8 @@
 #define SETNUM 0x40		/*64*/
 #define BLOCKSIZE 0x40	/*64*/
 
-enum { RAND, FIFO, LRU } CacheSwapStrategy;
-enum { Write_back, Write_through } CacheWriteStrategy;
+enum CacheSwapStrategy { RAND, FIFO, LRU };
+enum CacheWriteStrategy { Write_back, Write_through };
 
 //Write-through + No-write-allocate
 //Write-back + Write-allocate
@@ -36,8 +36,6 @@ extern struct Cacheline Cache[SETNUM][LINENUM];//global or not?
 /*cacheinfo global or not?*/
 
 extern void init_cache();
-extern void set_cache_swap_strategy(enum CacheSwapStrategy strategy);
-extern void set_cache_write_strategy(enum CacheWriteStrategy strategy);
 
 extern struct Cacheinfo * get_cache_info();
 

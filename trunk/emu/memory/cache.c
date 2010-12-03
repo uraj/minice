@@ -11,26 +11,176 @@
 //instrution cache and data cache??
 
 static enum CacheSwapStrategy swap_strategy;
-static enum WriteStrategy write_strategy;
+static enum CacheWriteStrategy write_strategy;
 static struct Cacheinfo cache_info;
+
+static void rand_cache_overflow(unsigned int tag, unsigned int set, unsigned int block)//Rand arith
+{
+	int line;
+	for(line = 0; line < LINENUM; line++)//find empty
+	{
+		if(Cache[set][line].valid == 0)
+		{
+			Cache[set][line].valid = 1;
+			return;
+		}
+	}
+	
+	int rand_line = rand() % LINENUM;
+
+	/*
+	//Write_back
+	if(Cache[set][rand_line].dirty == 1)
+		write_back();//in our emu, we need not that
+	*/
+
+	Cache[set][rand_line].valid = 1;
+	Cache[set][rand_line].tag = tag;
+
+	if(write_strategy == Write_back)//Set when strategy Write_back
+		Cache[set][rand_line].dirty = 0;
+}
+
+static void fifo_cache_overflow(unsigned int tag, unsigned int set, unsigned int block)//Fifo arith
+{
+	int line;
+	for(line = 0; line < LINENUM; line++)//find empty
+	{
+		if(Cache[set][line].valid == 0)
+		{
+			Cache[set][line].valid = 1;
+			Cache[set][line].counter = 0;
+			int update_line;//update other counter
+			for(update_line = 0; update_line < LINENUM; update_line ++)
+			{
+				if(Cache[set][update_line].valid == 1 && update_line != line)
+					Cache[set][update_line].counter ++;
+			}
+			return;
+		}
+	}
+
+	int max, selected_line;
+	max = 0;
+	selected_line = 0;
+
+	for(line = 0; line < LINENUM; line ++)//find max
+	{
+		if(Cache[set][line].counter > max)
+		{
+			max = Cache[set][line].counter;
+			selected_line = line;
+		}
+	}
+
+	/*
+	//Write_back
+	if(Cache[set][selected_line].dirty == 1)
+		write_back();//in our emu, we need not that
+	*/
+
+	for(line = 0; line < LINENUM; line ++)//update other line 
+	{
+		if(line != selected_line)
+			Cache[set][line].counter ++;
+	}
+
+	Cache[set][selected_line].valid = 1;
+	Cache[set][selected_line].counter = 0;
+	Cache[set][selected_line].tag = tag;
+
+	if(write_strategy == Write_back)//Set when strategy Write_back
+		Cache[set][selected_line].dirty = 0;
+}
+
+static void lru_cache_overflow(unsigned int tag, unsigned int set, unsigned int block)
+{
+	int line;
+	for(line = 0; line < LINENUM; line++)//find empty
+	{
+		if(Cache[set][line].valid == 0)
+		{
+			Cache[set][line].valid = 1;
+			Cache[set][line].counter = 0;
+			int update_line;//update other counter as fifo
+			for(update_line = 0; update_line < LINENUM; update_line ++)
+			{
+				if(Cache[set][update_line].valid == 1 && update_line != line)
+					Cache[set][update_line].counter ++;
+			}
+			return;
+		}
+	}
+
+	int max, selected_line;
+	max = 0;
+	selected_line = 0;
+
+	for(line = 0; line < LINENUM; line ++)//find max
+	{
+		if(Cache[set][line].counter > max)
+		{
+			max = Cache[set][line].counter;
+			selected_line = line;
+		}
+	}
+
+	/*
+	//Write_back
+	if(Cache[set][selected_line].dirty == 1)
+		write_back();//in our emu, we need not that
+	*/
+	for(line = 0; line < LINENUM; line ++)//set the accessed line with min number 0
+	{
+		if(Cache[set][line].counter < Cache[set][selected_line].counter)
+			Cache[set][line].counter ++;
+	}
+
+	Cache[set][selected_line].valid = 1;
+	Cache[set][selected_line].counter = 0;
+	Cache[set][selected_line].tag = tag;
+
+	if(write_strategy == Write_back)//Set when strategy Write_back
+		Cache[set][selected_line].dirty = 0;
+}
+
+static inline void cache_overflow(unsigned int tag, unsigned int set, unsigned int block)
+{
+	switch(swap_strategy)
+	{
+		case RAND:
+			rand_cache_overflow(tag, set, block);
+			return;
+		case FIFO:
+			fifo_cache_overflow(tag, set, block);
+			return;
+		case LRU:
+			lru_cache_overflow(tag, set, block);
+			return;
+		default:
+			break;
+	}
+}
 
 void init_cache(enum CacheSwapStrategy swap, enum CacheWriteStrategy write)
 {
 	swap_strategy = swap;
 	write_strategy = write;
-	cache_info.cache_miss = 0;
-	cache_info.cache_hit = 0;
+	cache_info.miss = 0;
+	cache_info.hit = 0;
 	cache_info.save_write_time = 0;
-	for(int set = 0; set < SETNUM; set ++)
+	int set, line;
+	for(set = 0; set < SETNUM; set ++)
 	{
-		for(int line = 0; line < LINENUM; line ++)
+		for(line = 0; line < LINENUM; line ++)
 		{
 			Cache[set][line].valid = 0;
 			Cache[set][line].counter = 0;
 			Cache[set][line].dirty = 0;
 		}
 	}
-	srand((unsigned)time(NULL));
+	if(swap_strategy == RAND)
+		srand((unsigned)time(NULL));
 }
 
 //clear cache?
@@ -88,152 +238,4 @@ void cache_read(uint32_t addr, uint32_t * dest)
 	cache_overflow(tag, set, block);
 	vmem_read(addr, dest);
 	return;
-}
-
-static inline void cache_overflow(int tag, int set, int block)
-{
-	switch(strategy)
-	{
-		case RAND:
-			rand_cache_overflow(tag, set, block);
-			return;
-		case FIFO:
-			fifo_cache_overflow(tag, set, block);
-			return;
-		case LRU:
-			lru_cache_overflow(tag, set, block);
-			return;
-		default:
-			break;
-	}
-}
-
-static void rand_cache_overflow(int tag, int set, int block)//Rand arith
-{
-	int line;
-	for(line = 0; line < LINENUM; line++)//find empty
-	{
-		if(Cache[set][line].valid == 0)
-		{
-			Cache[set][line].valid = 1;
-			return;
-		}
-	}
-	
-	int rand_line = rand() % LINENUM;
-
-	/*
-	//Write_back
-	if(Cache[set][selected_line].dirty == 1)
-		write_back();//in our emu, we need not that
-	*/
-
-	Cache[set][selected_line].valid = 1;
-	Cache[set][selected_line].tag = tag;
-
-	if(write_strategy == Write_back)//Set when strategy Write_back
-		Cache[set][selected_line].dirty = 0;
-}
-
-static void fifo_cache_overflow(int tag, int set, int block)//Fifo arith
-{
-	int line;
-	for(line = 0; line < LINENUM; line++)//find empty
-	{
-		if(Cache[set][line].valid == 0)
-		{
-			Cache[set][line].valid = 1;
-			Cache[set][line].counter = 0;
-			int update_line;//update other counter
-			for(update_line = 0; update_line < LINENUM; update_line ++)
-			{
-				if(Cache[set][update_line].valid == 1 && update_line != line)
-					Cache[set][update_line].counter ++;
-			}
-			return;
-		}
-	}
-
-	int max, selected_line;
-	max = 0;
-	selected_line = 0;
-
-	for(line = 0; line < LINENUM; line ++)//find max
-	{
-		if(Cache[set][line].counter > max)
-		{
-			max = Cache[set][line].counter;
-			selected_line = line;
-		}
-	}
-
-	/*
-	//Write_back
-	if(Cache[set][selected_line].dirty == 1)
-		write_back();//in our emu, we need not that
-	*/
-
-	for(line = 0; line < LINENUM; line ++)//update other line 
-	{
-		if(line != selected_line)
-			Cache[set][line].counter ++;
-	}
-
-	Cache[set][selected_line].valid = 1;
-	Cache[set][selected_line].counter = 0;
-	Cache[set][selected_line].tag = tag;
-
-	if(write_strategy == Write_back)//Set when strategy Write_back
-		Cache[set][selected_line].dirty = 0;
-}
-
-static void lru_cache_overflow(int tag, int set, int tag)
-{
-	int line;
-	for(line = 0; line < LINENUM; line++)//find empty
-	{
-		if(Cache[set][line].valid == 0)
-		{
-			Cache[set][line].valid = 1;
-			Cache[set][line].counter = 0;
-			int update_line;//update other counter as fifo
-			for(update_line = 0; update_line < LINENUM; update_line ++)
-			{
-				if(Cache[set][update_line].valid == 1 && update_line != line)
-					Cache[set][update_line].counter ++;
-			}
-			return;
-		}
-	}
-
-	int max, selected_line;
-	max = 0;
-	selected_line = 0;
-
-	for(line = 0; line < LINENUM; line ++)//find max
-	{
-		if(Cache[set][line].counter > max)
-		{
-			max = Cache[set][line].counter;
-			selected_line = line;
-		}
-	}
-
-	/*
-	//Write_back
-	if(Cache[set][selected_line].dirty == 1)
-		write_back();//in our emu, we need not that
-	*/
-	for(line = 0; line < LINENUM; line ++)//set the accessed line with min number 0
-	{
-		if(Cache[set][line].counter < Cache[set][selected_line].counter)
-			Cache[set][line].counter ++;
-	}
-
-	Cache[set][selected_line].valid = 1;
-	Cache[set][selected_line].counter = 0;
-	Cache[set][selected_line].tag = tag;
-
-	if(write_strategy == Write_back)//Set when strategy Write_back
-		Cache[set][selected_line].dirty = 0;
 }
