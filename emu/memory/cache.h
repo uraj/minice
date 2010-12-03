@@ -20,8 +20,7 @@ struct Cacheline
 {
 	char dirty;//1 bit for Write-back + Write_allocate
 	char valid;//1 bit
-	//When design LRU, may need more flags
-	char counter;//3 bit	
+	char counter;//3 bit, used by fifo and lru	
 	unsigned int tag;
 };
 
