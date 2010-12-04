@@ -89,8 +89,6 @@ int insert_tempvar(int exprindex)
 		return 0;
 	var_info_table[exprindex + cur_var_id_num] = new_var_info();
 	var_info_table[exprindex + cur_var_id_num] -> index = map_bridge_cur_index + cur_var_id_num;
-    if(var_info_table[exprindex + cur_var_id_num] -> index == 5)//*******************
-         printf("expr%d****5" , exprindex);//************************
 	//malloc the flags in the var_info_table
     if(map_bridge_cur_index >= map_bridge_bound)
     {

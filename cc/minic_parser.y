@@ -14,9 +14,9 @@
 #include "minic_triargexpr.h"
 #include "minic_basicblock.h"
 #include "minic_flowanalyse.h"
-#define DEBUG
+//#define DEBUG
 //#define SHOWBNF
-#define SHOWLOCALCODE
+//#define SHOWLOCALCODE
 #define SHOWCODE
 
 const size_t MAXIDLEN = 31; /* 31 is the minimum length supported by compilers according to ANCI C standard */
