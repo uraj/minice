@@ -17,13 +17,17 @@ extern struct var_list *var_out;
 
 extern struct symbol_table *curr_table;
 
+extern struct var_list *var_list_new();
+extern struct var_list_node *var_list_node_new();
+
 extern void var_list_sort(struct var_list *list_array , int size);//将一个定值点链表或者变量编号链表排序
+extern void var_list_del_repeate(struct var_list *list);//将排好序的链去重
 extern void var_list_free_bynode(struct var_list_node *head);//给定一个节点，释放node以后的链
 extern void var_list_free(struct var_list *list);//释放链表
 extern void var_list_clear(struct var_list *list);//将链表清空（tail = head , head = NULL）
 extern void var_list_append(struct var_list *list , int num);//添加元素到链尾
-extern void var_list_insert(struct var_list_node *cur , int num);//插入节点
-extern void var_list_delete(struct var_list_node *former , struct var_list_node *del_node);//删除节点，删除后被删除节点指针不可用
+extern struct var_list_node *var_list_insert(struct var_list *list , struct var_list_node *cur , int num);//插入节点
+extern struct var_list_node *var_list_delete(struct var_list *list , struct var_list_node *former , struct var_list_node *del_node);//删除节点，删除后被删除节点指针不可用
 extern int var_list_isequal(struct var_list *l1 , struct var_list *l2);//判断两个链表是否相等
 extern void var_list_copy(struct var_list *source , struct var_list *dest);//dest=source
 extern void var_list_printbynode(struct var_list_node *head);//打印head以后的节点×××××有可能有用

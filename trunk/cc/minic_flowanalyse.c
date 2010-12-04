@@ -53,6 +53,21 @@ inline void var_list_print(struct var_list *list)
 	printf("\n");
 }
 
+struct var_list *var_list_new()
+{
+     struct var_list *new_list = (struct var_list *)malloc(sizeof(struct var_list *));
+     new_list->head = new_list->tail = NULL;
+     return new_list;
+}
+
+struct var_list_node *var_list_node_new(int num)
+{
+     struct var_list_node *new_node = (struct var_list_node *)malloc(sizeof(struct var_list_node));
+     new_node->var_map_index = num;
+     new_node->next = NULL;
+     return new_node;
+}
+
 void var_list_sort(struct var_list *list_array , int size)//将一个定值点链表或者变量编号链表排序
 {
      if(list_array == NULL)
@@ -83,6 +98,28 @@ void var_list_sort(struct var_list *list_array , int size)//将一个定值点�
 	free(trans_array);
 }
 
+void var_list_del_repeate(struct var_list *list)//将排好序的链去重
+{
+     if(list->head == NULL)
+          return;
+     if(list->head->next == NULL)
+          return;
+     struct var_list_node *cur , *former;
+     former = list->head;
+     cur = former->next;
+     while(cur != list->tail->next)
+     {
+          if(cur->var_map_index == former->var_map_index)
+          {
+               var_list_delete(list , former , cur);
+               cur = former->next;
+               continue;
+          }
+          former = cur;
+          cur = cur->next;
+     }
+}
+
 inline void var_list_free_bynode(struct var_list_node *head)
 {
 	if(head == NULL)
@@ -104,7 +141,7 @@ inline void var_list_free(struct var_list *list)
 inline void var_list_clear(struct var_list *list)
 {
      if(list == NULL)
-          list = (struct var_list *)malloc(sizeof(struct var_list *));
+          list = var_list_new();
 	if(list->head == NULL)
 		return;
 	list->tail = list->head;
@@ -113,9 +150,9 @@ inline void var_list_clear(struct var_list *list)
 
 inline void var_list_append(struct var_list *list , int num)
 {
-     printf("append %d " , num);//*********************************
+//     printf("*append%d* " , num);//*********************************
      if(list == NULL)
-          list = (struct var_list *)malloc(sizeof(struct var_list *));
+          list = var_list_new();
 	if(list->head == NULL && list->tail != NULL)
 	{
 		list->head = list->tail;
@@ -128,9 +165,7 @@ inline void var_list_append(struct var_list *list , int num)
 		list->tail->var_map_index = num;
 		return;
 	}
-	struct var_list_node *cur_node = (struct var_list_node *)malloc(sizeof(struct var_list_node));
-	cur_node->var_map_index = num;
-	cur_node->next = NULL;
+	struct var_list_node *cur_node = var_list_node_new(num);
 	if(list->head == NULL)
 	{
 		list->head = list->tail = cur_node;
@@ -140,28 +175,79 @@ inline void var_list_append(struct var_list *list , int num)
 	list->tail = cur_node;
 }
 
-inline void var_list_insert(struct var_list_node *cur , int num)
+struct var_list_node *var_list_insert(struct var_list *list , struct var_list_node *cur , int num)//若cur＝NULL，默认插在表头，返回指针指向新插入节点
 {
-     printf("insert ");//*********************************8
-	struct var_list_node *in_node = (struct var_list_node *)malloc(sizeof(struct var_list_node));
-	in_node->var_map_index = num;
-	in_node->next = NULL;
-	if(cur == NULL)
-	{
-		cur = in_node;
-		return;
-	}
-	struct var_list_node *temp = cur->next;
-	cur->next = in_node;
-	in_node->next = temp;
+     if(list == NULL)
+          return NULL;
+     struct var_list_node *in_node = var_list_node_new(num);
+     if(cur == NULL)
+     {
+          if(list->head == NULL)
+          {
+               list->head = in_node;
+               list->head->next = list->tail;
+               return in_node;
+          }
+          in_node->next = list->head;
+          list->head = in_node;
+          return in_node;
+     }
+     struct var_list_node *temp = cur->next;
+     cur->next = in_node;
+     in_node->next = temp;
+     return in_node;
 }
 
-inline void var_list_delete(struct var_list_node *former , struct var_list_node *del_node)//删除节点，删除后被删除节点指针不可用
+struct var_list_node *var_list_delete(struct var_list *list , struct var_list_node *former , struct var_list_node *del_node)//删除节点，删除后被删除节点指针不可用，返回指针为删除节点的后一个节点
 {
-	if(del_node == NULL || former == NULL)
-		return;
-	former->next = del_node->next;
-	free(del_node);
+     if(list == NULL)
+          return NULL;
+     if(list->head == NULL)//链表为空
+     {
+          printf("Delete error!The list is EMPTY!\n");
+          return NULL;
+     }
+	if(del_node == NULL)
+		return NULL;
+    if(del_node == list->head)//删除的链表的第一个节点
+    {
+         if(list->head == list->tail)//链表只有一个元素，需要head＝NULL，tail后移，释放头节点
+         {
+              list->tail = list->head->next;
+              list->head = NULL;
+              free(del_node);
+              return list->tail;//***************************此处待定
+         }
+         else
+         {
+              list->head = list->head->next;
+              free(del_node);
+              return list->head;
+         }
+    }
+    else if(del_node == list->tail)//删除的是链表最后一个节点
+    {
+         if(former == NULL)
+         {
+              printf("Delete node error!Can't find the former node.\n");
+              return NULL;
+         }
+         list->tail = former;
+         list->tail->next = del_node->next;
+         free(del_node);
+         return list->tail->next;
+    }
+    else
+    {
+         if(former == NULL)
+         {
+              printf("Delete node error!Can't find the former node.\n");
+              return NULL;
+         }
+         former->next = del_node->next;
+         free(del_node);
+         return former->next;
+    }
 }
 
 int var_list_isequal(struct var_list *l1 , struct var_list *l2)
@@ -219,7 +305,7 @@ void var_list_merge(struct var_list *adder , struct var_list *dest)//将变量�
      
      struct var_list_node *adder_pointer = adder->head;
      struct var_list_node *dest_pointer = dest->head;
-     struct var_list_node *former_dest_p = dest_pointer;
+     struct var_list_node *former_dest_p = NULL;
      while(1)
      {
           if(adder_pointer->var_map_index == dest_pointer->var_map_index)
@@ -235,9 +321,8 @@ void var_list_merge(struct var_list *adder , struct var_list *dest)//将变量�
           }
           else
           {
-               var_list_insert(former_dest_p , adder_pointer->var_map_index);
+               former_dest_p = var_list_insert(dest , former_dest_p , adder_pointer->var_map_index);//***********
                adder_pointer = adder_pointer->next;
-               former_dest_p = former_dest_p->next;
           }
           if(adder_pointer == adder->tail->next)
                break;
@@ -310,7 +395,7 @@ void var_list_inter(struct var_list *inter , struct var_list *dest)//dest = inte
 		return;
 	struct var_list_node *inter_pointer = inter->head;
 	struct var_list_node *dest_pointer = dest->head;
-	struct var_list_node *dest_former = dest->head;
+	struct var_list_node *dest_former = NULL;
 	while(1)
 	{
 		if(inter_pointer->var_map_index == dest_pointer->var_map_index)
@@ -321,8 +406,7 @@ void var_list_inter(struct var_list *inter , struct var_list *dest)//dest = inte
 		}
 		else if(inter_pointer->var_map_index > dest_pointer->var_map_index)
 		{
-			var_list_delete(dest_former , dest_pointer);
-			dest_pointer = dest_former->next;
+            dest_pointer = var_list_delete(dest , dest_former , dest_pointer);
 		}
 		else
 			inter_pointer = inter_pointer->next;
@@ -331,6 +415,8 @@ void var_list_inter(struct var_list *inter , struct var_list *dest)//dest = inte
 			dest->tail = dest_former;
 			break;
 		}
+        if(dest->head == NULL)
+             break;
 		if(dest_pointer == dest->tail->next)
 			break;
 	}
@@ -474,6 +560,7 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                case Ref:
                case Deref:
                case Arglist:
+               case Return:
                     analyse_expr_index(temp->entity->index , DEFINE , i);
                     analyse_arg(&(temp->entity->arg1) , USE , i);
                     break;
@@ -482,6 +569,7 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                     analyse_arg(&(temp->entity->arg1) , USE , i);
                     break;
                default:
+                    analyse_expr_index(temp->entity->index , DEFINE , i);
                     break;
                }
                
@@ -489,6 +577,8 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
           }
           var_list_sort(def + i , def_size[i]);//when DEFs and USEs are made
           var_list_sort(use + i , use_size[i]);//sort them so that we can op
+          var_list_del_repeate(def + i);
+          var_list_del_repeate(use + i);
           printf("\n");
      }
      free(def_size);
@@ -501,7 +591,7 @@ static void solve_equa_ud()//求解活跃变量方程组
      int change = 1 , next;
      struct basic_block_list *temp_block;
      struct var_list *temp_list;
-     temp_list = (struct var_list *)malloc(sizeof(struct var_list));
+     temp_list = var_list_new();
 
      while(change)
      {
@@ -578,6 +668,18 @@ static inline void push_changes_into_expr(struct triargexpr_list *expr , int del
      expr->actvar_change[1] = del2;
      expr->actvar_change[2] = add1;
      expr->actvar_change[3] = add2;
+#ifdef SHOWACTVAR
+     int i;
+     printf("    (%d):" , expr->entity->index);
+     for(i = 0 ; i < 4 ; i++)
+     {
+          if(i < 2)
+               printf("del%d " , expr->actvar_change[i]);
+          else
+               printf("add%d " , expr->actvar_change[i]);
+     }
+     printf("\n");
+#endif
 }
 
 void analyse_actvar()//活跃变量分析
@@ -586,18 +688,21 @@ void analyse_actvar()//活跃变量分析
      malloc_active_var();//活跃变量分析相关的数组空间分配
      initial_active_var();//完成活跃变量分析的初始化部分，生成def和use
      solve_equa_ud();//求解活跃变量方程组，得到var_in和var_out
+     int add1 , add2 , del1 , del2;
 #ifdef SHOWACTVAR
      struct var_list show_list;
+     show_list.head = show_list.tail = NULL;
 #endif
      for(i = 0 ; i < g_block_num ; i++)
      {
           struct triargexpr_list *temp_expr = DFS_array[i]->tail;
+          del1 = del2 = -1;
 #ifdef SHOWACTVAR
           var_list_copy(var_out + i , &show_list);
+          printf("\nblock (%d)\n" , i);
 #endif
           while(temp_expr != NULL)
           {
-               int add1 , add2 , del1 = -1 , del2 = -1;
                switch(temp_expr->entity->op)
                {
                case Assign:
@@ -631,6 +736,10 @@ void analyse_actvar()//活跃变量分析
                case Ref:
                case Deref:
                case Arglist:
+               case Return:
+               case UncondJump:
+               case FalseJump:
+               case TrueJump:
                     add1 = -1;
                     add2 = get_index_of_arg(&(temp_expr->entity->arg1));
                     push_changes_into_expr(temp_expr , del1 , del2 , add1 , add2);
@@ -642,64 +751,76 @@ void analyse_actvar()//活跃变量分析
                }
 #ifdef SHOWACTVAR
                struct var_list_node *former , *cur;
-               int d = 0 , a = 2;
-               cur = former = show_list.head;
-               if(cur == NULL)
-                    printf("%d NO ACTIVE VAR!\n" , temp_expr->entity->index);
+               int d , a;
+               cur = show_list.head;
+               former = NULL;
+               for(d = 0 ; d < 2 ; d++)
+                    for(a = 2 ; a < 4 ; a++)
+                         if(temp_expr->actvar_change[a] == temp_expr->actvar_change[d])//如果一个变量既要添加又要删除，就不删除了
+                              temp_expr->actvar_change[d] = -1;
+               if(temp_expr->actvar_change[1] == -1)
+               {
+                    temp_expr->actvar_change[1] = temp_expr->actvar_change[0];
+                    temp_expr->actvar_change[0] = -1;
+               }
+               a = 2;
+               d = 0;
+               while(temp_expr->actvar_change[d] == -1 && d < 2)//跳过所有-1
+                    d++;
+               while(temp_expr->actvar_change[a] == -1 && a < 4)
+                    a++;
+               printf("(%d) active var: " , temp_expr->entity->index);
+               if(cur == NULL)//链表为空
+               {
+                    printf("//");
+                    for(; a < 4 ; a++)
+                         var_list_append(&show_list , temp_expr->actvar_change[a]);
+                    if((show_list.head) == NULL)
+                         printf("NO ACTIVE VAR!\n");
+                    else
+                         var_list_print(&show_list);
+               }
                else
                {
-                    while(temp_expr->actvar_change[d] == -1 && d < 2)
-                         d++;
-                    while(temp_expr->actvar_change[a] == -1 && a < 4)
-                         a++;
-                    while(former != show_list.tail)
+                    while(cur != show_list.tail->next)
                     {
                          if(d < 2)
                          {
                               if((temp_expr->actvar_change[d]) == (cur->var_map_index))
                               {
-                                   if(cur == show_list.head)
-                                   {
-                                        show_list.head = cur->next;
-                                        free(cur);
-                                        cur = former = show_list.head;
-                                   }
-                                   else
-                                   {
-                                        var_list_delete(former , cur);
-                                        cur = former->next;
-                                   }
+                                   cur = var_list_delete(&show_list , former , cur);
                                    d++;
+                                   if(show_list.head == NULL)
+                                        break;
                                    continue;
                               }
                          }
                          if(a < 4)
                          {
                               if((temp_expr->actvar_change[a]) == (cur->var_map_index))
-                                   a++;
-                              else if((temp_expr->actvar_change[a]) > (cur->var_map_index))
                               {
-                                   if(former == show_list.head)
-                                   {
-                                        struct var_list_node *add_head = (struct var_list_node *)malloc(sizeof(struct var_list_node));
-                                        add_head->var_map_index = temp_expr->actvar_change[a];
-                                        add_head->next = show_list.head;
-                                        show_list.head = add_head;
-                                        former = cur = show_list.head;
-                                   }
-                                   else
-                                   {
-                                        var_list_insert(former , temp_expr->actvar_change[a]);
-                                        cur = former->next;
-                                   }
                                    a++;
+                                   continue;
+                              }
+                              else if((temp_expr->actvar_change[a]) < (cur->var_map_index))
+                              {
+                                   former = var_list_insert(&show_list , former , temp_expr->actvar_change[a]);
+                                   printf("%d " , former->var_map_index);
+                                   a++;
+                                   continue;
                               }
                          }
                          printf("%d " , cur->var_map_index);
                          former = cur;
                          cur = cur->next;
                     }
+                    for(; a < 4 ; a++)
+                    {
+                         printf("%d " , temp_expr->actvar_change[a]);
+                         var_list_append(&show_list , temp_expr->actvar_change[a]);
+                    }
                     printf("\n");
+//                    var_list_print(&show_list);
                }
 #endif
                temp_expr = temp_expr->prev;
@@ -707,4 +828,3 @@ void analyse_actvar()//活跃变量分析
      }
 }
 
-               
