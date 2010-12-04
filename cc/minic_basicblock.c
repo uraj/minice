@@ -33,6 +33,7 @@ static inline struct basic_block_list * basic_block_list_append(struct basic_blo
 	struct basic_block_list * newnode = malloc(sizeof(struct basic_block_list));
 	newnode -> entity = newblock;
 	newnode -> next = NULL;
+	newnode -> prev = NULL;
 	if(list != NULL)
 		newnode -> next = list;
 	return newnode;
