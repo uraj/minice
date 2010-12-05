@@ -36,7 +36,7 @@ int MEMStage(StoreArch * storage, PipeState * pipe_state)
                     pipe_state->mem_in.data_size,
                     pipe_state->mem_in.sign_ext,
                     &data);
-            if(readinfo != 0)
+            if(readinfo == -1)
             {
                 fprintf(stderr, "Invalid memory read.\n");
                 exit(3);
@@ -61,7 +61,7 @@ int MEMStage(StoreArch * storage, PipeState * pipe_state)
                     pipe_state->mem_in.val_base,
                     pipe_state->mem_in.data_size,
                     pipe_state->mem_in.val_store);
-            if(write_info != 0)
+            if(write_info == -1)
             {
                 fprintf(stderr, "Invalid memory write.\n");
                 exit(3);    

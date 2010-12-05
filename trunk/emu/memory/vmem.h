@@ -28,14 +28,17 @@ extern void mem_load(uint32_t addr, size_t size, const uint32_t * source, PageAt
 /* 0: success
  * 1: mem readonly
  */
-extern int mem_write_direct_word(uint32_t addr, uint32_t data);
-extern int mem_write_direct_byte(uint32_t addr, uint8_t data);
+extern int mem_write_direct_b(uint32_t addr, uint8_t data);
+extern int mem_write_direct_h(uint32_t addr, uint16_t data);
+extern int mem_write_direct_w(uint32_t addr, uint32_t data);
 
 /* 0: success
  * 1: mem not allocated
  * 2: mem unreadable
  */
-extern int mem_read_direct(uint32_t addr, uint32_t * dest);
+extern int mem_read_direct_b(uint32_t addr, uint8_t * dest);
+extern int mem_read_direct_h(uint32_t addr, uint16_t * dest);
+extern int mem_read_direct_w(uint32_t addr, uint32_t * dest);
 
 extern void mem_free();
 
