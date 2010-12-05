@@ -2,10 +2,39 @@
 #include <stdlib.h>
 #include <string.h>
 
-int mem_read_direct(uint32_t addr, uint32_t * dest)
+int mem_read_direct_b(uint32_t addr, uint8_t * dest)
+{
+    if(L1PageTable[addr >> 22] == NULL)
+        return 1;
+    PTelem * ptelem = &L1PageTable[addr >> 22][(addr >> 12) & 0x3ff];
+    if(ptelem->flag == NAPage)
+        return 1;
+    if(ptelem->flag == XPage)
+        return 2;
+    *dest = ((uint8_t *)(ptelem->pageref))[addr & 0xfff];
+    return 0;
+}
+
+int mem_read_direct_h(uint32_t addr, uint16_t * dest)
 {
     /* alignment */
-    addr & = 0xfffffffc;
+    addr &= 0xfffffffe;
+    
+    if(L1PageTable[addr >> 22] == NULL)
+        return 1;
+    PTelem * ptelem = &L1PageTable[addr >> 22][(addr >> 12) & 0x3ff];
+    if(ptelem->flag == NAPage)
+        return 1;
+    if(ptelem->flag == XPage)
+        return 2;
+    *dest = ((uint16_t *)(ptelem->pageref))[addr & 0xfff];
+    return 0;
+}
+
+int mem_read_direct_w(uint32_t addr, uint32_t * dest)
+{
+    /* alignment */
+    addr &= 0xfffffffc;
     
     if(L1PageTable[addr >> 22] == NULL)
         return 1;
@@ -18,20 +47,17 @@ int mem_read_direct(uint32_t addr, uint32_t * dest)
     return 0;
 }
 
-int mem_write_direct_word(uint32_t addr, uint32_t data)
+int mem_write_direct_b(uint32_t addr, uint8_t data_8)
 {
-    /* alignment */
-    addr & = 0xfffffffc;
-
     int L1PTindex = addr >> 22;
     PTelem * ptelem;
     if(L1PageTable[L1PTindex] == NULL)
     {
-        L1PageTable[L1PTindex] = calloc(sizeof(PTelem), L2PTSIZE);//??
+        L1PageTable[L1PTindex] = calloc(sizeof(PTelem), L2PTSIZE);
         ptelem = &L1PageTable[L1PTindex][(addr >> 12) & 0x3ff];
         ptelem->flag = RWPage;
         ptelem->pageref = malloc(VMEMPAGE_SIZE);
-        ((uint32_t *)(ptelem->pageref))[addr & 0xfff] = data;
+        ((uint8_t *)(ptelem->pageref))[addr & 0xfff] = data_8;
         return 0;
     }
     else
@@ -41,12 +67,12 @@ int mem_write_direct_word(uint32_t addr, uint32_t data)
         {
             ptelem->flag = RWPage;
             ptelem->pageref = malloc(VMEMPAGE_SIZE);
-            ((uint32_t *)(ptelem->pageref))[addr & 0xfff] = data;
+            ((uint8_t *)(ptelem->pageref))[addr & 0xfff] = data_8;
             return 0;
         }
         else if(ptelem->flag == RWPage)
         {
-            ((uint32_t *)(ptelem->pageref))[addr & 0xfff] = data;
+            ((uint8_t *)(ptelem->pageref))[addr & 0xfff] = data_8;
             return 0;
         }
         else
@@ -55,17 +81,20 @@ int mem_write_direct_word(uint32_t addr, uint32_t data)
     return 0;
 }
 
-int mem_write_direct_byte(uint32_t addr, uint8_t data)
+int mem_write_direct_h(uint32_t addr, uint16_t data_16)
 {
+    /* alignment */
+    addr &= 0xfffffffe;
+    
     int L1PTindex = addr >> 22;
     PTelem * ptelem;
     if(L1PageTable[L1PTindex] == NULL)
     {
-        L1PageTable[L1PTindex] = calloc(sizeof(PTelem), L2PTSIZE);//??
+        L1PageTable[L1PTindex] = calloc(sizeof(PTelem), L2PTSIZE);
         ptelem = &L1PageTable[L1PTindex][(addr >> 12) & 0x3ff];
         ptelem->flag = RWPage;
         ptelem->pageref = malloc(VMEMPAGE_SIZE);
-        ((uint32_t *)(ptelem->pageref))[addr & 0xfff] = data;
+        ((uint16_t *)(ptelem->pageref))[addr & 0xfff] = data_16;
         return 0;
     }
     else
@@ -75,12 +104,49 @@ int mem_write_direct_byte(uint32_t addr, uint8_t data)
         {
             ptelem->flag = RWPage;
             ptelem->pageref = malloc(VMEMPAGE_SIZE);
-            ((uint8_t *)(ptelem->pageref))[addr & 0xfff] = data;
+            ((uint16_t *)(ptelem->pageref))[addr & 0xfff] = data_16;
             return 0;
         }
         else if(ptelem->flag == RWPage)
         {
-            ((uint8_t *)(ptelem->pageref))[addr & 0xfff] = data;
+            ((uint16_t *)(ptelem->pageref))[addr & 0xfff] = data_16;
+            return 0;
+        }
+        else
+            return 1;
+    }
+    return 0;
+}
+
+int mem_write_direct_w(uint32_t addr, uint32_t data_32)
+{
+    /* alignment */
+    addr &= 0xfffffffc;
+    
+    int L1PTindex = addr >> 22;
+    PTelem * ptelem;
+    if(L1PageTable[L1PTindex] == NULL)
+    {
+        L1PageTable[L1PTindex] = calloc(sizeof(PTelem), L2PTSIZE);
+        ptelem = &L1PageTable[L1PTindex][(addr >> 12) & 0x3ff];
+        ptelem->flag = RWPage;
+        ptelem->pageref = malloc(VMEMPAGE_SIZE);
+        ((uint32_t *)(ptelem->pageref))[addr & 0xfff] = data_32;
+        return 0;
+    }
+    else
+    {
+        ptelem = &L1PageTable[L1PTindex][(addr >> 12) & 0x3ff];
+        if(ptelem->flag == NAPage)
+        {
+            ptelem->flag = RWPage;
+            ptelem->pageref = malloc(VMEMPAGE_SIZE);
+            ((uint32_t *)(ptelem->pageref))[addr & 0xfff] = data_32;
+            return 0;
+        }
+        else if(ptelem->flag == RWPage)
+        {
+            ((uint32_t *)(ptelem->pageref))[addr & 0xfff] = data_32;
             return 0;
         }
         else
