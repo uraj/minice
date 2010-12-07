@@ -246,49 +246,15 @@ static uint32_t gen_operand2(StoreArch * storage, const PipeState * pipe_state, 
     return 0;
 }
 
-static int test_branch_cond(const PSW * cmsr, uint8_t condcode)
-{
-    switch(condcode)
-    {
-        case 0x0U:              /* EQ */
-            return cmsr->Z;
-        case 0x1U:              /* NE */
-            return !(cmsr->Z);
-        case 0x2U:              /* UGE */
-            return cmsr->C;
-        case 0x3U:              /* ULT */
-            return !(cmsr->C);
-        case 0x4U:              /* N */
-            return cmsr->N;
-        case 0x5U:              /* NN */
-            return !(cmsr->N);
-        case 0x6U:              /* OV */
-            return cmsr->V;
-        case 0x7U:              /* NV */
-            return !(cmsr->V);
-        case 0x8U:              /* UGT */
-            return cmsr->C && !(cmsr->Z);
-        case 0x9U:              /* ULE */
-            return !(cmsr->C) || cmsr->Z;
-        case 0xaU:              /* SGE */
-            return cmsr->N == cmsr->V;
-        case 0xbU:              /* SLT */
-            return cmsr->N != cmsr->V;
-        case 0xcU:              /* SGT */
-            return !(cmsr->Z) && (cmsr->N == cmsr->V);
-        case 0xdU:              /* SLE */
-            return cmsr->Z || (cmsr->N != cmsr->V);
-        case 0xeU:              /* AL */
-            return 1;
-        default:
-            exit(1);
-    }        
-}
-
 /* retrun cycle count (including flush or stalling penalty) */
 /* if retrun -1, pipeline stalls */
 int IDStage(StoreArch * storage, PipeState * pipe_state)
 {
+    if(pipe_state->id_in.bubble == 1)
+    {
+        pipe_state->ex_in.bubble = 1;
+        return 1;
+    }
     InstrFields ifields = get_fields(pipe_state->id_in.instruction);
     InstrType itype = get_instr_type(pipe_state->id_in.instruction);
     int data_hazard;
@@ -304,25 +270,23 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
             storage->reg[RA] = storage->reg[PC];
         storage->reg[PC] = storage->reg[ifields.rm];
         storage->reg[PC] &= 0xfffffffcU; /* PC word align */
-        return 2;
+        return 1;
     }
     else if(itype == Branch_Cond)
     {
-        pipe_state->ex_in.bubble = 1; /* gen bubbles */
+        pipe_state->ex_in.bubble = 0; /* gen bubbles */
         if(ifields.flags.L == 1) /* Branch and link */
-            storage->reg[RA] = storage->reg[PC];
-        if(test_branch_cond(&(storage->CMSR), ifields.cond))
-        {
-            uint32_t offset = ifields.signed_off_imm24 << 2;
-            if((signed int)(offset << 6) < 0)
-                offset |= 0xfc000000U;
-            storage->reg[PC] += offset;
-        }
-        return 2;
+            pipe_state->ex_in.condop = CondBranchLink;
+        else
+            pipe_state->ex_in.condop = CondBranch;
+        pipe_state->ex_in.condcode_branch = ifields.cond;
+        pipe_state->ex_in.branch_imm_offset = ifields.signed_off_imm24;
+        return 1;
     }
-
+    
     pipe_state->ex_in.bubble = 0;
     pipe_state->ex_in.S = ifields.flags.S;
+    pipe_state->ex_in.condop = NoBranch;
     
     /* then deal with multiply */
     if(itype == Multiply)
@@ -361,16 +325,20 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
     }
     else
         pipe_state->ex_in.mulop = MulNop;
-    
-    /* gen operand1. operand1 is always reg[rn] */
-    data_hazard = read_register(storage, pipe_state, ifields.rn, &data);
-    if(data_hazard)
+
+    if(ifields.opcode == 0x0dU || ifields.opcode == 0x0fU ) /* MVN or MOV, operand1 is of no use. Thus ex_in.operand1 stores ifields.rn for executing conditional MVN or MOV */
+        pipe_state->ex_in.operand1 = ifields.rn;
+    else /* gen operand1. operand1 is always reg[rn] */
     {
-        pipe_state->ex_in.bubble = 1;
-        return -1;
+        data_hazard = read_register(storage, pipe_state, ifields.rn, &data);
+        if(data_hazard)
+        {
+            pipe_state->ex_in.bubble = 1;
+            return -1;
+        }
+        else
+            pipe_state->ex_in.operand1 = data;
     }
-    else
-        pipe_state->ex_in.operand1 = data;
     
     data_hazard = gen_operand2(storage, pipe_state, &ifields, itype, &data);
     if(data_hazard)
@@ -405,6 +373,7 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
     }
     else
         pipe_state->ex_in.aluopcode = ifields.opcode;
+        /*  */
 
     return 1;
 }
