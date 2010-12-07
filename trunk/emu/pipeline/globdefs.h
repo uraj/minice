@@ -60,25 +60,40 @@ typedef struct
 
 typedef struct
 {
+    int bubble;
     instr instruction;
     FwdData ex_fwd, mem_fwd;
 } ID_input;
 
 #define ALU_NOP 0xffU
 
-typedef enum { Mul, MulAdd, MulNop } MULop;
+typedef enum { Mul, MulAdd, MulNop } MulOp;
+
+typedef enum
+{
+    CondBranch,
+    CondBranchLink,
+    NoBranch
+} CondBranchOp;
 
 typedef struct
 {
     short bubble;
     short S;
-    uint8_t aluopcode;
-    MULop mulop;
+    CondBranchOp condop;
+    union
+    {
+        uint8_t aluopcode;
+        uint8_t condcode_branch;
+    };
+    uint32_t branch_imm_offset;
+    MulOp mulop;
     union
     {
         uint32_t operand1;
         uint32_t val_base;
         uint32_t val_rn;
+        uint32_t condcode_assign;
     };
     union
     {

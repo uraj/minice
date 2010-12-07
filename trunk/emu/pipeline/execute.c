@@ -147,12 +147,71 @@ static uint32_t Mulcal(StoreArch * storage, const EX_input * ex_in)
     return ret;
 }
 
+static int test_cond(const PSW * cmsr, uint8_t condcode)
+{
+    switch(condcode)
+    {
+        case 0x0U:              /* EQ */
+            return cmsr->Z;
+        case 0x1U:              /* NE */
+            return !(cmsr->Z);
+        case 0x2U:              /* UGE */
+            return cmsr->C;
+        case 0x3U:              /* ULT */
+            return !(cmsr->C);
+        case 0x4U:              /* N */
+            return cmsr->N;
+        case 0x5U:              /* NN */
+            return !(cmsr->N);
+        case 0x6U:              /* OV */
+            return cmsr->V;
+        case 0x7U:              /* NV */
+            return !(cmsr->V);
+        case 0x8U:              /* UGT */
+            return cmsr->C && !(cmsr->Z);
+        case 0x9U:              /* ULE */
+            return !(cmsr->C) || cmsr->Z;
+        case 0xaU:              /* SGE */
+            return cmsr->N == cmsr->V;
+        case 0xbU:              /* SLT */
+            return cmsr->N != cmsr->V;
+        case 0xcU:              /* SGT */
+            return !(cmsr->Z) && (cmsr->N == cmsr->V);
+        case 0xdU:              /* SLE */
+            return cmsr->Z || (cmsr->N != cmsr->V);
+        case 0xeU:              /* AL */
+            return 1;
+        default:
+            exit(1);
+    }
+}
+
 int EXStage(StoreArch * storage, PipeState * pipe_state)
 {
     if(pipe_state->ex_in.bubble)
     {
         pipe_state->mem_in.bubble = 1;
         return 1;
+    }
+    else if(pipe_state->ex_in.condop != NoBranch)
+    {
+        pipe_state->mem_in.bubble = 1;
+        
+        if(test_cond(&(storage->CMSR), pipe_state->ex_in.condcode_branch)) /* branch occurs */
+        {
+            if(pipe_state->ex_in.condop == CondBranchLink)
+                storage->reg[RA] = storage->reg[PC];
+            uint32_t offset = pipe_state->ex_in.branch_imm_offset << 2;
+            if((signed int)(offset << 6) < 0)
+                offset |= 0xfc000000U;
+            storage->reg[PC] += offset;
+            
+            /* flush the pipline */
+            pipe_state->id_in.bubble = 1;
+            return 2;
+        }
+        else                    /* branch not occurs */
+            return 1;
     }
     FwdData ex_fwd;
     ex_fwd.freg = pipe_state->ex_in.wb_val_ex_dest;
@@ -194,12 +253,27 @@ int EXStage(StoreArch * storage, PipeState * pipe_state)
                 pipe_state->ex_in.operand1,
                 pipe_state->ex_in.operand2,
                 &(storage->CMSR));
-        pipe_state->mem_in.val_ex = ex_fwd.fdata;
-        pipe_state->wb_in.val_ex = ex_fwd.fdata;
-        
-        /* data forwarding */
-        pipe_state->id_in.ex_fwd = ex_fwd;
+        if((pipe_state->ex_in.aluopcode == 0xdU || pipe_state->ex_in.aluopcode == 0xfU) &&
+           ((pipe_state->ex_in.operand1 & 0x10U) != 0) &&
+           test_cond(&(storage->CMSR), (uint8_t)(pipe_state->ex_in.condcode_assign)) == 0) /* condtional MVN or MOV and test_cond fails*/
+        {
+            if(pipe_state->mem_in.addr_sel == 0)
+                pipe_state->mem_in.addr_sel = 2;
+            if(pipe_state->mem_in.wb_dest_sel == 0)
+                pipe_state->mem_in.wb_dest_sel = 3;
+            else if(pipe_state->mem_in.wb_dest_sel == 2)
+                pipe_state->mem_in.wb_dest_sel = 1;
+        }
+        else
+        {   
+            pipe_state->mem_in.val_ex = ex_fwd.fdata;
+            pipe_state->wb_in.val_ex = ex_fwd.fdata;
+            
+            /* data forwarding */
+            pipe_state->id_in.ex_fwd = ex_fwd;
+        }
         return 1;
     }
     return 1;
 }
+

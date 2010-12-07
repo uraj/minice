@@ -13,6 +13,10 @@ void emulate(void * emulation_entry)
     pipe_state.ex_in.bubble = 1;
     pipe_state.mem_in.bubble = 1;
     pipe_state.wb_in.bubble = 1;
+
+    /* initialization */
+    storage.reg[PC] = (uint32_t)emulation_entry;
+    storage.reg[RA] = 0;
     
     if(IFStage(&storage, &pipe_state) == -1)
         return;
