@@ -1,4 +1,5 @@
 #include <loader/elfmanip.h>
+#include <memory/vmem.h>
 #include <stdint.h>
 #include <elf.h>
 #include <stdio.h>
@@ -70,7 +71,7 @@ void load_elf_segments(FILE * file, Elf32_Ehdr ehdr)
                 default:
                     exit(1);
             }
-            vmem_load(phdrtable[i].p_vaddr, size, buffer, flag);
+            mem_load(phdrtable[i].p_vaddr, size, buffer, flag);
             free(buffer);
         }
     }
