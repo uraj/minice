@@ -301,12 +301,27 @@ static void generate_in_out_for_all()
 	}
 }
 
+static void generate_ud_for_each_block()
+{
+
+}
+
+static void generate_ud_for_all_block()
+{
+	int index;
+	for(index = 0; index < g_block_num; index ++)
+	{
+		ud_gen[index] = generate_gen_for_each_block(index);
+	}
+}
+
 void ud_analyse(int function_index)
 {
 	set_cur_function(function_index);//set the function	
 	new_temp_list();
 	generate_gen_for_all();
 	generate_in_out_for_all();
+	generate_ud_for_all_block();
 	free_temp_list();
 }
 
