@@ -183,6 +183,9 @@ typedef struct
     PSW CMSR;
 } StoreArch;
 
+#define FP 27
+#define IP 28
+#define SP 29
 #define RA 30
 #define PC 31
 
