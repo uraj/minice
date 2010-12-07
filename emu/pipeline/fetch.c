@@ -7,6 +7,8 @@ int IFStage(StoreArch * storage, PipeState * pipe_state)
 {
     uint32_t instr;
     int readinfo;
+    if(storage->reg[PC] == 0)
+        return -1;
     readinfo = mem_read_instruction(storage->reg[PC], &instr);
     if(readinfo == -1)
     {
@@ -14,6 +16,7 @@ int IFStage(StoreArch * storage, PipeState * pipe_state)
         exit(1);
     }
     pipe_state->id_in.instruction = instr;
+    pipe_state->id_in.bubble = 0;
     storage->reg[PC] += 4;
-    return 0;
+    return 1;
 }

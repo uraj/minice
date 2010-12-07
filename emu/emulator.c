@@ -10,6 +10,7 @@ void emulate(void * emulation_entry)
     StoreArch storage;
     PipeState pipe_state;
     
+    pipe_state.id_in.bubble = 1;
     pipe_state.ex_in.bubble = 1;
     pipe_state.mem_in.bubble = 1;
     pipe_state.wb_in.bubble = 1;
@@ -59,6 +60,6 @@ int main(int argc, char * argv[])
     void * emulation_entry = get_func_entry(elf, ehdr, "main");
     
     emulate(emulation_entry);
-    
+    mem_free();
     return 0;
 }
