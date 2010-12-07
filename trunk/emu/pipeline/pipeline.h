@@ -4,7 +4,7 @@
 #include <pipeline/fetch.h>
 #include <pipeline/decode.h>
 #include <pipeline/execute.h>
-#include <pipeline/memacess.h>
+#include <pipeline/memaccess.h>
 #include <pipeline/writeback.h>
 
 #endif
