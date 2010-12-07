@@ -1,5 +1,7 @@
 #include <pipeline/fetch.h>
 #include <memory/memory.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 int IFStage(StoreArch * storage, PipeState * pipe_state)
 {

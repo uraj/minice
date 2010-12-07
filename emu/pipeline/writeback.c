@@ -1,4 +1,5 @@
 #include <pipeline/writeback.h>
+#include <stdlib.h>
 
 int WBStage(StoreArch * storage, PipeState * pipe_state)
 {
