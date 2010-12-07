@@ -1,6 +1,6 @@
 #include <loader/elfmanip.h>
 #include <memory/memory.h>
-#include <pipeline/pipeline.h>
+#include <pipeline.h>
 #include <stdio.h>
 
 L2PT L1PageTable[L1PTSIZE];
@@ -35,29 +35,30 @@ void emulate(void * emulation_entry)
     return;
 }
 
-void emulate_nopipe(void * emulation_entry)
+void emulate_single_instruction(void * emulation_entry)
 {
     StoreArch storage;
     PipeState pipe_state;
     
-    pipe_state.id_in.bubble = 1;
-    pipe_state.ex_in.bubble = 1;
-    pipe_state.mem_in.bubble = 1;
-    pipe_state.wb_in.bubble = 1;
+    pipe_state.id_in.bubble = 0;
+    pipe_state.ex_in.bubble = 0;
+    pipe_state.mem_in.bubble = 0;
+    pipe_state.wb_in.bubble = 0;
 
     /* initialization */
     storage.reg[PC] = (uint32_t)emulation_entry;
     storage.reg[RA] = 0;
     
-    while(1)
-    {
-        if(IFStage(&storage, &pipe_state) == -1)
-            break;
+    if(IFStage(&storage, &pipe_state) == -1)
+        return;
+    if(pipe_state.id_in.bubble == 0)
         IDStage(&storage, &pipe_state);
+    if(pipe_state.ex_in.bubble == 0)
         EXStage(&storage, &pipe_state);
+    if(pipe_state.mem_in.bubble == 0)
         MEMStage(&storage, &pipe_state);
+    if(pipe_state.wb_in.bubble == 0)
         WBStage(&storage, &pipe_state);
-    }
     return;
 }
 
@@ -83,9 +84,10 @@ int main(int argc, char * argv[])
     }
     Elf32_Ehdr ehdr = get_elf_hdr(elf);
     load_elf_segments(elf, ehdr);
-    void * emulation_entry = get_func_entry(elf, ehdr, "main");
-    
-    emulate_nopipe(emulation_entry);
+    // void * emulation_entry = get_func_entry(elf, ehdr, "main");
+    void * emulation_entry;
+    scanf("%p", &emulation_entry);
+    emulate_single_instruction(emulation_entry);
     mem_free();
     return 0;
 }

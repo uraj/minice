@@ -9,7 +9,7 @@ void gen_control_signals(const InstrFields * ifields, InstrType itype, EX_input 
         case D_Immidiate:
             ex_in->bubble = 0;
             ex_in->mem_addr_sel = 2; /* no mem acsess */
-            if((ifields->opcode <= 0xbfU) && (ifields->opcode >= 8))
+            if((ifields->opcode <= 0xbU) && (ifields->opcode >= 8))
                 ex_in->wb_dest_sel = 3; /* no write back */
             else
             {
