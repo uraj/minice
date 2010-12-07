@@ -35,6 +35,32 @@ void emulate(void * emulation_entry)
     return;
 }
 
+void emulate_nopipe(void * emulation_entry)
+{
+    StoreArch storage;
+    PipeState pipe_state;
+    
+    pipe_state.id_in.bubble = 1;
+    pipe_state.ex_in.bubble = 1;
+    pipe_state.mem_in.bubble = 1;
+    pipe_state.wb_in.bubble = 1;
+
+    /* initialization */
+    storage.reg[PC] = (uint32_t)emulation_entry;
+    storage.reg[RA] = 0;
+    
+    while(1)
+    {
+        if(IFStage(&storage, &pipe_state) == -1)
+            break;
+        IDStage(&storage, &pipe_state);
+        EXStage(&storage, &pipe_state);
+        MEMStage(&storage, &pipe_state);
+        WBStage(&storage, &pipe_state);
+    }
+    return;
+}
+
 int main(int argc, char * argv[])
 {
     if(argc < 2)
@@ -59,7 +85,7 @@ int main(int argc, char * argv[])
     load_elf_segments(elf, ehdr);
     void * emulation_entry = get_func_entry(elf, ehdr, "main");
     
-    emulate(emulation_entry);
+    emulate_nopipe(emulation_entry);
     mem_free();
     return 0;
 }

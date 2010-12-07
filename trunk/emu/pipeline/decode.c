@@ -355,10 +355,11 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
        (itype == LS_Hw_RegOff) ||
        (itype == LS_Hw_ImmOff))
     {
+        pipe_state->ex_in.S = 0;
         if((ifields.flags).U == 1)
-            pipe_state->ex_in.aluopcode =  0xbU;
+            pipe_state->ex_in.aluopcode =  0x4U;
         else
-            pipe_state->ex_in.aluopcode =  0xaU;
+            pipe_state->ex_in.aluopcode =  0x2U;
         if(ifields.flags.L == 0) /* store instruction */
         {
             data_hazard = read_register(storage, pipe_state, ifields.rd, &data);
