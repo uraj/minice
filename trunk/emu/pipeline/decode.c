@@ -374,7 +374,6 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
     }
     else
         pipe_state->ex_in.aluopcode = ifields.opcode;
-        /*  */
 
     return 1;
 }
