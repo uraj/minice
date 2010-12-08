@@ -30,7 +30,7 @@ static inline void free_temp_list()
 
 static inline struct basic_block_list * basic_block_list_append(struct basic_block_list * list, struct basic_block * newblock)//append block to the list
 {
-	struct basic_block_list * newnode = malloc(sizeof(struct basic_block_list));
+	struct basic_block_list * newnode = malloc(sizeof(struct basic_block_list));	
 	newnode -> entity = newblock;
 	newnode -> next = NULL;
 	if(list != NULL)
@@ -303,15 +303,13 @@ static void trans_to_array()//DFS_array should be free later
 	struct basic_block_list * tmp_node = NULL;
 	while(list_node != NULL)
 	{
-		//printf("%d\n", index);
-		//if(index == 7)
-		//	printf("%d", list_node -> next);
 		list_node -> entity -> index = index;
 		DFS_array[index++] = list_node -> entity;
 		tmp_node = list_node;
 		list_node = list_node -> next;
 		free(tmp_node);
 	}
+	DFS_list = NULL;
 
 	for(index = 0; index < g_block_num; index++)
 	{
