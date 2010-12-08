@@ -115,7 +115,7 @@ int get_index_of_temp(int expr)
 
 int get_index_of_id(char * idname)
 {
-	struct value_info * id_info = symt_search(cur_func_info -> func_symt, idname);
+	struct value_info * id_info = symbol_search(simb_table, cur_func_info -> func_symt, idname);
 	return id_info -> no;
 }
 
