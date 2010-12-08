@@ -1,7 +1,7 @@
 #include <loader/elfmanip.h>
 #include <memory/memory.h>
 #include <pipeline.h>
-#include <stdio.h>
+#include <stdio.h
 
 L2PT L1PageTable[L1PTSIZE];
 
