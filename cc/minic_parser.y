@@ -615,11 +615,11 @@ int main(int argc, char* argv[])
     struct value_info *cur_func_info;
 	for(i = 0; i < g_table_list_size; i++)
 	{
-	printf("%s\n", table_list[i] -> funcname);
-    cur_func_info = symt_search(simb_table ,table_list[i] -> funcname);
-    curr_table = cur_func_info->func_symt;
-    make_fd(i);
-    analyse_actvar();
+		printf("%s\n", table_list[i] -> funcname);
+		cur_func_info = symt_search(simb_table ,table_list[i] -> funcname);
+		curr_table = cur_func_info->func_symt;
+		make_fd(i);
+		analyse_actvar();
 	}
     syms_delete(parm_stack);
     syms_delete(type_stack);
