@@ -3,8 +3,9 @@ CFLAGS+=-g
 CFLAGS+=-Wall
 CFLAGS+=-I..
 MINIEMU_OBJS=fetch.o decode.o control.o execute.o memaccess.o writeback.o elfmanip.o vmem.o memory.o
-miniemu:$(MINIEMU_OBJS) emulator.o debug.o
-	gcc $(MINIEMU_OBJS) emulator.o debug.o -o miniemu
+miniemu:../miniemu
+../miniemu:$(MINIEMU_OBJS) emulator.o debug.o
+	gcc $(MINIEMU_OBJS) emulator.o debug.o -o ../miniemu
 testemu:$(MINIEMU_OBJS) test.o
 	gcc $(MINIEMU_OBJS) test.o -o testemu
 fetch.o:../pipeline/fetch.c ../pipeline/fetch.h

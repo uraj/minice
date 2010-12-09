@@ -1,7 +1,7 @@
 #ifndef __MINIEMU_CACHE_H__
 #define __MINIEMU_CACHE_H__
 
-#include "vmem.h"
+#include <memory/vmem.h>
 
 /* capacity = 32KB blocksize = 64B linenum = 8 */
 /* if we want to build up multilevel caches, we can just use this */

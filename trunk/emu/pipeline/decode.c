@@ -267,7 +267,7 @@ int IDStage(StoreArch * storage, PipeState * pipe_state)
     {
         pipe_state->ex_in.bubble = 1; /* gen bubbles */
         if(ifields.flags.L == 1) /* Branch and link */
-            storage->reg[RA] = storage->reg[PC];
+            storage->reg[LR] = storage->reg[PC];
         storage->reg[PC] = storage->reg[ifields.rm];
         storage->reg[PC] &= 0xfffffffcU; /* PC word align */
         return 1;

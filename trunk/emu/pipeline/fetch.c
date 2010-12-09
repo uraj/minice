@@ -3,12 +3,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int IFStage(StoreArch * storage, PipeState * pipe_state)
+int IFStage(StoreArch * storage, PipeState * pipe_state, uint32_t special_entry)
 {
     uint32_t instr;
     int readinfo;
     if(storage->reg[PC] == 0)
         return -1;
+    else if(storage->reg[PC] == special_entry)
+    {
+        printf("%d", (int)storage->reg[0]);
+        storage->reg[PC] = storage->reg[LR];
+    }
     readinfo = mem_read_instruction(storage->reg[PC], &instr);
     if(readinfo == -1)
     {
