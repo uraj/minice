@@ -12,7 +12,7 @@ void print_regfile(const StoreArch * storage)
     printf("r20:0x%08x\tr21:0x%08x\tr22:0x%08x\tr24:0x%08x\n", storage->reg[20], storage->reg[21], storage->reg[22], storage->reg[23]);
     printf("r24:0x%08x\tr25:0x%08x\tr26:0x%08x\tfp :0x%08x\n", storage->reg[24], storage->reg[25], storage->reg[26], storage->reg[27]);
     printf("ip :0x%08x\tsp :0x%08x\tlr :0x%08x\tpc :0x%08x\n\n", storage->reg[28], storage->reg[29], storage->reg[30], storage->reg[31]);
-    printf("CMSR.N:%ud\tCMSR.Z:%ud\tCMSR.C:%ud\tCMSR.V:%ud\n", storage->CMSR.N, storage->CMSR.Z, storage->CMSR.C, storage->CMSR.V);
+    printf("CMSR.N:%u\tCMSR.Z:%u\tCMSR.C:%u\tCMSR.V:%u\n", storage->CMSR.N, storage->CMSR.Z, storage->CMSR.C, storage->CMSR.V);
     return;
 }
 

@@ -146,6 +146,14 @@ typedef struct
     
 } MEM_input;
 
+typedef enum
+{
+    WB_ValEx = 0,
+    WB_valMem = 1,
+    WB_Both = 2,
+    WB_Neither = 3,
+} WB_SEL;
+
 typedef struct
 {
     short bubble;

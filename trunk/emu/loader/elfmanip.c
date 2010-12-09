@@ -40,7 +40,7 @@ void get_elf_phdr(Elf32_Phdr phdr[], Elf32_Ehdr ehdr, FILE * file)
 void load_elf_segments(FILE * file, Elf32_Ehdr ehdr)
 {
     Elf32_Phdr * phdrtable = NULL;
-    int i, size;
+    int i;
     void * buffer;
     PageAttr flag;
     phdrtable = malloc(sizeof(Elf32_Phdr) * ehdr.e_phnum *2);
@@ -50,9 +50,9 @@ void load_elf_segments(FILE * file, Elf32_Ehdr ehdr)
         if(phdrtable[i].p_type == PT_LOAD)
         {
             fseek(file, phdrtable[i].p_offset, SEEK_SET);
-            size = phdrtable[i].p_filesz;
-            buffer = malloc(size);
-            fread(buffer, 1, size, file);
+            buffer = malloc(phdrtable[i].p_memsz);
+            memset(buffer + phdrtable[i].p_filesz, 0, phdrtable[i].p_memsz-phdrtable[i].p_filesz);
+            fread(buffer, 1, phdrtable[i].p_filesz, file);
             switch(phdrtable[i].p_flags)
             {
                 case PF_R:
@@ -71,7 +71,7 @@ void load_elf_segments(FILE * file, Elf32_Ehdr ehdr)
                 default:
                     exit(1);
             }
-            mem_load(phdrtable[i].p_vaddr, size, buffer, flag);
+            mem_load(phdrtable[i].p_vaddr, phdrtable[i].p_memsz, buffer, flag);
             free(buffer);
         }
     }

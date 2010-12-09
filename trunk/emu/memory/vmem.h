@@ -4,10 +4,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define VMEMSPACE_SIZE 0x100000
-#define VMEMPAGE_SIZE 0x1000
-#define L1PTSIZE 0x1000
-#define L2PTSIZE 0x1000
+#define VMEMPAGE_SIZE 0x8000
+#define L1PTSIZE 0x80
+#define L2PTSIZE 0x400
 
 typedef void * PageAddr;
 
@@ -23,7 +22,7 @@ typedef PTelem * L2PT;
 
 extern L2PT L1PageTable[L1PTSIZE];
 
-extern void mem_load(uint32_t addr, size_t size, const uint32_t * source, PageAttr flag);
+extern void mem_load(uint32_t addr, size_t size, const void * source, PageAttr flag);
 
 /* 0: success
  * 1: mem readonly

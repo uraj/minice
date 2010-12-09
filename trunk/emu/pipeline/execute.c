@@ -214,6 +214,8 @@ int EXStage(StoreArch * storage, PipeState * pipe_state)
         else                    /* branch not occurs */
             return 1;
     }
+    else
+        pipe_state->mem_in.bubble = 0;
     FwdData ex_fwd;
     ex_fwd.freg = pipe_state->ex_in.wb_val_ex_dest;
     
