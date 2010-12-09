@@ -49,16 +49,27 @@ void gen_control_signals(const InstrFields * ifields, InstrType itype, EX_input 
                 ex_in->mem_addr_sel = 0; /* val_ex as mem address */
                 if(ifields->flags.W == 1)
                 {
-                    ex_in->wb_dest_sel = 2; /* both of val_ex and val_mem have to be written back */
+                    if(ex_in->mem_load == 1) /* load */
+                        ex_in->wb_dest_sel = 2; /* both of val_ex and val_mem have to be written back */
+                    else                        /* store */
+                        ex_in->wb_dest_sel = 0;
                     ex_in->wb_val_ex_dest = ifields->rn;
                 }
                 else
-                    ex_in->wb_dest_sel = 0; /* only val_mem needs to be written back */
+                {
+                    if(ex_in->mem_load == 1) /* load */
+                        ex_in->wb_dest_sel = 1; /* only val_mem needs to be written back */
+                    else                        /* store */
+                        ex_in->wb_dest_sel = 3;
+                }
             }
-            else
+            else                /* P == 0 */
             {
                 ex_in->mem_addr_sel = 1; /* val_base as mem address */
-                ex_in->wb_dest_sel = 2;
+                if(ex_in->mem_load == 1) /* load */
+                    ex_in->wb_dest_sel = 2;
+                else            /* store */
+                    ex_in->wb_dest_sel = 0;
                 ex_in->wb_val_ex_dest = ifields->rn;
             }
             break;
@@ -78,18 +89,29 @@ void gen_control_signals(const InstrFields * ifields, InstrType itype, EX_input 
             if(ifields->flags.P == 1)
             {
                 ex_in->mem_addr_sel = 0; /* val_ex as mem address */
-                if(ifields->flags.W == 1)
+                if(ifields->flags.W == 1) /* base addr reg written back */
                 {
-                    ex_in->wb_dest_sel = 2; /* both of val_ex and val_mem have to be written back */
+                    if(ex_in->mem_load == 1) /* load */
+                        ex_in->wb_dest_sel = 2; /* both of val_ex and val_mem have to be written back */
+                    else
+                        ex_in->wb_dest_sel = 0;
                     ex_in->wb_val_ex_dest = ifields->rn;
                 }
                 else
-                    ex_in->wb_dest_sel = 0; /* only val_mem needs to be written back */
+                {
+                    if(ex_in->mem_load == 1) /* load */
+                        ex_in->wb_dest_sel = 1; /* only val_mem needs to be written back */
+                    else                        /* store */
+                        ex_in->wb_dest_sel = 3;
+                }
             }
             else
             {
                 ex_in->mem_addr_sel = 1; /* val_base as mem address */
-                ex_in->wb_dest_sel = 2;
+                if(ex_in->mem_load)      /* load */
+                    ex_in->wb_dest_sel = 2;
+                else            /* store */
+                    ex_in->wb_dest_sel = 0;
                 ex_in->wb_val_ex_dest = ifields->rn;
             }
             break;
