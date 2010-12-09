@@ -200,7 +200,7 @@ int EXStage(StoreArch * storage, PipeState * pipe_state)
         if(test_cond(&(storage->CMSR), pipe_state->ex_in.condcode_branch)) /* branch occurs */
         {
             if(pipe_state->ex_in.condop == CondBranchLink)
-                storage->reg[RA] = storage->reg[PC];
+                storage->reg[LR] = storage->reg[PC];
             uint32_t offset = pipe_state->ex_in.branch_imm_offset << 2;
             if((signed int)(offset << 6) < 0)
                 offset |= 0xfc000000U;
@@ -208,6 +208,7 @@ int EXStage(StoreArch * storage, PipeState * pipe_state)
             
             /* flush the pipline */
             pipe_state->id_in.bubble = 1;
+            pipe_state->mem_in.bubble = 1;
             return 2;
         }
         else                    /* branch not occurs */

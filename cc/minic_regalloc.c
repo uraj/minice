@@ -141,8 +141,7 @@ static void delete_node(char ** var_set, int n, int node)
     return;
 }
 
-int color_interfer_graph(struct adjlist ** ig, int * alloc_info,
-                         const int max_reg, int * stack, const int top)
+int color_interfer_graph(struct adjlist ** ig, int * alloc_info, const int max_reg, int * stack, const int top)
 {
     int i, j;
     char * color = malloc(sizeof(char) * max_reg);
@@ -183,9 +182,7 @@ static int check(struct adjlist ** ig, int * alloc_info, int n)
     return 1;
 }
 
-static struct ralloc_info reg_alloc_core(char ** igmatrix,
-                                         struct adjlist ** iglist,
-                                         const int n, const int max_reg)            
+static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** iglist, const int n, const int max_reg)
 {
     struct ralloc_info ret;
     ret.result = calloc(sizeof(int), n);

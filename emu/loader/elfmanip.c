@@ -8,7 +8,7 @@
 
 int elf_check(FILE * file)
 {
-    long int sindicator = ftell(file);
+     long int sindicator = ftell(file);
     rewind(file);
     unsigned char magic[16];
     size_t get = fread(magic, sizeof(unsigned char), 16, file);
@@ -79,12 +79,12 @@ void load_elf_segments(FILE * file, Elf32_Ehdr ehdr)
     return;
 }
 
-void * get_func_entry(FILE * file, Elf32_Ehdr ehdr, const char * funcname)
+uint32_t get_func_entry(FILE * file, Elf32_Ehdr ehdr, const char * funcname)
 {
     int i, found;
     Elf32_Shdr strshdr, symshdr;
     char * strbuff = NULL;
-    void * ret = NULL;
+    uint32_t ret = 0;
     
     /* get section header of .shstrtab */
     fseek(file, ehdr.e_shoff + ehdr.e_shstrndx * sizeof(Elf32_Shdr), SEEK_SET);
@@ -121,7 +121,7 @@ void * get_func_entry(FILE * file, Elf32_Ehdr ehdr, const char * funcname)
         fread(&temp, 1, sizeof(Elf32_Sym), file);
         if(strcmp(funcname, strbuff + temp.st_name) == 0)
         {
-            ret = (void *)temp.st_value;
+            ret = temp.st_value;
             break;
         }
     }

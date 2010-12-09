@@ -1,3 +1,2 @@
-miniemu:
+build:
 	cd objs && make
-	cp objs/miniemu .

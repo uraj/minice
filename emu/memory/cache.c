@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "vmem.h"
-#include "cache.h"
+#include <memory/cache.h>
 
 #define BLOCKLEN 8
 #define SETLEN 8
@@ -31,7 +30,7 @@ static void rand_cache_overflow(unsigned int tag, unsigned int set, unsigned int
 	/*
 	//Write_back
 	if(Cache[set][rand_line].dirty == 1)
-		write_back();//in our emu, we need not that
+    write_back();//in our emu, we need not that
 	*/
 
 	Cache[set][rand_line].valid = 1;
