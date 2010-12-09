@@ -17,11 +17,14 @@ int MEMStage(StoreArch * storage, PipeState * pipe_state)
     pipe_state->wb_in.val_ex = pipe_state->mem_in.val_ex;
     pipe_state->wb_in.val_ex_dest = pipe_state->mem_in.wb_val_ex_dest;
     pipe_state->wb_in.val_mem_dest = pipe_state->mem_in.wb_val_mem_dest;
+    
+    pipe_state->id_in.mem_fwd.freg = 0xff;
+    
     if(pipe_state->mem_in.addr_sel == 2)
         return 1;
     else
     {
-        if(pipe_state->mem_in.load)
+        if(pipe_state->mem_in.load) /* load */
         {
             uint32_t data;
             int readinfo;
@@ -47,10 +50,13 @@ int MEMStage(StoreArch * storage, PipeState * pipe_state)
             
             /* data forwarding */
             mem_fwd.fdata = data;
-            mem_fwd.freg = pipe_state->mem_in.wb_val_mem_dest;
-            pipe_state->id_in.mem_fwd = mem_fwd;
+            if(pipe_state->mem_in.wb_dest_sel == 1 || pipe_state->mem_in.wb_dest_sel == 2)
+            {
+                mem_fwd.freg = pipe_state->mem_in.wb_val_mem_dest;
+                pipe_state->id_in.mem_fwd = mem_fwd;
+            }
         }
-        else
+        else                    /* store */
         {
             int write_info;
             if(pipe_state->mem_in.addr_sel == 0)

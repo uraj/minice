@@ -1,5 +1,4 @@
 #define NOPIPE
-#define DEBUG
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -193,7 +193,8 @@ int EXStage(StoreArch * storage, PipeState * pipe_state)
         pipe_state->mem_in.bubble = 1;
         return 1;
     }
-    else if(pipe_state->ex_in.condop != NoBranch)
+    pipe_state->id_in.ex_fwd.freg = 0xff;
+    if(pipe_state->ex_in.condop != NoBranch)
     {
         pipe_state->mem_in.bubble = 1;
         
@@ -217,7 +218,8 @@ int EXStage(StoreArch * storage, PipeState * pipe_state)
     else
         pipe_state->mem_in.bubble = 0;
     FwdData ex_fwd;
-    ex_fwd.freg = pipe_state->ex_in.wb_val_ex_dest;
+    if(pipe_state->ex_in.wb_dest_sel == 0 || pipe_state->ex_in.wb_dest_sel == 2)
+        ex_fwd.freg = pipe_state->ex_in.wb_val_ex_dest;
     
     /* push control signals */
     pipe_state->mem_in.load = pipe_state->ex_in.mem_load;
