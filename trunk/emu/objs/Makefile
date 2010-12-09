@@ -3,6 +3,8 @@ CFLAGS+=-g
 CFLAGS+=-Wall
 CFLAGS+=-I..
 EMU_OBJS=fetch.o decode.o control.o execute.o memaccess.o writeback.o elfmanip.o vmem.o memory.o
+EMU_OBJS_DB=fetch.db decode.db control.db execute.db memaccess.db writeback.db elfmanip.db vmem.db memory.db
+
 emu:../emu
 ../emu:$(EMU_OBJS) emulator.o debug.o
 	gcc $(EMU_OBJS) emulator.o debug.o -o ../emu
@@ -32,8 +34,8 @@ test.o:../test.c
 	gcc ../test.c $(CFLAGS) -o $@
 
 emu-db:../emu-db
-../emu-db:$(EMU_OBJS) emulator.db debug.db
-	gcc -DDEBUG $(EMU_OBJS) emulator.db debug.db -o ../emu-db
+../emu-db:$(EMU_OBJS_DB) emulator.db debug.db
+	gcc -DDEBUG $(EMU_OBJS_DB) emulator.db debug.db -o ../emu-db
 fetch.db:../pipeline/fetch.c ../pipeline/fetch.h
 	gcc -DDEBUG ../pipeline/fetch.c $(CFLAGS) -o $@
 control.db:../pipeline/control.c ../pipeline/control.h
