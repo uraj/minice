@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-extern int g_block_num;
-
 static int cur_var_id_num;
 static struct var_list *** pointer_in;
 static struct var_list *** pointer_out;
@@ -493,16 +491,9 @@ static void generate_entity_for_each(struct triargexpr_list * tmp_node)
 			struct value_info * arg1_info = symbol_search(simb_table, cur_func_info -> func_symt, expr -> arg1.idname);	
 			
 		case Deref:
-
-/* Special */
-Arglist,
-Return,
-
-/* Empty */
-Nullop,
 	}
 	/*else do nothing*/
-}	
+}/*editing now*/	
 
 void pointer_analyse(int funcindex)
 {
