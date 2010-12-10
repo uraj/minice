@@ -623,7 +623,7 @@ int main(int argc, char* argv[])
 		curfun_actvar_lists = analyse_actvar(&curfun_expr_num);
         /*here is the register allotting and the assemble codes generating*/
         for(j = 0 ; j < curfun_expr_num ; j++)
-             var_list_freebynode(curfun_actvar_lists[j].head);
+             var_list_free_bynode(curfun_actvar_lists[j].head);
         free(curfun_actvar_lists);
 	}
     syms_delete(parm_stack);
