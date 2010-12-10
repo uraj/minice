@@ -12,7 +12,7 @@ int loop()
 	{
 		while(a < c)
 		{
-			;
+			b();
 		}
 	}
 	if(a > c)
