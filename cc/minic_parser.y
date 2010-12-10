@@ -611,7 +611,8 @@ int main(int argc, char* argv[])
 	yyparse();
 	fclose(yyin);
 	free_global_table();/*there should be an extra tmp table, and g_table_list_size is set in this*/
-	int i = 0;
+	int i = 0 , j , curfun_expr_num;
+    struct var_list *curfun_actvar_lists;
     struct value_info *cur_func_info;
 	for(i = 0; i < g_table_list_size; i++)
 	{
@@ -619,7 +620,11 @@ int main(int argc, char* argv[])
 		cur_func_info = symt_search(simb_table ,table_list[i] -> funcname);
 		curr_table = cur_func_info->func_symt;
 		make_fd(i);
-		analyse_actvar();
+		curfun_actvar_lists = analyse_actvar(&curfun_expr_num);
+        /*here is the register allotting and the assemble codes generating*/
+        for(j = 0 ; j < curfun_expr_num ; j++)
+             var_list_freebynode(curfun_actvar_lists[j].head);
+        free(curfun_actvar_lists);
 	}
     syms_delete(parm_stack);
     syms_delete(type_stack);
