@@ -139,6 +139,7 @@ struct taexpr_list_header * new_taexprlist(int begin, int end)
 	newnode -> prev = NULL;
 	newnode -> next = NULL;
 //	newnode -> active_var = NULL;//may need more list later
+	newnode -> pointer_entity = NULL;
 	i++;
 	while(i <= end)
 	{
