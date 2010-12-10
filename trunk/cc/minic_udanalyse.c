@@ -10,6 +10,7 @@ struct def_point_list
 	struct def_point_list * next;
 };
 
+
 static int cur_var_id_num;
 static struct def_point_list ** ud_in;
 static struct def_point_list ** ud_out;
