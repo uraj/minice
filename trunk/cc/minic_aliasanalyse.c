@@ -11,7 +11,7 @@ static struct value_info * cur_func_info;
 struct entity_type
 {
 	int index;
-	char ispointer;//-1 flush tag; 0 not pointer; 1 is pointer; 2 is array
+	char ispointer;//-1 flush tag; 0 not pointer; 1 is pointer; 2 is array; 3 is modified pointer
 };
 
 static inline int set_cur_function(int function_index)
@@ -53,11 +53,27 @@ static void pointer_list_merge(struct var_list ** adder, struct var_list ** dest
 		dest[index] = var_list_merge(adder[index], dest[index]);
 }
 
-static void pointer_list_replace(struct var_list ** dest, int elem, struct var_list * new_list)
+static void pointer_list_rplc(struct var_list ** dest, int elem, int newelem)
 {
 	if(dest[elem] != NULL)
-		var_list_free(dest[elem]);
-	dest[elem] = var_list_copy(new_list);
+		var_list_clear(dest[elem]);
+	dest[elem] = var_list_copy(dest[newelem]);
+}
+
+static void pointer_list_rplc_entity(struct var_list ** dest, int elem, int entity)
+{
+	if(dest[elem] != NULL)
+		var_list_clear(dest[elem]);
+	dest[elem] = var_list_append(dest[elem], entity);
+}
+
+static void pointer_list_rplc_modptr(struct var_list ** dest, int elem, int newelem)
+{
+	if(dest[elem] != NULL)
+		var_list_clear(dest[elem]);
+	dest[elem] = var_list_copy(dest[newelem]);//in fact should only copy array member
+	/*need to be modified later*/
+	/*************************** mark ****************************/
 }
 
 static int pointer_list_is_equal(struct var_list ** first_list, struct var_list ** second_list)
@@ -101,7 +117,29 @@ static void trans_in_to_out(struct basic_block * block)//update
 							pointer_list_replace(pointer_out[index], arg1_index, pointer_out[arg2_index]);//should use out current now
 							break;
 						case ExprArg:
-							arg2_index = arg2_info -> no
+							struct entity_type entity = search_entity(expr.arg2.expr, 0);
+							switch(entity.ispointer)
+							{
+								case -1:
+									pointer_list_rplc(pointer_out[index], arg1_index, NULL);
+									break;
+								case 1:
+									pointer_list_rplc(pointer_out[index], arg1_index, entity.index);
+									break;
+								case 0:
+								case 2:
+									pointer_list_rplc_entity(pointer_out[index], arg1_index, entity.index);
+									break;
+								case 3:
+									pointer_list_rplc_modptr(pointer_out[index], arg1_index, entity.index);
+									break;
+								default:
+									fprintf("Error just in case.\n");
+									break;
+							}
+							break;
+						default:
+							fprintf("Error just in case.\n");
 							break;
 					}
 				}
@@ -174,7 +212,7 @@ static entity_type search_entity(int exprnum, int ispointer)
 				}
 			}
 			if(expr.arg1.type == ExprArg)
-				return search_entity(expr.arg1.expr, ispointer + 1);
+				return search_entity(expr.arg1.expr, ispointer - 1);
 			break;
 	
 		case Subscript://The arg of subscript can only be an ident
@@ -189,7 +227,7 @@ static entity_type search_entity(int exprnum, int ispointer)
 						return entity;
 					case 1:
 						if(temp_info -> type -> type == Pointer)
-							entity.ispointer = -1;
+							entity.ispointer = 3;//modified pointer
 						else entity.ispointer = 2;//is other type, then has been wrong
 						return entity;
 				}
@@ -209,17 +247,21 @@ static entity_type search_entity(int exprnum, int ispointer)
 						entity.ispointer = -1;
 						return entity;
 					case 0://Pointer ++ also return -1
-						if(temp_info -> type -> type == Array)
-							entity.ispointer = 2;
+						if(temp_info -> type -> type == Pointer)
+							entity.ispointer = 3;//modified pointer
 						else entity.ispointer = -1;
 				}
 			}
 			if(expr.arg1.type == ExprArg)
 			{
 				entity = search_entity(expr.arg1.expr, ispointer);
-				if(entity.ispointer != Array)
-					entity.ispointer = -1;
-				return entity;
+				if(entity.ispointer == 1)
+				{
+					entity.ispointer = 3;//modified pointer
+					return entity;
+				}
+				else if(entity.ispointer == 3)//if array => wrong
+					return entity;
 			}
 			break;
 
@@ -236,6 +278,8 @@ static entity_type search_entity(int exprnum, int ispointer)
 					case 0://Pointer + or Pointer - also return -1
 						if( temp_info -> type -> type == Array)
 							entity.ispointer = 2;
+						else if(temp_info -> type -> type == Pointer)
+							entity.ispointer = 3;//modified pointer
 						else
 							entity.ispointer = -1;
 						return entity;
@@ -244,9 +288,13 @@ static entity_type search_entity(int exprnum, int ispointer)
 			if(expr.arg1.type == ExprArg)
 			{
 				entity = search_entity(expr.arg1.expr, ispointer);
-				if(entity.ispointer != Array)
-					entity.ispointer = -1;
-				return entity;
+				if(entity.ispointer == 1)
+				{
+					entity.ispointer = 3;
+					return entity;
+				}
+				else if(entity.ispointer >= 2)//modified pointer or array
+					return entity;			
 			}
 			break;
 			
@@ -272,43 +320,70 @@ static entity_type search_entity(int exprnum, int ispointer)
 						}
 						else if(temp_info -> type -> type == Pointer)
 						{
-							entity.ispointer = -1;
+							entity.ispointer = 3;//modified pointer
 							return entity;
 						}
 						break;
 				}
 			}
-			if(expr.arg2.type == IdArg)
+			if(expr.arg2.type == IdArg)//if arg1 and arg2 are all Id, will return -1 at the end
 			{
 				temp_info = symbol_search(simb_table, cur_func_info -> func_symt, expr.arg2.idname);
 				entity.index = temp_info -> no;	
 				switch(ispointer)
 				{
-					case -1://can only be pointer
-						return -1;
+					case -1:
+						if(temp_info -> type -> type == Pointer || temp_info -> type -> type == Array)
+						{
+							entity.ispointer = -1;
+							return entity;
+						}
+						break;
 					case 0://Pointer + or - also return -1
 						if(temp_info -> type -> type == Array)
-							return temp_info -> no;
-						else
-							return -1;
+						{
+							entity.ispointer = 2;
+							return entity;
+						}
+						else if(temp_info -> type -> type == Pointer)
+						{
+							entity.ispointer = 3;
+							return entity;
+						}
+						break;
 				}
 			}
-			int tmp_result;
 			if(expr.arg1.type == ExprArg)
 			{
-				tmp_result = search_entity(expr.arg1.expr, ispointer);
-				if(tmp_result != -1)
-					return tmp_result;
+				entity = search_entity(expr.arg1.expr, ispointer);
+				if(entity.ispointer == 1)
+				{
+					entity.ispointer = 3;
+					return entity;
+				}
+				else if(entity.ispointer >= 2)//modified pointer or array
+					return entity;
 			}
 			if(expr.arg2.type == ExprArg)//number is better than -1
-				return search_entity(expr.arg2.expr, ispointer);
-			break;	
+			{
+				entity = search_entity(expr.arg1.expr, ispointer);
+				if(entity.ispointer == 1)
+				{
+					entity.ispointer = 3;
+					return entity;
+				}
+				else if(entity.ispointer >= 2)//modified pointer or array
+					return entity;
+
+			}
+			break;//don't care other case	
 
 		default://if there are some other op, the arg can't be Pointer and there won't be & before the expr, just return -1
-			return -1;
+			break;
 	}
 	/* if the program has already been wrong, anything returned is meaningless, so just return -1 */
-	return -1;
+	entity.ispointer = -1;
+	return entity;
 }
 
 static void generate_in_out_for_all()
@@ -323,14 +398,14 @@ static void generate_in_out_for_all()
 		for(index = 0; index < g_block_num; index++)
 		{
 			struct basic_block_list * list_node = DFS_array[index] -> prev;
+			trans_in_to_out(DFS_array[index] -> entity);
+
 			while(list_node != NULL)
 			{
 				pointer_in[index] = pointer_list_merge(pointer_out[list_node -> entity-> index], pointer_in[index]);
 				list_node = list_node -> next;
 			}
-
-			struct pointer_list * newout;
-			newout = def_point_list_sub_merge(ud_in[index], ud_gen[index]);
+			
 			if(def_point_list_is_equal(newout, ud_out[index]) != 1)
 			{
 				change = 1;
