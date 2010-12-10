@@ -398,6 +398,8 @@ static void generate_in_out_for_all()
 		for(index = 0; index < g_block_num; index++)
 		{
 			struct basic_block_list * list_node = DFS_array[index] -> prev;
+			struct var_list * tmp_out = var_list_copy(pointer_out[index]);
+
 			trans_in_to_out(DFS_array[index] -> entity);
 
 			while(list_node != NULL)
@@ -405,21 +407,23 @@ static void generate_in_out_for_all()
 				pointer_in[index] = pointer_list_merge(pointer_out[list_node -> entity-> index], pointer_in[index]);
 				list_node = list_node -> next;
 			}
-			
-			if(def_point_list_is_equal(newout, ud_out[index]) != 1)
+		
+			if(pointer_list_is_equal(tmp_out, pointer_out[index]) != -1)
 			{
 				change = 1;
-				def_point_list_free(ud_out[index]);
-				ud_out[index] = newout;//see what the function is next
+				pointer_list_free(tmp_out);
 			}
 		}
 	}
 }
 
+static void 
+
 void pointer_analyse(int funcindex)
 {
 	set_cur_function(funcindex);
 	new_temp_list();
+	generate_in_out_for_all();
 	free_temp_list();
 }
 
