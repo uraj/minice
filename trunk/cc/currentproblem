@@ -29,3 +29,5 @@ new:
 21.deal with allocating register for condition jump
 
 22 typet_free_typetree中的base_type莫名其妙等于1，问题出在测试文件zero.c的16行，minic_paser.y的359行
+
+23.--pointer, segmentation fault
