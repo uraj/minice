@@ -133,8 +133,10 @@ static uint32_t Mulcal(StoreArch * storage, const EX_input * ex_in)
     {
         case Mul:
             ret = ex_in->val_rn * ex_in->val_rm;
+            break;
         case MulAdd:
             ret = ex_in->val_rn * ex_in->val_rm + ex_in->val_rs;
+            break;
         default:
             exit(2);
     }
@@ -205,7 +207,8 @@ int EXStage(StoreArch * storage, PipeState * pipe_state)
             uint32_t offset = pipe_state->ex_in.branch_imm_offset << 2;
             if((signed int)(offset << 6) < 0)
                 offset |= 0xfc000000U;
-            storage->reg[PC] += offset;
+            storage->reg[PC] = storage->reg[PC] + offset - 4; /* because of the pipeline, pc already increased */
+            
             
             /* flush the pipline */
             pipe_state->id_in.bubble = 1;
