@@ -76,6 +76,15 @@ typedef enum
     NoBranch
 } CondBranchOp;
 
+typedef enum
+{
+    WB_ValEx = 0,
+    WB_ValMem = 1,
+    WB_Both = 2,
+    WB_Neither = 3,
+} WB_SEL;
+
+
 typedef struct
 {
     short bubble;
@@ -112,7 +121,7 @@ typedef struct
     uint8_t mem_data_size;
     uint8_t mem_sign_ext;
     
-    uint8_t wb_dest_sel;
+    WB_SEL wb_dest_sel;
     uint8_t wb_val_ex_dest;
     uint8_t wb_val_mem_dest;
 } EX_input;
@@ -140,19 +149,11 @@ typedef struct
     uint32_t val_store;         /* from val_rd in EX stage */
     
     /* the following will be pushed to WB stage */
-    int wb_dest_sel;
+    WB_SEL wb_dest_sel;
     uint8_t wb_val_ex_dest;
     uint8_t wb_val_mem_dest;
     
 } MEM_input;
-
-typedef enum
-{
-    WB_ValEx = 0,
-    WB_valMem = 1,
-    WB_Both = 2,
-    WB_Neither = 3,
-} WB_SEL;
 
 typedef struct
 {
@@ -162,7 +163,7 @@ typedef struct
     /* dest_sel = 1: wb val_mem */
     /* dest_sel = 2: both */
     /* dest_sel = 3: neither */
-    short dest_sel;
+    WB_SEL dest_sel;
     
     uint8_t val_ex_dest;
     uint8_t val_mem_dest;

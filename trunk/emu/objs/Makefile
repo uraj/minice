@@ -1,5 +1,4 @@
 CFLAGS=-c
-CFLAGS+=-g
 CFLAGS+=-Wall
 CFLAGS+=-I..
 EMU_OBJS=fetch.o decode.o control.o execute.o memaccess.o writeback.o elfmanip.o vmem.o memory.o
@@ -8,17 +7,17 @@ EMU_OBJS_DB=fetch.db decode.db control.db execute.db memaccess.db writeback.db e
 emu:../emu
 ../emu:$(EMU_OBJS) emulator.o debug.o
 	gcc $(EMU_OBJS) emulator.o debug.o -o ../emu
-fetch.o:../pipeline/fetch.c ../pipeline/fetch.h
+fetch.o:../pipeline/fetch.c ../pipeline/fetch.h ../pipeline/globdefs.h
 	gcc ../pipeline/fetch.c $(CFLAGS) -o $@
-control.o:../pipeline/control.c ../pipeline/control.h
+control.o:../pipeline/control.c ../pipeline/control.h ../pipeline/globdefs.h
 	gcc ../pipeline/control.c $(CFLAGS) -o $@
-decode.o:../pipeline/decode.c ../pipeline/decode.h
+decode.o:../pipeline/decode.c ../pipeline/decode.h ../pipeline/globdefs.h
 	gcc ../pipeline/decode.c $(CFLAGS) -o $@
-execute.o:../pipeline/execute.c ../pipeline/execute.h
+execute.o:../pipeline/execute.c ../pipeline/execute.h ../pipeline/globdefs.h
 	gcc ../pipeline/execute.c $(CFLAGS) -o $@
-memaccess.o:../pipeline/memaccess.c ../pipeline/memaccess.h
+memaccess.o:../pipeline/memaccess.c ../pipeline/memaccess.h ../pipeline/globdefs.h
 	gcc ../pipeline/memaccess.c $(CFLAGS) -o $@
-writeback.o:../pipeline/writeback.c ../pipeline/writeback.h
+writeback.o:../pipeline/writeback.c ../pipeline/writeback.h ../pipeline/globdefs.h
 	gcc ../pipeline/writeback.c $(CFLAGS) -o $@
 elfmanip.o:../loader/elfmanip.c ../loader/elfmanip.h
 	gcc ../loader/elfmanip.c $(CFLAGS) -o $@
@@ -36,27 +35,27 @@ test.o:../test.c
 emu-db:../emu-db
 ../emu-db:$(EMU_OBJS_DB) emulator.db debug.db
 	gcc -DDEBUG $(EMU_OBJS_DB) emulator.db debug.db -o ../emu-db
-fetch.db:../pipeline/fetch.c ../pipeline/fetch.h
-	gcc -DDEBUG ../pipeline/fetch.c $(CFLAGS) -o $@
-control.db:../pipeline/control.c ../pipeline/control.h
-	gcc -DDEBUG ../pipeline/control.c $(CFLAGS) -o $@
-decode.db:../pipeline/decode.c ../pipeline/decode.h
-	gcc -DDEBUG ../pipeline/decode.c $(CFLAGS) -o $@
-execute.db:../pipeline/execute.c ../pipeline/execute.h
-	gcc -DDEBUG ../pipeline/execute.c $(CFLAGS) -o $@
-memaccess.db:../pipeline/memaccess.c ../pipeline/memaccess.h
-	gcc -DDEBUG ../pipeline/memaccess.c $(CFLAGS) -o $@
-writeback.db:../pipeline/writeback.c ../pipeline/writeback.h
-	gcc -DDEBUG ../pipeline/writeback.c $(CFLAGS) -o $@
+fetch.db:../pipeline/fetch.c ../pipeline/fetch.h ../pipeline/globdefs.h
+	gcc -DDEBUG ../pipeline/fetch.c $(CFLAGS) -g -o $@
+control.db:../pipeline/control.c ../pipeline/control.h ../pipeline/globdefs.h
+	gcc -DDEBUG ../pipeline/control.c $(CFLAGS) -g -o $@
+decode.db:../pipeline/decode.c ../pipeline/decode.h ../pipeline/globdefs.h
+	gcc -DDEBUG ../pipeline/decode.c $(CFLAGS) -g -o $@
+execute.db:../pipeline/execute.c ../pipeline/execute.h ../pipeline/globdefs.h
+	gcc -DDEBUG ../pipeline/execute.c $(CFLAGS) -g -o $@
+memaccess.db:../pipeline/memaccess.c ../pipeline/memaccess.h ../pipeline/globdefs.h
+	gcc -DDEBUG ../pipeline/memaccess.c $(CFLAGS) -g -o $@
+writeback.db:../pipeline/writeback.c ../pipeline/writeback.h ../pipeline/globdefs.h
+	gcc -DDEBUG ../pipeline/writeback.c $(CFLAGS) -g -o $@
 elfmanip.db:../loader/elfmanip.c ../loader/elfmanip.h
-	gcc -DDEBUG ../loader/elfmanip.c $(CFLAGS) -o $@
+	gcc -DDEBUG ../loader/elfmanip.c $(CFLAGS) -g -o $@
 vmem.db:../memory/vmem.c ../memory/vmem.h
-	gcc -DDEBUG ../memory/vmem.c $(CFLAGS) -o $@
+	gcc -DDEBUG ../memory/vmem.c $(CFLAGS) -g -o $@
 memory.db:../memory/memory.c ../memory/memory.h
-	gcc -DDEBUG ../memory/memory.c $(CFLAGS) -o $@
+	gcc -DDEBUG ../memory/memory.c $(CFLAGS) -g -o $@
 emulator.db:../emulator.c
-	gcc -DDEBUG ../emulator.c $(CFLAGS) -o $@
+	gcc -DDEBUG ../emulator.c $(CFLAGS) -g -o $@
 debug.db:../debug.c
-	gcc -DDEBUG ../debug.c $(CFLAGS) -o $@
+	gcc -DDEBUG ../debug.c $(CFLAGS) -g -o $@
 test.db:../test.c
-	gcc -DDEBUG ../test.c $(CFLAGS) -o $@
+	gcc -DDEBUG ../test.c $(CFLAGS) -g -o $@
