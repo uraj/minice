@@ -1,6 +1,3 @@
-
-/* #define NOPIPE */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
@@ -57,48 +54,6 @@ void emulate(uint32_t emulation_entry, uint32_t special_entry)
 
         ++instructon_count;
     }
-    return;
-}
-
-void emulate_nopipe(uint32_t emulation_entry, uint32_t special_entry)
-{
-    StoreArch storage;
-    PipeState pipe_state;
-    
-    pipe_state.id_in.bubble = 0;
-    pipe_state.ex_in.bubble = 0;
-    pipe_state.mem_in.bubble = 0;
-    pipe_state.wb_in.bubble = 0;
-
-    /* initialization */
-    emulate_init(&storage);
-    storage.reg[PC] = emulation_entry;
-    storage.reg[LR] = 0;
-    while(1)
-    {
-        if(IFStage(&storage, &pipe_state, special_entry) == -1)
-            return;
-        if(pipe_state.id_in.bubble == 0)
-            IDStage(&storage, &pipe_state);
-        else
-            pipe_state.ex_in.bubble = 1;
-        if(pipe_state.ex_in.bubble == 0)
-            EXStage(&storage, &pipe_state);
-        else
-            pipe_state.mem_in.bubble = 1;
-        if(pipe_state.mem_in.bubble == 0)
-            MEMStage(&storage, &pipe_state);
-        else
-            pipe_state.wb_in.bubble = 1;
-        if(pipe_state.wb_in.bubble == 0)
-        {
-            WBStage(&storage, &pipe_state);
-#ifdef DEBUG
-            print_regfile(&storage);
-#endif
-        }
-    }
-    
     return;
 }
 
