@@ -1,4 +1,5 @@
-#define NOPIPE
+
+/* #define NOPIPE */
 
 #include <stdio.h>
 #include <stdlib.h>
