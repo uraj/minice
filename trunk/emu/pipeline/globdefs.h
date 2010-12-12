@@ -50,6 +50,7 @@ typedef enum
     LS_ImmOff,
     LS_Hw_RegOff,
     LS_Hw_ImmOff,
+    Usr_Trap                    /* user defined trap */
 } InstrType;
 
 typedef struct
@@ -60,6 +61,13 @@ typedef struct
 
 typedef struct
 {
+    instr icode;
+    char stage[3];
+} StageInfo;
+    
+typedef struct
+{
+    StageInfo sinfo;
     int bubble;
     instr instruction;
     FwdData ex_fwd, mem_fwd;
@@ -87,6 +95,7 @@ typedef enum
 
 typedef struct
 {
+    StageInfo sinfo;
     short bubble;
     short S;
     CondBranchOp condop;
@@ -128,6 +137,7 @@ typedef struct
 
 typedef struct
 {
+    StageInfo sinfo;
     short bubble;
     
     /* load = 0: store */
@@ -157,6 +167,7 @@ typedef struct
 
 typedef struct
 {
+    StageInfo sinfo;
     short bubble;
 
     /* dest_sel = 0: wb val_ex */
@@ -190,12 +201,15 @@ typedef struct
 {
     uint32_t reg[32];
     PSW CMSR;
-} StoreArch;
+    uint32_t usr_trap_no;
+} RegFile;
 
 #define FP 27
 #define IP 28
 #define SP 29
 #define LR 30
 #define PC 31
+
+extern int test_cond(const PSW * cmsr, uint8_t condcode);
 
 #endif

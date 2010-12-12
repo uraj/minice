@@ -25,6 +25,7 @@ void gen_control_signals(const InstrFields * ifields, InstrType itype, EX_input 
             ex_in->wb_val_ex_dest = ifields->rd;
             break;
             
+        case Usr_Trap:
         case Branch_Ex:
         case Branch_Cond:
             ex_in->bubble = 1;

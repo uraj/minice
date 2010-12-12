@@ -1,7 +1,7 @@
 #include <pipeline/writeback.h>
 #include <stdlib.h>
 
-int WBStage(StoreArch * storage, PipeState * pipe_state)
+int WBStage(RegFile * storage, PipeState * pipe_state)
 {
     if(pipe_state->wb_in.bubble)
         return 1;
