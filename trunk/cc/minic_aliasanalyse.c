@@ -66,7 +66,7 @@ static void pointer_list_copy(struct var_list ** newone, struct var_list ** oldo
 	{
 		if(newone[index] != NULL)
 			var_list_free(newone[index]);
-		newone[index] = var_list_copy(oldone[index]);
+		newone[index] = var_list_copy(oldone[index], newone[index]);
 	}
 }
 
@@ -94,7 +94,7 @@ static void pointer_list_rplc(struct var_list ** dest, int elem, int newelem)
 		var_list_clear(dest[elem]);
 	if(newelem == -1)
 		return;
-	dest[elem] = var_list_copy(dest[newelem]);
+	dest[elem] = var_list_copy(dest[newelem], dest[elem]);
 }
 
 static void pointer_list_rplc_entity(struct var_list ** dest, int elem, int entity)
@@ -108,7 +108,7 @@ static void pointer_list_rplc_modptr(struct var_list ** dest, int elem, int newe
 {
 	if(dest[elem] != NULL)
 		var_list_clear(dest[elem]);
-	dest[elem] = var_list_copy(dest[newelem]);//in fact should only copy array member
+	dest[elem] = var_list_copy(dest[newelem], dest[elem]);//in fact should only copy array member
 	/*need to be modified later*/
 	/*************************** mark ****************************/
 }
@@ -489,10 +489,16 @@ static void generate_entity_for_each(struct triargexpr_list * tmp_node)
 		case Subscript:
 			/*The arg1 must be id and is pointer or array*/
 			struct value_info * arg1_info = symbol_search(simb_table, cur_func_info -> func_symt, expr -> arg1.idname);	
-			
+			if(arg1_info -> type -> type == Pointer)
+				tmp_node -> pointer_entity = var_list_copy(tmp_out[arg1_info -> no], tmp_node -> pointer_entity);	
+			break;
 		case Deref:
+			if(arg1_info -> type -> type == Pointer)
+				tmp_node -> pointer_entity = var_list_copy(tmp_out[arg1_info -> no], tmp_node -> pointer_entity);
+			break;
+		default:
+			break;
 	}
-	/*else do nothing*/
 }/*editing now*/	
 
 void pointer_analyse(int funcindex)
