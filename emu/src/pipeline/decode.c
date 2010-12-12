@@ -253,7 +253,7 @@ static uint32_t gen_operand2(RegFile * storage, const PipeState * pipe_state, co
 /* if retrun -1, pipeline stalls */
 int IDStage(RegFile * storage, PipeState * pipe_state)
 {
-    if(pipe_state->id_in.bubble == 1 || pipe_state->id_in.instruction == 0x1a000000)
+    if(pipe_state->id_in.bubble == 1)
     {
         pipe_state->ex_in.bubble = 1;
         return 1;
