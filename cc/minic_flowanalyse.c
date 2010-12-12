@@ -754,16 +754,16 @@ static inline struct actvar_change *push_changes_into_expr(struct actvar_change 
           else
           {
                change[j].var_map_index = temp_change[d].var_map_index;
-               change[j++].type = temp_change[d].type;
+               change[j].type = temp_change[d].type;
                d++;
           }
      }
      
-#ifdef SHOWACTVAR
+#ifdef SHOW_FLOW_DEBUG
      int i;
      for(i = 0 ; i < 4 ; i++)
      {
-          if(i < 2)
+          if(change[i].type == Del)
                printf("del%d " , change[i].var_map_index);
           else
                printf("add%d " , change[i].var_map_index);
@@ -784,8 +784,10 @@ struct var_list *analyse_actvar(int *expr_num)//活跃变量分析
      int add1 , add2 , del1 , del2;
      struct var_list *actvar_list;
      int act_list_index = 0 , j;
-     struct actvar_change *temp_change;
+     struct actvar_change *temp_change = NULL;
      actvar_list = (struct var_list *)malloc(sizeof(struct var_list) * s_expr_num);
+     for(i = 0 ; i < s_expr_num ; i++)
+          actvar_list[i].head = actvar_list[i].tail = NULL;
      
      struct var_list show_list;//temp list of active varible
      show_list.head = show_list.tail = NULL;
@@ -854,7 +856,7 @@ struct var_list *analyse_actvar(int *expr_num)//活跃变量分析
                j = 0;
                if(cur != NULL)
                {
-                    while(cur != show_list.tail->next)
+                    while(cur != show_list.tail->next && j < gc_change_num)
                     {
                          if(temp_change[j].var_map_index == -1)//-1 is no use
                          {
@@ -868,10 +870,16 @@ struct var_list *analyse_actvar(int *expr_num)//活跃变量分析
                                    j++;
                                    continue;
                               }
+                              if(temp_change[j].var_map_index < (cur->var_map_index))//didn't find the index
+                              {
+                                   j++;
+                                   continue;
+                              }
                               if(temp_change[j].var_map_index == (cur->var_map_index))//find the node to delete
                               {
                                    cur = var_list_delete(&show_list , former , cur);
                                    j++;
+                                   continue;
                               }
                          }
                          else
@@ -890,13 +898,14 @@ struct var_list *analyse_actvar(int *expr_num)//活跃变量分析
                }
                for(; j < gc_change_num ; j++)
                {
-                    if(temp_change[j].type == Del)
+                    if(temp_change[j].var_map_index == -1 || temp_change[j].type == Del)
                          continue;
                     var_list_append(&show_list , temp_change[j].var_map_index);
                }
                var_list_copy(&show_list , actvar_list + act_list_index);
                act_list_index++;
 #ifdef SHOWACTVAR
+               printf("(%d) active varible:" , temp_expr->entity->index);
                var_list_print(&show_list);
 #endif
 /*               int d , a;
