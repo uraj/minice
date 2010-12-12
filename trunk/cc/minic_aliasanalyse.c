@@ -1,4 +1,5 @@
-#include "minic_udanalyse.h"
+#include "minic_flowanalyse.h"
+#include "minic_aliasanalyse.h"
 #include "minic_varmapping.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,6 +9,7 @@ static struct var_list *** pointer_in;
 static struct var_list *** pointer_out;
 static struct value_info * cur_func_info;
 static struct var_list ** tmp_out;
+static struct triargexpr *cur_expr_table;
 
 struct entity_type//only needed in this file
 {
@@ -18,14 +20,15 @@ struct entity_type//only needed in this file
 static inline int set_cur_function(int function_index)
 {
 	cur_var_id_num = table_list[function_index] -> var_id_num;
-	cur_func_info = symt_search(simb_table ,table_list[func_index] -> funcname);
+	cur_func_info = symt_search(simb_table ,table_list[function_index] -> funcname);
+	cur_expr_table = table_list[function_index] -> table;
 }
 
 static void new_tmp_out()
 {
 	int index;
 	for(index = 0; index < cur_var_id_num; index ++)
-		tmp_out[index] = calloc(sizeof(struct var_list *));
+		tmp_out[index] = calloc(1, sizeof(struct var_list *));
 }
 
 static void free_tmp_out()
@@ -42,8 +45,8 @@ static void new_temp_list()
 	int block_index, var_index;
 	for(block_index = 0; block_index < g_block_num; block_index ++)
 	{
-		pointer_in[block_index] = calloc(sizeof(struct var_list *) * cur_var_id_num);
-		pointer_out[block_index] = calloc(sizeof(struct var_list *) * cur_var_id_num);
+		pointer_in[block_index] = calloc(cur_var_id_num, sizeof(struct var_list *));
+		pointer_out[block_index] = calloc(cur_var_id_num, sizeof(struct var_list *));
 	}
 }
 
@@ -52,11 +55,29 @@ static void free_temp_list()
 	int index;
 	for(index = 0; index < g_block_num; index ++)
 	{
-		var_list_free(pointer_in[index]);
-		var_list_free(pointer_out[index]);
+		int var_index;
+		for(var_index = 0; var_index < cur_var_id_num; var_index ++)
+		{
+			if(pointer_in[index][var_index] != NULL)
+				var_list_free(pointer_in[index][var_index]);
+			if(pointer_out[index][var_index] != NULL)
+				var_list_free(pointer_out[index][var_index]);
+		}
+		free(pointer_in[index]);
+		free(pointer_out[index]);
 	}
 	free(pointer_in);
 	free(pointer_out);
+}
+
+static void pointer_list_clear(struct var_list ** oldone)
+{
+	int index;
+	for(index = 0; index < cur_var_id_num; index++)
+	{
+		if(oldone[index] != NULL)
+			var_list_clear(oldone[index]);
+	}
 }
 
 static void pointer_list_copy(struct var_list ** newone, struct var_list ** oldone)//the newone can't be NULL
@@ -65,7 +86,7 @@ static void pointer_list_copy(struct var_list ** newone, struct var_list ** oldo
 	for(index = 0; index < cur_var_id_num; index++)
 	{
 		if(newone[index] != NULL)
-			var_list_free(newone[index]);
+			var_list_clear(newone[index]);
 		newone[index] = var_list_copy(oldone[index], newone[index]);
 	}
 }
@@ -81,7 +102,7 @@ static void pointer_list_move(struct var_list ** newone, struct var_list ** oldo
 	}
 }
 
-static void pointer_list_merge(struct var_list ** adder, struct var_list ** dest)
+static void pointer_list_merge(struct var_list ** adder, struct var_list ** dest)//the dest can't be NULL
 {
 	int index;
 	for(index = 0; index < cur_var_id_num; index ++)
@@ -125,77 +146,6 @@ static int pointer_list_is_equal(struct var_list ** first_list, struct var_list 
 }
 
 /*
-   modify pointer_in first, then move pointer_in to pointer_out, then update pointer_in
-*/
-
-static void trans(struct triargexpr_list * temp_node)
-{
-	struct triargexpr * expr = temp_node -> entity;
-	if(expr -> op == Assign)
-	{
-		if(expr -> arg1.type == IdArg)
-		{
-			struct value_info * arg1_info, arg2_info;
-			int arg1_index, arg2_index;
-			arg1_info = symbol_search(simb_table, cur_func_info -> func_symt, expr -> arg1.idname);
-			arg1_index = arg1_info -> no;
-			if(arg1_info -> type -> type == Pointer)
-			{
-				switch(expr.arg2.type)
-				{
-					case IdArg:
-						arg2_info = symbol_search(simb_table, cur_func_info -> func_symt, expr -> arg2.idname);
-						arg2_index = arg2_info -> no;
-						if(arg2_info -> type -> type == Pointer || arg2_info -> type -> type == Array)
-							pointer_list_rplc(tmp_out, arg1_index, arg2_index);//should use out current now
-						else
-							pointer_list_rplc(tmp_out, arg1_index, -1);
-						break;
-					case ExprArg:
-						struct entity_type entity = search_entity(expr.arg2.expr, 0);
-						switch(entity.ispointer)
-						{
-							case -1:
-								pointer_list_rplc(tmp_out, arg1_index, -1);
-								break;
-							case 1:
-								pointer_list_rplc(tmp_out, arg1_index, entity.index);
-								break;
-							case 0:
-							case 2:
-								pointer_list_rplc_entity(tmp_out, arg1_index, entity.index);
-								break;
-							case 3:
-								pointer_list_rplc_modptr(tmp_out, arg1_index, entity.index);
-								break;
-							default:
-								fprintf("Error just in case.\n");
-								break;
-						}
-						break;
-					default:
-						fprintf("Error just in case.\n");
-						break;
-				}
-			}
-		}
-	}
-	/*else do nothing*/
-}
-
-static void trans_in_to_out(struct basic_block * block)//update
-{
-	struct triargexpr_list * temp_node;
-	int index = block -> index;
-	temp_node = block -> head;
-	while(temp_node != NULL)
-	{
-		trans(temp_node);
-		temp_node = temp_node -> next;
-	}
-}
-
-/*
    there won't be more than one & once a time, and there the pointer level is less than once.
 */
 
@@ -203,9 +153,9 @@ static void trans_in_to_out(struct basic_block * block)//update
    some of the -1 is returned when the program is wrong, but most of -1 tells us to cancel the pointer
 */
 
-static entity_type search_entity(int exprnum, int ispointer)
+static struct entity_type search_entity(int exprnum, int ispointer)
 {
-	struct triargexpr expr = table_list[exprnum];
+	struct triargexpr expr = cur_expr_table[exprnum];
 	struct value_info * temp_info;
 	struct entity_type entity;
 	switch(expr.op)
@@ -347,7 +297,7 @@ static entity_type search_entity(int exprnum, int ispointer)
 		case Plus://there should be only one entity
 			if(expr.arg1.type == IdArg)
 			{
-				temp_info = symbol_searc(simb_table, cur_func_info -> func_symt, expr.arg1.idname);
+				temp_info = symbol_search(simb_table, cur_func_info -> func_symt, expr.arg1.idname);
 				entity.index = temp_info -> no;	
 				switch(ispointer)
 				{
@@ -432,6 +382,78 @@ static entity_type search_entity(int exprnum, int ispointer)
 	return entity;
 }
 
+/*
+   modify pointer_in first, then move pointer_in to pointer_out, then update pointer_in
+*/
+
+static void trans(struct triargexpr_list * temp_node)
+{
+	struct triargexpr * expr = temp_node -> entity;
+	if(expr -> op == Assign)
+	{
+		if(expr -> arg1.type == IdArg)
+		{
+			struct value_info * arg1_info, * arg2_info;
+			struct entity_type entity;
+			int arg1_index, arg2_index;
+			arg1_info = symbol_search(simb_table, cur_func_info -> func_symt, expr -> arg1.idname);
+			arg1_index = arg1_info -> no;
+			if(arg1_info -> type -> type == Pointer)
+			{
+				switch(expr -> arg2.type)
+				{
+					case IdArg:
+						arg2_info = symbol_search(simb_table, cur_func_info -> func_symt, expr -> arg2.idname);
+						arg2_index = arg2_info -> no;
+						if(arg2_info -> type -> type == Pointer || arg2_info -> type -> type == Array)
+							pointer_list_rplc(tmp_out, arg1_index, arg2_index);//should use out current now
+						else
+							pointer_list_rplc(tmp_out, arg1_index, -1);
+						break;
+					case ExprArg:
+						entity = search_entity(expr -> arg2.expr, 0);
+						switch(entity.ispointer)
+						{
+							case -1:
+								pointer_list_rplc(tmp_out, arg1_index, -1);
+								break;
+							case 1:
+								pointer_list_rplc(tmp_out, arg1_index, entity.index);
+								break;
+							case 0:
+							case 2:
+								pointer_list_rplc_entity(tmp_out, arg1_index, entity.index);
+								break;
+							case 3:
+								pointer_list_rplc_modptr(tmp_out, arg1_index, entity.index);
+								break;
+							default:
+								fprintf(stderr, "Error just in case.\n");
+								break;
+						}
+						break;
+					default:
+						fprintf(stderr, "Error just in case.\n");
+						break;
+				}
+			}
+		}
+	}
+	/*else do nothing*/
+}
+
+static void trans_in_to_out(struct basic_block * block)//update
+{
+	struct triargexpr_list * temp_node;
+	int index = block -> index;
+	temp_node = block -> head;
+	while(temp_node != NULL)
+	{
+		trans(temp_node);
+		temp_node = temp_node -> next;
+	}
+}
+
 static void generate_in_out_for_all()
 {
 	int index;
@@ -449,11 +471,12 @@ static void generate_in_out_for_all()
 
 			pointer_list_copy(tmp_out, pointer_in[index]);//just copy
 			
-			trans_in_to_out(DFS_array[index] -> entity);
+			trans_in_to_out(DFS_array[index]);
 
+			pointer_list_clear(pointer_in[index]);
 			while(list_node != NULL)
 			{
-				pointer_in[index] = pointer_list_merge(pointer_out[list_node -> entity-> index], pointer_in[index]);
+				pointer_list_merge(pointer_out[list_node -> entity-> index], pointer_in[index]);
 				list_node = list_node -> next;
 			}
 		
@@ -468,31 +491,20 @@ static void generate_in_out_for_all()
 	}
 }
 
-static void generate_entity_for_all(struct basic_block * block)
-{
-	struct triargexpr_list * temp_node;
-	int index = block -> index;
-	temp_node = block -> head;
-	while(temp_node != NULL)
-	{
-		trans(temp_node);
-		generate_entity_for_each(tmp_node);
-		temp_node = temp_node -> next;
-	}
-}
-
 static void generate_entity_for_each(struct triargexpr_list * tmp_node)
 {
-	struct triargexpr * expr = temp_node -> entity;	
+	struct triargexpr * expr = tmp_node -> entity;
+	struct value_info * arg1_info; 
 	switch(expr -> op)
 	{
 		case Subscript:
 			/*The arg1 must be id and is pointer or array*/
-			struct value_info * arg1_info = symbol_search(simb_table, cur_func_info -> func_symt, expr -> arg1.idname);	
+			arg1_info = symbol_search(simb_table, cur_func_info -> func_symt, expr -> arg1.idname);	
 			if(arg1_info -> type -> type == Pointer)
 				tmp_node -> pointer_entity = var_list_copy(tmp_out[arg1_info -> no], tmp_node -> pointer_entity);	
 			break;
 		case Deref:
+			arg1_info = symbol_search(simb_table, cur_func_info -> func_symt, expr -> arg1.idname);	
 			if(arg1_info -> type -> type == Pointer)
 				tmp_node -> pointer_entity = var_list_copy(tmp_out[arg1_info -> no], tmp_node -> pointer_entity);
 			break;
@@ -501,12 +513,28 @@ static void generate_entity_for_each(struct triargexpr_list * tmp_node)
 	}
 }/*editing now*/	
 
+static void generate_entity_for_all()
+{
+	struct triargexpr_list * temp_node;
+	int block_index, index;
+	for(block_index = 0; block_index < g_block_num; block_index ++)
+	{
+		index = DFS_array[block_index] -> index;
+		temp_node = DFS_array[block_index] -> head;
+		while(temp_node != NULL)
+		{
+			trans(temp_node);
+			generate_entity_for_each(temp_node);
+			temp_node = temp_node -> next;
+		}
+	}
+}
+
 void pointer_analyse(int funcindex)
 {
 	set_cur_function(funcindex);
 	new_temp_list();
 	generate_in_out_for_all();
-	generate_entity_for_all(struct basic_block * block);
+	generate_entity_for_all();
 	free_temp_list();
 }
-
