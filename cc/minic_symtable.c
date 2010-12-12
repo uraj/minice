@@ -64,7 +64,13 @@ void symt_delete(struct symbol_table *t)
 
 void var_no_update(struct value_info *value)
 {
+     if(value == NULL)
+          return;
+     if(value->type->type == Function)
+          return;
+     
 	value->no = g_var_id_num;
+//    printf("%s->%d\n" , value->name , value->no);
 	g_var_id_num ++;
 }
 
