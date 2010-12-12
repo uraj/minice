@@ -3,6 +3,6 @@
 
 #include <pipeline/globdefs.h>
 
-extern int EXStage(StoreArch * storage, PipeState * pipe_state);
+extern int EXStage(RegFile * storage, PipeState * pipe_state);
 
 #endif

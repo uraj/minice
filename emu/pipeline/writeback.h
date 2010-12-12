@@ -3,6 +3,6 @@
 
 #include <pipeline/globdefs.h>
 
-extern int WBStage(StoreArch * storage, PipeState * pipe_state);
+extern int WBStage(RegFile * storage, PipeState * pipe_state);
 
 #endif

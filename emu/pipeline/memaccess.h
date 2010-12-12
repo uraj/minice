@@ -3,6 +3,6 @@
 
 #include <pipeline/globdefs.h>
 
-extern int MEMStage(StoreArch * storage, PipeState * pipe_state);
+extern int MEMStage(RegFile * storage, PipeState * pipe_state);
 
 #endif

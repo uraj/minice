@@ -1,6 +1,7 @@
 #include <pipeline/decode.h>
 #include <pipeline/control.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define GET_FIELD(code, hi, lo)                         \
     (((code) >> (lo)) & (0x7fffffff >> (31 - (hi)+ (lo) - 1)))
@@ -34,6 +35,8 @@ static InstrFields get_fields(instr instruction)
 
 static InstrType get_instr_type(instr code)
 {
+    if(code == 0xffffffff)
+        return Usr_Trap;
     switch(GET_FIELD(code, 31, 29))
     {
         case 0U:
@@ -81,7 +84,7 @@ static InstrType get_instr_type(instr code)
 }
 
 /* detect data hazard, return 1: hazard exists, stall the pipeline; return 0: secure */
-static int read_register(const StoreArch * storage, const PipeState * pipe_state, uint8_t reg_index, uint32_t * dest)
+static int read_register(const RegFile * storage, const PipeState * pipe_state, uint8_t reg_index, uint32_t * dest)
 {
     if(reg_index == pipe_state->id_in.ex_fwd.freg)
         *dest = pipe_state->id_in.ex_fwd.fdata;
@@ -153,7 +156,7 @@ static uint32_t operand2_shift(uint32_t base, uint8_t bias, ShiftType stype, int
     return ret;
 }
 
-static uint32_t gen_operand2(StoreArch * storage, const PipeState * pipe_state, const InstrFields * ifields, InstrType itype, uint32_t * data)
+static uint32_t gen_operand2(RegFile * storage, const PipeState * pipe_state, const InstrFields * ifields, InstrType itype, uint32_t * data)
 {
     uint32_t temp;
     ShiftType stype;
@@ -248,45 +251,81 @@ static uint32_t gen_operand2(StoreArch * storage, const PipeState * pipe_state, 
 
 /* retrun cycle count (including flush or stalling penalty) */
 /* if retrun -1, pipeline stalls */
-int IDStage(StoreArch * storage, PipeState * pipe_state)
+int IDStage(RegFile * storage, PipeState * pipe_state)
 {
     if(pipe_state->id_in.bubble == 1 || pipe_state->id_in.instruction == 0x1a000000)
     {
         pipe_state->ex_in.bubble = 1;
         return 1;
     }
-    InstrFields ifields = get_fields(pipe_state->id_in.instruction);
     InstrType itype = get_instr_type(pipe_state->id_in.instruction);
+    InstrFields ifields = get_fields(pipe_state->id_in.instruction);
     int data_hazard;
     uint32_t data;
 
     gen_control_signals(&ifields, itype, &(pipe_state->ex_in));
     
-    /* deal with branch first */
+    /* process sepcial function, maybe encapsulation needed */
+    if(itype == Usr_Trap)
+    {
+        /* get argument from r0 */
+        data_hazard = read_register(storage, pipe_state, 0, &data);
+        if(data_hazard)
+            return -1;
+        printf("%d\n", data);
+        storage->reg[PC] = storage->reg[LR];
+        return 1;
+    }
+    
+    /* branch */
     if(itype == Branch_Ex)
     {
         pipe_state->ex_in.bubble = 1; /* gen bubbles */
         if(ifields.flags.L == 1) /* Branch and link */
-            storage->reg[LR] = storage->reg[PC];
-        storage->reg[PC] = storage->reg[ifields.rm];
+        {
+            data_hazard = read_register(storage, pipe_state, PC, &data);
+            if(data_hazard)
+            {
+                pipe_state->ex_in.bubble = 1;
+                return -1;
+            }
+            storage->reg[LR] = data;
+        }
+        data_hazard = read_register(storage, pipe_state, ifields.rm, &data);
+        if(data_hazard)
+        {
+            pipe_state->ex_in.bubble = 1;
+            return -1;
+        }
+        storage->reg[PC] = data;
         storage->reg[PC] &= 0xfffffffcU; /* PC word align */
         return 1;
     }
     else if(itype == Branch_Cond)
     {
-        pipe_state->ex_in.bubble = 0; /* gen bubbles */
-        if(ifields.flags.L == 1) /* Branch and link */
-            pipe_state->ex_in.condop = CondBranchLink;
-        else
-            pipe_state->ex_in.condop = CondBranch;
-        pipe_state->ex_in.condcode_branch = ifields.cond;
-        pipe_state->ex_in.branch_imm_offset = ifields.signed_off_imm24;
+        pipe_state->ex_in.bubble = 1; /* gen bubbles */
+        if(test_cond(&(storage->CMSR), ifields.cond))
+        {
+            if(ifields.flags.L == 1) /* Branch and link */
+            {
+                data_hazard = read_register(storage, pipe_state, PC, &data);
+                if(data_hazard)
+                {
+                    pipe_state->ex_in.bubble = 1;
+                    return -1;
+                }
+                storage->reg[LR] = data;
+            }
+            uint32_t offset = ifields.signed_off_imm24 << 2;
+            if((signed int)(offset << 6) < 0)
+                offset |= 0xfc000000U;
+            storage->reg[PC] += offset;
+        }
         return 1;
     }
     
     pipe_state->ex_in.bubble = 0;
     pipe_state->ex_in.S = ifields.flags.S;
-    pipe_state->ex_in.condop = NoBranch;
     
     /* then deal with multiply */
     if(itype == Multiply)

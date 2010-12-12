@@ -9,7 +9,7 @@
 
 L2PT L1PageTable[L1PTSIZE];
 
-void emulate_init(StoreArch * storage)
+void emulate_init(RegFile * storage)
 {
     memset(storage->reg, 0, 32 * sizeof(uint32_t));
     storage->reg[SP] = 0xf0000000;
@@ -19,7 +19,6 @@ void emulate_init(StoreArch * storage)
     storage->CMSR.Z = 0;
     storage->CMSR.C = 0;
     storage->CMSR.V = 0;
-    
     return;
 }
 
@@ -28,14 +27,18 @@ void emulate(uint32_t emulation_entry, uint32_t special_entry)
     int cycle_count = 0;
     int instructon_count = 0;
     
-    StoreArch storage;
+    RegFile storage;
     PipeState pipe_state;
     
     pipe_state.id_in.bubble = 1;
     pipe_state.ex_in.bubble = 1;
     pipe_state.mem_in.bubble = 1;
     pipe_state.wb_in.bubble = 1;
-
+    pipe_state.id_in.sinfo.icode = 0;
+    pipe_state.ex_in.sinfo.icode = 0;
+    pipe_state.mem_in.sinfo.icode = 0;
+    pipe_state.wb_in.sinfo.icode = 0;
+    
     /* initialization */
     emulate_init(&storage);
     storage.reg[PC] = emulation_entry;
@@ -43,16 +46,34 @@ void emulate(uint32_t emulation_entry, uint32_t special_entry)
     while(1)
     {
         ++cycle_count;
-        
+#ifdef DEBUG
+        printf("Stage: WB\t");
+        print_stage_info(&(pipe_state.wb_in.sinfo));
+#endif
         WBStage(&storage, &pipe_state);
+#ifdef DEBUG
+        printf("Stage: MEM\t");
+        print_stage_info(&(pipe_state.mem_in.sinfo));
+#endif
         MEMStage(&storage, &pipe_state);
+        pipe_state.wb_in.sinfo = pipe_state.mem_in.sinfo;
+#ifdef DEBUG
+        printf("Stage: EX\t");
+        print_stage_info(&(pipe_state.ex_in.sinfo));
+#endif
         EXStage(&storage, &pipe_state);
+        pipe_state.mem_in.sinfo = pipe_state.ex_in.sinfo;
+#ifdef DEBUG
+        printf("Stage: ID\t");
+        print_stage_info(&(pipe_state.id_in.sinfo));
+#endif
         if(IDStage(&storage, &pipe_state) == -1)
             continue;           /* stalling */
+        pipe_state.ex_in.sinfo = pipe_state.id_in.sinfo;
         if(IFStage(&storage, &pipe_state, special_entry) == -1)
             break;
-
         ++instructon_count;
+        pipe_state.id_in.sinfo.icode = pipe_state.id_in.instruction;
     }
     return;
 }
@@ -80,12 +101,7 @@ int main(int argc, char * argv[])
     Elf32_Ehdr ehdr = get_elf_hdr(elf);
     load_elf_segments(elf, ehdr);
     uint32_t special_entry = get_func_entry(elf, ehdr, "__minic_print");
-    uint32_t emulation_entry;
-#ifdef DEBUG
-    scanf("%x", &emulation_entry);
-#else
-    emulation_entry = get_func_entry(elf, ehdr, "main");
-#endif
+    uint32_t emulation_entry = get_func_entry(elf, ehdr, "main");
     
 #ifndef NOPIPE
     emulate(emulation_entry, special_entry);

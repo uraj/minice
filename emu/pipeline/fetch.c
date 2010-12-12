@@ -3,22 +3,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int IFStage(StoreArch * storage, PipeState * pipe_state, uint32_t special_entry)
+int IFStage(RegFile * storage, PipeState * pipe_state, uint32_t special_entry)
 {
     uint32_t instr;
     int readinfo;
     if(storage->reg[PC] == 0)
         return -1;
     else if(storage->reg[PC] == special_entry)
+        instr = 0xffffffffU;
+    else
     {
-        printf("%d", (int)storage->reg[0]);
-        storage->reg[PC] = storage->reg[LR];
-    }
-    readinfo = mem_read_instruction(storage->reg[PC], &instr);
-    if(readinfo == -1)
-    {
-        fprintf(stderr, "Invalid instruction fetch.\n");
-        exit(1);
+        
+        readinfo = mem_read_instruction(storage->reg[PC], &instr);
+        if(readinfo == -1)
+        {
+            fprintf(stderr, "Invalid instruction fetch.\n");
+            exit(1);
+        }
     }
     pipe_state->id_in.instruction = instr;
     pipe_state->id_in.bubble = 0;

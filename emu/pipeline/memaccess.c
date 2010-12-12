@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-int MEMStage(StoreArch * storage, PipeState * pipe_state)
+int MEMStage(RegFile * storage, PipeState * pipe_state)
 {
     if(pipe_state->mem_in.bubble)
     {

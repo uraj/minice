@@ -2,7 +2,13 @@
 #include <stdio.h>
 #include <memory/vmem.h>
 
-void print_regfile(const StoreArch * storage)
+void print_stage_info(const StageInfo * sinfo)
+{
+    printf("0x%08x\n",sinfo->icode);
+    return;
+}
+
+void print_regfile(const RegFile * storage)
 {
     printf("r0 :0x%08x\tr1 :0x%08x\tr2 :0x%08x\tr3 :0x%08x\n", storage->reg[0], storage->reg[1], storage->reg[2], storage->reg[3]);
     printf("r4 :0x%08x\tr5 :0x%08x\tr6 :0x%08x\tr7 :0x%08x\n", storage->reg[4], storage->reg[5], storage->reg[6], storage->reg[7]);
