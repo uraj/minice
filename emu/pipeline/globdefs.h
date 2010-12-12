@@ -210,6 +210,4 @@ typedef struct
 #define LR 30
 #define PC 31
 
-extern int test_cond(const PSW * cmsr, uint8_t condcode);
-
 #endif

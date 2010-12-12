@@ -119,3 +119,42 @@ void gen_control_signals(const InstrFields * ifields, InstrType itype, EX_input 
     }
     return;
 }
+
+int test_cond(const PSW * cmsr, uint8_t condcode)
+{
+    switch(condcode)
+    {
+        case 0x0U:              /* EQ */
+            return cmsr->Z;
+        case 0x1U:              /* NE */
+            return !(cmsr->Z);
+        case 0x2U:              /* UGE */
+            return cmsr->C;
+        case 0x3U:              /* ULT */
+            return !(cmsr->C);
+        case 0x4U:              /* N */
+            return cmsr->N;
+        case 0x5U:              /* NN */
+            return !(cmsr->N);
+        case 0x6U:              /* OV */
+            return cmsr->V;
+        case 0x7U:              /* NV */
+            return !(cmsr->V);
+        case 0x8U:              /* UGT */
+            return cmsr->C && !(cmsr->Z);
+        case 0x9U:              /* ULE */
+            return !(cmsr->C) || cmsr->Z;
+        case 0xaU:              /* SGE */
+            return cmsr->N == cmsr->V;
+        case 0xbU:              /* SLT */
+            return cmsr->N != cmsr->V;
+        case 0xcU:              /* SGT */
+            return !(cmsr->Z) && (cmsr->N == cmsr->V);
+        case 0xdU:              /* SLE */
+            return cmsr->Z || (cmsr->N != cmsr->V);
+        case 0xeU:              /* AL */
+            return 1;
+        default:
+            exit(1);
+    }
+}
