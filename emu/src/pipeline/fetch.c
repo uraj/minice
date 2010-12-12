@@ -12,8 +12,7 @@ int IFStage(RegFile * storage, PipeState * pipe_state, uint32_t special_entry)
     else if(storage->reg[PC] == special_entry)
         instr = 0xffffffffU;
     else
-    {
-        
+    {        
         readinfo = mem_read_instruction(storage->reg[PC], &instr);
         if(readinfo == -1)
         {
