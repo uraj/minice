@@ -62,7 +62,7 @@ typedef struct
 typedef struct
 {
     instr icode;
-    char stage[3];
+    uint32_t pc;
 } StageInfo;
     
 typedef struct

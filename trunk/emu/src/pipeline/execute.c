@@ -156,7 +156,6 @@ int EXStage(RegFile * storage, PipeState * pipe_state)
     if(pipe_state->ex_in.bubble)
     {
         pipe_state->mem_in.bubble = 1;
-        pipe_state->id_in.ex_fwd.freg = 0xff;
         return 1;
     }
     pipe_state->mem_in.bubble = 0;

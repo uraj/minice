@@ -39,6 +39,11 @@ void emulate(uint32_t emulation_entry, uint32_t special_entry)
     pipe_state.mem_in.sinfo.icode = 0;
     pipe_state.wb_in.sinfo.icode = 0;
     
+    pipe_state.id_in.sinfo.pc = 0;
+    pipe_state.ex_in.sinfo.pc = 0;
+    pipe_state.mem_in.sinfo.pc = 0;
+    pipe_state.wb_in.sinfo.pc = 0;
+    
     /* initialization */
     emulate_init(&storage);
     storage.reg[PC] = emulation_entry;
