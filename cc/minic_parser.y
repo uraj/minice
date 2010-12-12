@@ -14,6 +14,7 @@
 #include "minic_triargexpr.h"
 #include "minic_basicblock.h"
 #include "minic_flowanalyse.h"
+#include "minic_aliasanalyse.h"
 //#define DEBUG
 //#define SHOWBNF
 //#define SHOWLOCALCODE
@@ -620,12 +621,12 @@ int main(int argc, char* argv[])
 		cur_func_info = symt_search(simb_table ,table_list[i] -> funcname);
 		curr_table = cur_func_info->func_symt;
 		make_fd(i);
-		//pointer_analyse(i);	
-		curfun_actvar_lists = analyse_actvar(&curfun_expr_num);
+		pointer_analyse(i);	
+		//curfun_actvar_lists = analyse_actvar(&curfun_expr_num);
         /*here is the register allotting and the assemble codes generating*/
-        for(j = 0 ; j < curfun_expr_num ; j++)
-             var_list_free_bynode(curfun_actvar_lists[j].head);
-        free(curfun_actvar_lists);
+        //for(j = 0 ; j < curfun_expr_num ; j++)
+        //     var_list_free_bynode(curfun_actvar_lists[j].head);
+        //free(curfun_actvar_lists);
 	}
     syms_delete(parm_stack);
     syms_delete(type_stack);

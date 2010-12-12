@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#define COMPLETED
 //some local data
 static char * flag_list;
 static struct basic_block ** entry_index_to_block;//waste some space, but is more faster
@@ -48,10 +47,8 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 		switch(expr.op)
 		{
 			case Assign:					 /* = */
-#ifdef	COMPLETED
 				if(expr.arg1.type == ExprArg)
 					insert_tempvar(expr.arg1.expr);
-#endif
 				break;//Current now, don't treat assign reference as real reference, can be optimizing some, and will be optimized some
 			case Eq:                         /* == */
 			case Neq:                        /* != */
@@ -63,12 +60,10 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 			case Minus:                      /* -  */
 			case Mul:                        /* *  */
 			case Subscript:                  /* [] */
-#ifdef	COMPLETED
 				if(expr.arg1.type == ExprArg)
 					insert_tempvar(expr.arg1.expr);
 				if(expr.arg2.type == ExprArg)
 					insert_tempvar(expr.arg2.expr);
-#endif	
 				break;	
 			case Uplus:                      /* +  */
 			case Uminus:                     /* -  */
@@ -78,10 +73,8 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 			case Deref:                      /* '*' */
 			case Arglist:
 			case Return:
-#ifdef COMPLETED
 				if(expr.arg1.type == ExprArg)
 					insert_tempvar(expr.arg1.expr);
-#endif
 				break;
 			
 			case UncondJump:
@@ -89,10 +82,8 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 					flag_list[expr.arg1.expr] = 1;
 				break;
 			case TrueJump:
-#ifdef COMPLETED
 				if(expr.arg1.type == ExprArg)
 					insert_tempvar(expr.arg1.expr);
-#endif	
 			if(expr.arg2.expr != -1)//the destination never changed
 				flag_list[expr.arg2.expr] = 1;//may don't need next expr as an entry, we'll know that at the next step.
 			if(expr.arg1.type == ImmArg)
@@ -120,10 +111,8 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 			}	
 			break;
 			case FalseJump:
-#ifdef COMPLETED
 				if(expr.arg1.type == ExprArg)
 					insert_tempvar(expr.arg1.expr);
-#endif
 				if(expr.arg2.expr != -1)
 					flag_list[expr.arg2.expr] = 1;	
 				if(expr.arg1.type == ImmArg)
