@@ -620,6 +620,7 @@ int main(int argc, char* argv[])
 		cur_func_info = symt_search(simb_table ,table_list[i] -> funcname);
 		curr_table = cur_func_info->func_symt;
 		make_fd(i);
+		//pointer_analyse();	
 		curfun_actvar_lists = analyse_actvar(&curfun_expr_num);
         /*here is the register allotting and the assemble codes generating*/
         for(j = 0 ; j < curfun_expr_num ; j++)
