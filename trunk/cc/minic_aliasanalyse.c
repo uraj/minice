@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define POINTER_DEBUG
+#define TRANS_DEBUG
 static int cur_var_id_num;
 static struct var_list *** pointer_in;
 static struct var_list *** pointer_out;
@@ -459,8 +460,10 @@ static void trans_in_to_out(struct basic_block * block)//update
 	while(temp_node != NULL)
 	{
 		trans(temp_node);
+#ifdef TRANS_DEBUG
 		print_triargexpr(*(temp_node -> entity));
 		print_list(tmp_out);
+#endif
 		temp_node = temp_node -> next;
 	}
 }
@@ -561,7 +564,7 @@ void pointer_analyse(int funcindex)
 #ifdef POINTER_DEBUG
 	printf("Done:generate_in_out_for_all\n");
 #endif
-	generate_entity_for_all();
+	//generate_entity_for_all();
 #ifdef POINTER_DEBUG
 	printf("Done:generate_entity_for_all\n");
 #endif
