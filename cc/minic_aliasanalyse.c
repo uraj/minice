@@ -3,7 +3,7 @@
 #include "minic_varmapping.h"
 #include <stdio.h>
 #include <stdlib.h>
-
+#define POINTER_DEBUG
 static int cur_var_id_num;
 static struct var_list *** pointer_in;
 static struct var_list *** pointer_out;
@@ -17,7 +17,18 @@ struct entity_type//only needed in this file
 	char ispointer;//-1 flush tag; 0 not pointer; 1 is pointer; 2 is array; 3 is modified pointer
 };
 
-static inline int set_cur_function(int function_index)
+static void print_list(struct var_list ** old_list)
+{
+	int index;
+	for(index = 0; index < cur_var_id_num; index++)
+	{
+		printf("Var %d:", index);
+		var_list_print(old_list[index]);
+	}
+	printf("\n");
+}
+
+static inline void set_cur_function(int function_index)
 {
 	cur_var_id_num = table_list[function_index] -> var_id_num;
 	cur_func_info = symt_search(simb_table ,table_list[function_index] -> funcname);
@@ -26,9 +37,7 @@ static inline int set_cur_function(int function_index)
 
 static void new_tmp_out()
 {
-	int index;
-	for(index = 0; index < cur_var_id_num; index ++)
-		tmp_out[index] = calloc(1, sizeof(struct var_list *));
+	tmp_out = calloc(cur_var_id_num, sizeof(struct var_list *));
 }
 
 static void free_tmp_out()
@@ -36,13 +45,14 @@ static void free_tmp_out()
 	int index;
 	for(index = 0; index < cur_var_id_num; index ++)
 		var_list_free(tmp_out[index]);
+	free(tmp_out);
 }
 
 static void new_temp_list()
 {
 	pointer_in = malloc(sizeof(struct var_list **) * g_block_num);
 	pointer_out = malloc(sizeof(struct var_list **) * g_block_num);
-	int block_index, var_index;
+	int block_index;
 	for(block_index = 0; block_index < g_block_num; block_index ++)
 	{
 		pointer_in[block_index] = calloc(cur_var_id_num, sizeof(struct var_list *));
@@ -73,7 +83,7 @@ static void free_temp_list()
 static void pointer_list_clear(struct var_list ** oldone)
 {
 	int index;
-	for(index = 0; index < cur_var_id_num; index++)
+	for(index = 0; index < cur_var_id_num; index ++)
 	{
 		if(oldone[index] != NULL)
 			var_list_clear(oldone[index]);
@@ -445,11 +455,12 @@ static void trans(struct triargexpr_list * temp_node)
 static void trans_in_to_out(struct basic_block * block)//update
 {
 	struct triargexpr_list * temp_node;
-	int index = block -> index;
 	temp_node = block -> head;
 	while(temp_node != NULL)
 	{
 		trans(temp_node);
+		print_triargexpr(*(temp_node -> entity));
+		print_list(tmp_out);
 		temp_node = temp_node -> next;
 	}
 }
@@ -472,22 +483,31 @@ static void generate_in_out_for_all()
 			pointer_list_copy(tmp_out, pointer_in[index]);//just copy
 			
 			trans_in_to_out(DFS_array[index]);
-
+			
 			pointer_list_clear(pointer_in[index]);
 			while(list_node != NULL)
 			{
 				pointer_list_merge(pointer_out[list_node -> entity-> index], pointer_in[index]);
 				list_node = list_node -> next;
 			}
-		
-			if(pointer_list_is_equal(tmp_out, pointer_out[index]) != -1)
+
+			if(pointer_list_is_equal(tmp_out, pointer_out[index]) != 1)
 			{
 				change = 1;
 				pointer_list_move(pointer_out[index], tmp_out);//tmp_out will be moved to pointer_out[index], and the old pointer_out[index] will be free
 			}
 			else
 				free_tmp_out();//there will be an extra tmp_out	
+#ifdef POINTER_DEBUG
+			printf("block %d:\n", index);
+			printf("Out:");
+			print_list(pointer_out[index]);
+			printf("In:");
+			print_list(pointer_in[index]);
+#endif
+	
 		}
+		change = 0;/*Temp method*/
 	}
 }
 
@@ -534,7 +554,19 @@ void pointer_analyse(int funcindex)
 {
 	set_cur_function(funcindex);
 	new_temp_list();
+#ifdef POINTER_DEBUG
+	printf("Done:new_temp_list\n");
+#endif
 	generate_in_out_for_all();
+#ifdef POINTER_DEBUG
+	printf("Done:generate_in_out_for_all\n");
+#endif
 	generate_entity_for_all();
+#ifdef POINTER_DEBUG
+	printf("Done:generate_entity_for_all\n");
+#endif
 	free_temp_list();
+#ifdef POINTER_DEBUG
+	printf("Done:free_temp_list\n");
+#endif
 }

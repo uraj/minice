@@ -52,8 +52,12 @@ inline void var_list_printbynode(struct var_list_node *head)
 
 inline void var_list_print(struct var_list *list)
 {
-     if(list == NULL)
-          return;
+	if(list == NULL)
+	{
+		printf("NULL\n");
+		return;
+	}
+
 	if(list->head == NULL)
 	{
 		printf("EMPTY\n");

@@ -22,7 +22,7 @@ minic_triargexpr.o:minic_triargexpr.h minic_triargexpr.c
 minic_triargtable.o:minic_triargtable.h minic_triargtable.c
 	gcc minic_triargtable.c $(CFLAGS) -o $@
 minic_aliasanalyse.o:minic_aliasanalyse.h minic_aliasanalyse.c
-	gcc minic_aliasnalyse.c $(CFLAGS) -o $@
+	gcc minic_aliasanalyse.c $(CFLAGS) -o $@
 minic_basicblock.o:minic_basicblock.h minic_basicblock.c
 	gcc minic_basicblock.c $(CFLAGS) -o $@
 minic_varmapping.o:minic_varmapping.h minic_varmapping.c
