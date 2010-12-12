@@ -1,4 +1,5 @@
 #include <pipeline/execute.h>
+#include <pipeline/control.h>
 #include <stdlib.h>
 
 static uint32_t ALUcal(uint8_t aluopcode, uint32_t operand1, uint32_t operand2, PSW * cmsr)
@@ -221,4 +222,3 @@ int EXStage(RegFile * storage, PipeState * pipe_state)
     }
     return 1;
 }
-
