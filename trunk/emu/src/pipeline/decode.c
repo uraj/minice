@@ -273,6 +273,7 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
         if(data_hazard)
             return -1;
         printf("%d\n", data);
+        fflush(stdout);
         storage->reg[PC] = storage->reg[LR];
         return 1;
     }

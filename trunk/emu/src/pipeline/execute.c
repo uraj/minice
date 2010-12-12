@@ -152,16 +152,19 @@ static uint32_t Mulcal(RegFile * storage, const EX_input * ex_in)
 
 int EXStage(RegFile * storage, PipeState * pipe_state)
 {
+
     if(pipe_state->ex_in.bubble)
     {
         pipe_state->mem_in.bubble = 1;
+        pipe_state->id_in.ex_fwd.freg = 0xff;
         return 1;
     }
-    pipe_state->mem_in.bubble = 0; 
-    pipe_state->id_in.ex_fwd.freg = 0xff;
+    pipe_state->mem_in.bubble = 0;
     FwdData ex_fwd;
     if(pipe_state->ex_in.wb_dest_sel == 0 || pipe_state->ex_in.wb_dest_sel == 2)
         ex_fwd.freg = pipe_state->ex_in.wb_val_ex_dest;
+    else
+        ex_fwd.freg = 0xff;
     
     /* push control signals */
     pipe_state->mem_in.load = pipe_state->ex_in.mem_load;

@@ -1,6 +1,6 @@
 CFLAGS=-c
 CFLAGS+=-Wall
-CFLAGS+=-I./src
+CFLAGS+=-I../src
 EMU_OBJS=fetch.o decode.o control.o execute.o memaccess.o writeback.o elfmanip.o vmem.o memory.o
 EMU_OBJS_DB=fetch.db decode.db control.db execute.db memaccess.db writeback.db elfmanip.db vmem.db memory.db
 
@@ -31,7 +31,7 @@ debug.o:../src/debug.c
 	gcc ../src/debug.c $(CFLAGS) -o $@
 
 emu-db:../emu-db
-../src/emu-db:$(EMU_OBJS_DB) emulator.db debug.db
+../emu-db:$(EMU_OBJS_DB) emulator.db debug.db
 	gcc -DDEBUG $(EMU_OBJS_DB) emulator.db debug.db -o ../emu-db
 fetch.db:../src/pipeline/fetch.c ../src/pipeline/fetch.h ../src/pipeline/globdefs.h
 	gcc -DDEBUG ../src/pipeline/fetch.c $(CFLAGS) -g -o $@

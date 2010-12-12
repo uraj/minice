@@ -29,6 +29,7 @@ int MEMStage(RegFile * storage, PipeState * pipe_state)
             uint32_t data;
             int readinfo;
             FwdData mem_fwd;
+            mem_fwd.freg = 0xff; /* defualt: no forwarding */
             if(pipe_state->mem_in.addr_sel == 0)
                 readinfo = mem_read(
                     pipe_state->mem_in.val_ex,
