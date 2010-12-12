@@ -46,27 +46,35 @@ void emulate(uint32_t emulation_entry, uint32_t special_entry)
     while(1)
     {
         ++cycle_count;
+        
 #ifdef DEBUG
         printf("Stage: WB\t");
         print_stage_info(&(pipe_state.wb_in.sinfo));
 #endif
+        
         WBStage(&storage, &pipe_state);
+        
 #ifdef DEBUG
         printf("Stage: MEM\t");
         print_stage_info(&(pipe_state.mem_in.sinfo));
 #endif
+        
         MEMStage(&storage, &pipe_state);
         pipe_state.wb_in.sinfo = pipe_state.mem_in.sinfo;
+
 #ifdef DEBUG
         printf("Stage: EX\t");
         print_stage_info(&(pipe_state.ex_in.sinfo));
 #endif
+        
         EXStage(&storage, &pipe_state);
         pipe_state.mem_in.sinfo = pipe_state.ex_in.sinfo;
+        
 #ifdef DEBUG
         printf("Stage: ID\t");
         print_stage_info(&(pipe_state.id_in.sinfo));
 #endif
+        
         if(IDStage(&storage, &pipe_state) == -1)
             continue;           /* stalling */
         pipe_state.ex_in.sinfo = pipe_state.id_in.sinfo;
@@ -102,12 +110,7 @@ int main(int argc, char * argv[])
     load_elf_segments(elf, ehdr);
     uint32_t special_entry = get_func_entry(elf, ehdr, "__minic_print");
     uint32_t emulation_entry = get_func_entry(elf, ehdr, "main");
-    
-#ifndef NOPIPE
     emulate(emulation_entry, special_entry);
-#else
-    emulate_nopipe(emulation_entry, special_entry);
-#endif
     mem_free();
     fclose(elf);
     return 0;

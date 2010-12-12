@@ -4,7 +4,7 @@
 
 void print_stage_info(const StageInfo * sinfo)
 {
-    printf("0x%08x\n",sinfo->icode);
+    printf("0x%08x\n", sinfo->icode);
     return;
 }
 

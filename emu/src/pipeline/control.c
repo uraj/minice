@@ -1,4 +1,5 @@
 #include <pipeline/control.h>
+#include <stdlib.h>
 
 void gen_control_signals(const InstrFields * ifields, InstrType itype, EX_input * ex_in)
 {
