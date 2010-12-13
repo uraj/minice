@@ -6,7 +6,7 @@
 #include <stdlib.h>
 //#define POINTER_DEBUG	/*Use to debug in out*/
 //#define FUNC_DEBUG
-#define TRANS_DEBUG		/*Use to debug trans*/	//almost right
+//#define TRANS_DEBUG		/*Use to debug trans*/	//almost right
 #define ENTITY_DEBUG	/*Use to debug entity list*/
 static int cur_var_id_num;
 static struct var_list *** pointer_in;
@@ -195,10 +195,10 @@ static struct entity_type search_entity(int exprnum, int ispointer)
 	struct triargexpr expr = cur_expr_table[exprnum];
 	struct value_info * temp_info;
 	struct entity_type entity;
-#ifdef ENTITY_DEBUG
+/*#ifdef ENTITY_DEBUG
 	printf("Expr:%d\n", exprnum);
 	printf("Ispointer:%d\n", ispointer);
-#endif	
+#endif	*/
 	switch(expr.op)
 	{
 		case Ref:
@@ -454,10 +454,10 @@ static void trans(struct triargexpr_list * temp_node)
 						break;
 					case ExprArg:
 						entity = search_entity(expr -> arg2.expr, 0);
-#ifdef ENTITY_DEBUG
+/*#ifdef ENTITY_DEBUG
 						printf("Entity:%d\n", entity.index);
 						printf("Ispointer:%d\n", entity.ispointer);
-#endif
+#endif*/
 						switch(entity.ispointer)
 						{
 							case -1:

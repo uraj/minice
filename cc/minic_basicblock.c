@@ -40,7 +40,8 @@ static inline struct basic_block_list * basic_block_list_append(struct basic_blo
 static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for entry and record them
 {
 	int i;
-	struct triargexpr  expr;
+	struct triargexpr expr;
+	struct triargexpr cond_expr;
 	for(i = 0; i < expr_num; i++)
 	{
 		expr = table[i];
@@ -83,36 +84,67 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 				break;
 			case TrueJump:
 				if(expr.arg1.type == ExprArg)
-					insert_tempvar(expr.arg1.expr);
-			if(expr.arg2.expr != -1)//the destination never changed
-				flag_list[expr.arg2.expr] = 1;//may don't need next expr as an entry, we'll know that at the next step.
-			if(expr.arg1.type == ImmArg)
-			{	
-				if(expr.arg1.imme != 0)//TrueJump not 0 (x) = UncondJump (x)
 				{
-					table[i].op = UncondJump;
-					table[i].arg1.type = ExprArg;
-					table[i].arg1.expr = expr.arg2.expr;
+					cond_expr = table[expr.arg1.expr];
+					switch(cond_expr.op)
+					{
+						case Eq:                         /* == */
+						case Neq:                        /* != */
+						case Ge:                         /* >= */
+						case Le:                         /* <= */
+						case Nge:                        /* <  */
+						case Nle:                        /* >  */
+							break;
+						default:
+							insert_tempvar(expr.arg1.expr);
+							break;
+					}
 				}
-				else///TrueJump 0 (x) = UncondJump next
-				{
-					table[i].op = UncondJump;
-					table[i].arg1.type = ExprArg;
-					struct triargexpr_list * tmp_node = table_list[cur_func_index] -> index_to_list[expr.index];
-					if(tmp_node -> next == NULL )
-						table[i].arg1.expr = -1;//the end of the function
-					else
-						table[i].arg1.expr = tmp_node -> next -> entity -> index;
-					if(expr.arg2.expr != -1)//the destination never changed
-						flag_list[expr.arg2.expr] = 0;//cancel the entry
-					if(table[i].arg1.expr != -1)
-						flag_list[table[i].arg1.expr] = 1;
-				}
-			}	
+				if(expr.arg2.expr != -1)//the destination never changed
+					flag_list[expr.arg2.expr] = 1;//may don't need next expr as an entry, we'll know that at the next step.
+				if(expr.arg1.type == ImmArg)
+				{	
+					if(expr.arg1.imme != 0)//TrueJump not 0 (x) = UncondJump (x)
+					{
+						table[i].op = UncondJump;
+						table[i].arg1.type = ExprArg;
+						table[i].arg1.expr = expr.arg2.expr;
+					}
+					else///TrueJump 0 (x) = UncondJump next
+					{
+						table[i].op = UncondJump;
+						table[i].arg1.type = ExprArg;
+						struct triargexpr_list * tmp_node = table_list[cur_func_index] -> index_to_list[expr.index];
+						if(tmp_node -> next == NULL )
+							table[i].arg1.expr = -1;//the end of the function
+						else
+							table[i].arg1.expr = tmp_node -> next -> entity -> index;
+						if(expr.arg2.expr != -1)//the destination never changed
+							flag_list[expr.arg2.expr] = 0;//cancel the entry
+						if(table[i].arg1.expr != -1)
+							flag_list[table[i].arg1.expr] = 1;
+					}
+				}	
 			break;
 			case FalseJump:
 				if(expr.arg1.type == ExprArg)
+				{
 					insert_tempvar(expr.arg1.expr);
+					cond_expr = table[expr.arg1.expr];
+					switch(cond_expr.op)
+					{
+						case Eq:                         /* == */
+						case Neq:                        /* != */
+						case Ge:                         /* >= */
+						case Le:                         /* <= */
+						case Nge:                        /* <  */
+						case Nle:                        /* >  */
+							break;
+						default:
+							insert_tempvar(expr.arg1.expr);
+							break;
+					}	
+				}
 				if(expr.arg2.expr != -1)
 					flag_list[expr.arg2.expr] = 1;	
 				if(expr.arg1.type == ImmArg)
