@@ -4,10 +4,10 @@
 #include "minic_symtable.h"
 #include <stdio.h>
 #include <stdlib.h>
-#define POINTER_DEBUG	/*Use to debug in out*/
+//#define POINTER_DEBUG	/*Use to debug in out*/
 //#define FUNC_DEBUG
-//#define TRANS_DEBUG		/*Use to debug trans*/	//almost right
-//#define ENTITY_DEBUG	/*Use to debug entity list*/
+#define TRANS_DEBUG		/*Use to debug trans*/	//almost right
+#define ENTITY_DEBUG	/*Use to debug entity list*/
 static int cur_var_id_num;
 static struct var_list *** pointer_in;
 static struct var_list *** pointer_out;
@@ -195,6 +195,10 @@ static struct entity_type search_entity(int exprnum, int ispointer)
 	struct triargexpr expr = cur_expr_table[exprnum];
 	struct value_info * temp_info;
 	struct entity_type entity;
+#ifdef ENTITY_DEBUG
+	printf("Expr:%d\n", exprnum);
+	printf("Ispointer:%d\n", ispointer);
+#endif	
 	switch(expr.op)
 	{
 		case Ref:
@@ -283,6 +287,7 @@ static struct entity_type search_entity(int exprnum, int ispointer)
 						if(temp_info -> type -> type == Pointer)
 							entity.ispointer = 3;//modified pointer
 						else entity.ispointer = -1;
+						return entity;
 				}
 			}
 			if(expr.arg1.type == ExprArg)
@@ -449,6 +454,10 @@ static void trans(struct triargexpr_list * temp_node)
 						break;
 					case ExprArg:
 						entity = search_entity(expr -> arg2.expr, 0);
+#ifdef ENTITY_DEBUG
+						printf("Entity:%d\n", entity.index);
+						printf("Ispointer:%d\n", entity.ispointer);
+#endif
 						switch(entity.ispointer)
 						{
 							case -1:
@@ -535,7 +544,6 @@ static void generate_in_out_for_all()
 			print_list(pointer_out[index]);
 #endif	
 		}
-	//	change = 0;/*Temp method*/
 	}
 #ifdef POINTER_DEBUG
 	printf("\n");
@@ -585,6 +593,11 @@ static void generate_entity_for_each(struct triargexpr_list * tmp_node)
 					case 1:
 						tmp_node -> pointer_entity = var_list_new();
 						tmp_node -> pointer_entity = var_list_copy(tmp_out[entity.index], tmp_node -> pointer_entity);
+						break;
+					case 3:
+						tmp_node -> pointer_entity = var_list_new();
+						tmp_node -> pointer_entity = var_list_copy_array(tmp_out[entity.index], tmp_node -> pointer_entity);
+						break;
 					default:
 						fprintf(stderr, "Error when generate_entity\n");
 						break;
