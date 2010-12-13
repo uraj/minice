@@ -8,8 +8,10 @@
 #include <debug.h>
 
 L2PT L1PageTable[L1PTSIZE];
+const RegFile * gp_reg = NULL;
+const PipeState * gp_pipe = NULL;
 
-void emulate_init(RegFile * storage)
+void emulate_init(RegFile * storage, PipeState * pipe_state) /* important */
 {
     memset(storage->reg, 0, 32 * sizeof(uint32_t));
     storage->reg[SP] = 0xf0000000;
@@ -19,6 +21,24 @@ void emulate_init(RegFile * storage)
     storage->CMSR.Z = 0;
     storage->CMSR.C = 0;
     storage->CMSR.V = 0;
+
+    pipe_state->id_in.bubble = 1;
+    pipe_state->ex_in.bubble = 1;
+    pipe_state->mem_in.bubble = 1;
+    pipe_state->wb_in.bubble = 1;
+    pipe_state->id_in.sinfo.icode = 0;
+    pipe_state->ex_in.sinfo.icode = 0;
+    pipe_state->mem_in.sinfo.icode = 0;
+    pipe_state->wb_in.sinfo.icode = 0;
+    
+    pipe_state->id_in.sinfo.pc = 0;
+    pipe_state->ex_in.sinfo.pc = 0;
+    pipe_state->mem_in.sinfo.pc = 0;
+    pipe_state->wb_in.sinfo.pc = 0;
+    /* data forwarding related */
+    pipe_state->id_in.ex_fwd[0].freg = 0xff;
+    pipe_state->id_in.ex_fwd[1].freg = 0xff;
+    pipe_state->id_in.mem_fwd.freg = 0xff;
     return;
 }
 
@@ -29,23 +49,11 @@ void emulate(uint32_t emulation_entry, uint32_t special_entry)
     
     RegFile storage;
     PipeState pipe_state;
-    
-    pipe_state.id_in.bubble = 1;
-    pipe_state.ex_in.bubble = 1;
-    pipe_state.mem_in.bubble = 1;
-    pipe_state.wb_in.bubble = 1;
-    pipe_state.id_in.sinfo.icode = 0;
-    pipe_state.ex_in.sinfo.icode = 0;
-    pipe_state.mem_in.sinfo.icode = 0;
-    pipe_state.wb_in.sinfo.icode = 0;
-    
-    pipe_state.id_in.sinfo.pc = 0;
-    pipe_state.ex_in.sinfo.pc = 0;
-    pipe_state.mem_in.sinfo.pc = 0;
-    pipe_state.wb_in.sinfo.pc = 0;
+    gp_reg = &storage;
+    gp_pipe = &pipe_state;
     
     /* initialization */
-    emulate_init(&storage);
+    emulate_init(&storage, &pipe_state);
     storage.reg[PC] = emulation_entry;
     
     while(1)
@@ -81,12 +89,17 @@ void emulate(uint32_t emulation_entry, uint32_t special_entry)
 #endif
         
         if(IDStage(&storage, &pipe_state) == -1)
+        {
+            pipe_state.ex_in.bubble = 1;
             continue;           /* stalling */
+        }
         pipe_state.ex_in.sinfo = pipe_state.id_in.sinfo;
         if(IFStage(&storage, &pipe_state, special_entry) == -1)
             break;
         ++instructon_count;
         pipe_state.id_in.sinfo.icode = pipe_state.id_in.instruction;
+        pipe_state.id_in.sinfo.pc = storage.reg[PC] - 4;
+        
     }
     return;
 }

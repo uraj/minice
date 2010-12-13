@@ -70,7 +70,8 @@ typedef struct
     StageInfo sinfo;
     int bubble;
     instr instruction;
-    FwdData ex_fwd, mem_fwd;
+    FwdData ex_fwd[2];
+    FwdData mem_fwd;
 } ID_input;
 
 #define ALU_NOP 0xffU

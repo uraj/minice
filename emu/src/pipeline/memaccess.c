@@ -8,6 +8,7 @@ int MEMStage(RegFile * storage, PipeState * pipe_state)
     if(pipe_state->mem_in.bubble)
     {
         pipe_state->wb_in.bubble = 1;
+        pipe_state->id_in.mem_fwd.freg = 0xff;
         return 1;
     }
     else

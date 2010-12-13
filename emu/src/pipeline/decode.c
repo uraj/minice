@@ -86,13 +86,21 @@ static InstrType get_instr_type(instr code)
 /* detect data hazard, return 1: hazard exists, stall the pipeline; return 0: secure */
 static int read_register(const RegFile * storage, const PipeState * pipe_state, uint8_t reg_index, uint32_t * dest)
 {
-    if(reg_index == pipe_state->id_in.ex_fwd.freg)
-        *dest = pipe_state->id_in.ex_fwd.fdata;
+    /* laod interlock */
+    if((pipe_state->mem_in.bubble == 0 ) &&
+       (pipe_state->mem_in.wb_dest_sel == 1 || pipe_state->mem_in.wb_dest_sel == 2) &&
+       (reg_index == pipe_state->mem_in.wb_val_mem_dest))
+        return 1;
+    /* search EX forwarding queue's first slot */
+    if(reg_index == pipe_state->id_in.ex_fwd[0].freg)
+        *dest = pipe_state->id_in.ex_fwd[0].fdata;
+    /* then search MEM forwading slot */
     else if(reg_index == pipe_state->id_in.mem_fwd.freg)
         *dest = pipe_state->id_in.mem_fwd.fdata;
-    else if((pipe_state->mem_in.wb_dest_sel == 1 || pipe_state->mem_in.wb_dest_sel == 2) &&
-            (reg_index == pipe_state->mem_in.wb_val_mem_dest))
-            return 1;
+    /* then search EX forwarding queue's second slot */
+    else if(reg_index == pipe_state->id_in.ex_fwd[1].freg)
+        *dest = pipe_state->id_in.ex_fwd[1].fdata;
+    /* regular read */
     else
         *dest = storage->reg[reg_index];
     return 0;
