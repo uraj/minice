@@ -36,6 +36,9 @@ struct symbol_table * symt_new()
     t->arg_no_min = 0;
     t->arg_no_max = 0;
     t->func = NULL;
+    t->id_num = 0;
+    t->cur_idarray_size = 4;
+    t->myid = NULL;
 	return t;
 }
 
@@ -62,7 +65,7 @@ void symt_delete(struct symbol_table *t)
 	free(t);
 }
 
-void var_no_update(struct value_info *value)
+static void var_no_update(struct symbol_table *t , struct value_info *value)
 {
      if(value == NULL)
           return;
@@ -70,8 +73,8 @@ void var_no_update(struct value_info *value)
           return;
      
 	value->no = g_var_id_num;
-//    printf("%s->%d\n" , value->name , value->no);
 	g_var_id_num ++;
+    t->id_num = g_var_id_num;
 }
 
 int symt_insert(struct symbol_table *t , struct value_info *value)
@@ -169,6 +172,15 @@ struct value_info * new_valueinfo(char *name)
 	i -> type = NULL;
 	i -> modi = Epsilon;
 	return i;
+}
+
+struct value_info *get_valueinfo_byno(struct symbol_table *cur_table , int no)//get value_info by no
+{
+     if(cur_table == NULL)
+          return NULL;
+     if(no >= cur_table->id_num)
+          return NULL;
+     return (cur_table->myid[no]);
 }
 
 struct value_type * new_valuetype(char *name)

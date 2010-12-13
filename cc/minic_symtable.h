@@ -10,6 +10,7 @@ struct syms_node;
 
 extern int g_var_id_num;
 extern struct symbol_table *curr_table;
+int no_to_id_num = 10;
 
 struct value_info
 {
@@ -32,6 +33,8 @@ struct symbol_table
      struct symt_node *head;//hash表头
      int arg_no_min , arg_no_max;//如果是函数的话，要有参数，两个变量分别表示参数编号的最小和最大值加1（此处需要注意！）。如果没有则min=max=0
      struct value_info *func;//便于从符号表找到他是什么函数的
+     int id_num;
+     struct value_info **myid;
 };
 
 struct value_type
@@ -61,7 +64,7 @@ extern struct value_info * symt_search(struct symbol_table *t , char *name);
 extern struct value_info * symbol_search(struct symbol_table *whole , struct symbol_table *curfunc , char *name);
 extern void start_arglist();//参数开始计数
 extern void end_arglist(); 
-
+extern struct value_info *get_valueinfo_byno(struct symbol_table *cur_table , int no);//get value_info by no
 
 
 extern struct value_info * new_valueinfo(char *name);/*modified*/
