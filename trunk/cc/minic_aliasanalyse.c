@@ -1,6 +1,7 @@
 #include "minic_flowanalyse.h"
 #include "minic_aliasanalyse.h"
 #include "minic_varmapping.h"
+#include "minic_symtable.h"
 #include <stdio.h>
 #include <stdlib.h>
 #define POINTER_DEBUG	/*Use to debug in out*/
@@ -147,29 +148,27 @@ static void pointer_list_rplc_entity(struct var_list ** dest, int elem, int enti
 	dest[elem] = var_list_append(dest[elem], entity);
 }
 
-/*
-static struct var_list * pointer_var_list_copy(struct var_list *source , struct var_list *dest)
+static struct var_list * var_list_copy_array(struct var_list *source , struct var_list *dest)
 {
 	if(source->head == NULL)
 		return dest;
-	struct var_list_node *temp = source->head;
+	struct var_list_node *temp = source -> head;
 	while(temp != source->tail)
 	{
-		if(temp -> var_map_index)
-		var_list_append(dest , temp->var_map_index);
+		struct value_info * tmp_info = get_valueinfo_byno(cur_func_info -> func_symt, temp -> var_map_index);//must be id in this file
+		if(tmp_info -> type -> type == Array)
+			var_list_append(dest , temp->var_map_index);
 		temp = temp->next;
 	}
 	var_list_append(dest , temp->var_map_index);
 	return dest;
 }
-*/
 
 static void pointer_list_rplc_modptr(struct var_list ** dest, int elem, int newelem)
 {
 	if(dest[elem] != NULL)
 		var_list_clear(dest[elem]);
-	dest[elem] = var_list_copy(dest[newelem], dest[elem]);//in fact should only copy array member
-	/*************************** mark ****************************/
+	dest[elem] = var_list_copy_array(dest[newelem], dest[elem]);//in fact should only copy array member
 }
 
 static int pointer_list_is_equal(struct var_list ** first_list, struct var_list ** second_list)
