@@ -10,7 +10,6 @@ struct syms_node;
 
 extern int g_var_id_num;
 extern struct symbol_table *curr_table;
-int no_to_id_num = 10;
 
 struct value_info
 {
@@ -33,7 +32,9 @@ struct symbol_table
      struct symt_node *head;//hash表头
      int arg_no_min , arg_no_max;//如果是函数的话，要有参数，两个变量分别表示参数编号的最小和最大值加1（此处需要注意！）。如果没有则min=max=0
      struct value_info *func;//便于从符号表找到他是什么函数的
+
      int id_num;
+     int cur_idarray_size;
      struct value_info **myid;
 };
 
@@ -57,7 +58,7 @@ struct symbol_stack
 extern int ELFhash(char *str);
 
 extern struct symbol_table * symt_new();/*modified*/
-extern void var_no_update(struct value_info *value);
+//extern void var_no_update(struct symbol_table *t , struct value_info *value);
 extern int symt_insert(struct symbol_table *t , struct value_info *value);
 extern void symt_delete(struct symbol_table *t);
 extern struct value_info * symt_search(struct symbol_table *t , char *name);
