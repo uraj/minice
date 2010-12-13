@@ -860,7 +860,7 @@ struct var_list *analyse_actvar(int *expr_num)//活跃变量分析
                j = 0;
                if(cur != NULL)
                {
-                    while(cur != show_list.tail->next && j < gc_change_num)
+                    while(former != show_list.tail && j < gc_change_num)
                     {
                          if(temp_change[j].var_map_index == -1)//-1 is no use
                          {
@@ -883,6 +883,8 @@ struct var_list *analyse_actvar(int *expr_num)//活跃变量分析
                               {
                                    cur = var_list_delete(&show_list , former , cur);
                                    j++;
+                                   if(show_list.head == NULL)
+                                        break;
                                    continue;
                               }
                          }
@@ -894,6 +896,7 @@ struct var_list *analyse_actvar(int *expr_num)//活跃变量分析
                               {
                                    former = var_list_insert(&show_list , former , temp_change[j].var_map_index);
                                    j++;
+                                   continue;
                               }
                          }
                          former = cur;

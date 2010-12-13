@@ -38,7 +38,7 @@ struct symbol_table * symt_new()
     t->func = NULL;
     t->id_num = 0;
     t->cur_idarray_size = 4;
-    t->myid = NULL;
+    t->myid = (struct value_info **)malloc(sizeof(struct value_info *) * (t->cur_idarray_size));
 	return t;
 }
 
@@ -71,10 +71,21 @@ static void var_no_update(struct symbol_table *t , struct value_info *value)
           return;
      if(value->type->type == Function)
           return;
-     
-	value->no = g_var_id_num;
-	g_var_id_num ++;
-    t->id_num = g_var_id_num;
+     if(t->id_num >= t->cur_idarray_size)
+     {
+          struct value_info **temp = t->myid;
+          int i;
+          t->cur_idarray_size *= 2;
+          t->myid = (struct value_info **)malloc(sizeof(struct vale_info *) * (t->cur_idarray_size));
+          for(i = 0 ; i < (t->id_num) ; i++)
+               t->myid[i] = temp[i];
+          free(temp);
+     }
+     t->myid[t->id_num] = value;
+     value->no = t->id_num;
+     printf("%s->%d\n" , t->myid[t->id_num]->name , value->no);
+     t->id_num ++;
+     g_var_id_num = t->id_num;
 }
 
 int symt_insert(struct symbol_table *t , struct value_info *value)
@@ -84,7 +95,7 @@ int symt_insert(struct symbol_table *t , struct value_info *value)
 	int index = ELFhash(value->name)%(t->size);
 	if(t->head[index].value == NULL)
 	{
-		var_no_update(value);
+         var_no_update(t , value);
 		t->head[index].value = value;
 		return 1;
 	}
@@ -127,7 +138,7 @@ int symt_insert(struct symbol_table *t , struct value_info *value)
 		temp = temp->next;
 	}
 	struct symt_node *temp_node = (struct symt_node *)malloc(sizeof(struct symt_node));
-	var_no_update(value);
+	var_no_update(t , value);
 	temp_node->value = value;
 	temp_node->next = NULL;
 	temp->next = temp_node;
@@ -171,6 +182,7 @@ struct value_info * new_valueinfo(char *name)
 	i -> func_symt = NULL;
 	i -> type = NULL;
 	i -> modi = Epsilon;
+    i -> no = 0;
 	return i;
 }
 
