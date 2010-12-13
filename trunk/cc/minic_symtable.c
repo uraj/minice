@@ -82,10 +82,10 @@ static void var_no_update(struct symbol_table *t , struct value_info *value)
           free(temp);
      }
      t->myid[t->id_num] = value;
-     value->no = t->id_num;
+     value->no = g_var_id_num;
      printf("%s->%d\n" , t->myid[t->id_num]->name , value->no);
      t->id_num ++;
-     g_var_id_num = t->id_num;
+     g_var_id_num ++;
 }
 
 int symt_insert(struct symbol_table *t , struct value_info *value)
@@ -186,13 +186,27 @@ struct value_info * new_valueinfo(char *name)
 	return i;
 }
 
-struct value_info *get_valueinfo_byno(struct symbol_table *cur_table , int no)//get value_info by no
+struct value_info *get_valueinfo_byno(struct symbol_table *cur, int no)//get value_info by no
 {
-     if(cur_table == NULL)
+     struct symbol_table *whole = simb_table;
+     if(cur == NULL)
+     {
+          if(whole != NULL && no < whole->id_num)
+               return (whole->myid[no]);
           return NULL;
-     if(no >= cur_table->id_num)
+     }
+     if(whole == NULL)
+     {
+          if(no < cur->id_num)
+               return (cur->myid[no]);
           return NULL;
-     return (cur_table->myid[no]);
+     }
+     if(no < whole->id_num)
+          return (whole->myid[no]);
+     no -= whole->id_num;
+     if(no < cur->id_num)
+          return (cur->myid[no]);
+     return NULL;
 }
 
 struct value_type * new_valuetype(char *name)
