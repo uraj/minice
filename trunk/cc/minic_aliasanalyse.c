@@ -3,8 +3,10 @@
 #include "minic_varmapping.h"
 #include <stdio.h>
 #include <stdlib.h>
-#define POINTER_DEBUG
-#define TRANS_DEBUG
+#define POINTER_DEBUG	/*Use to debug in out*/
+//#define FUNC_DEBUG
+//#define TRANS_DEBUG		/*Use to debug trans*/	//almost right
+//#define ENTITY_DEBUG	/*Use to debug entity list*/
 static int cur_var_id_num;
 static struct var_list *** pointer_in;
 static struct var_list *** pointer_out;
@@ -39,6 +41,9 @@ static inline void set_cur_function(int function_index)
 static void new_tmp_out()
 {
 	tmp_out = calloc(cur_var_id_num, sizeof(struct var_list *));
+	int index;
+	for(index = 0; index < cur_var_id_num; index++)
+		tmp_out[index] = var_list_new();
 }
 
 static void free_tmp_out()
@@ -53,11 +58,16 @@ static void new_temp_list()
 {
 	pointer_in = malloc(sizeof(struct var_list **) * g_block_num);
 	pointer_out = malloc(sizeof(struct var_list **) * g_block_num);
-	int block_index;
+	int block_index, var_index;
 	for(block_index = 0; block_index < g_block_num; block_index ++)
 	{
 		pointer_in[block_index] = calloc(cur_var_id_num, sizeof(struct var_list *));
 		pointer_out[block_index] = calloc(cur_var_id_num, sizeof(struct var_list *));
+		for(var_index = 0; var_index < cur_var_id_num; var_index ++)
+		{
+			pointer_in[block_index][var_index] = var_list_new();
+			pointer_out[block_index][var_index] = var_list_new();
+		}
 	}
 }
 
@@ -110,6 +120,7 @@ static void pointer_list_move(struct var_list ** newone, struct var_list ** oldo
 		if(newone[index] != NULL)
 			var_list_free(newone[index]);
 		newone[index] = oldone[index];
+		oldone[index] = NULL;
 	}
 }
 
@@ -136,12 +147,28 @@ static void pointer_list_rplc_entity(struct var_list ** dest, int elem, int enti
 	dest[elem] = var_list_append(dest[elem], entity);
 }
 
+/*
+static struct var_list * pointer_var_list_copy(struct var_list *source , struct var_list *dest)
+{
+	if(source->head == NULL)
+		return dest;
+	struct var_list_node *temp = source->head;
+	while(temp != source->tail)
+	{
+		if(temp -> var_map_index)
+		var_list_append(dest , temp->var_map_index);
+		temp = temp->next;
+	}
+	var_list_append(dest , temp->var_map_index);
+	return dest;
+}
+*/
+
 static void pointer_list_rplc_modptr(struct var_list ** dest, int elem, int newelem)
 {
 	if(dest[elem] != NULL)
 		var_list_clear(dest[elem]);
 	dest[elem] = var_list_copy(dest[newelem], dest[elem]);//in fact should only copy array member
-	/*need to be modified later*/
 	/*************************** mark ****************************/
 }
 
@@ -479,8 +506,6 @@ static void generate_in_out_for_all()
 		change = 0;
 		for(index = 0; index < g_block_num; index++)
 		{
-			struct basic_block_list * list_node = DFS_array[index] -> prev;
-
 			new_tmp_out();
 
 			pointer_list_copy(tmp_out, pointer_in[index]);//just copy
@@ -488,6 +513,8 @@ static void generate_in_out_for_all()
 			trans_in_to_out(DFS_array[index]);
 			
 			pointer_list_clear(pointer_in[index]);
+			
+			struct basic_block_list * list_node = DFS_array[index] -> prev;
 			while(list_node != NULL)
 			{
 				pointer_list_merge(pointer_out[list_node -> entity-> index], pointer_in[index]);
@@ -500,36 +527,70 @@ static void generate_in_out_for_all()
 				pointer_list_move(pointer_out[index], tmp_out);//tmp_out will be moved to pointer_out[index], and the old pointer_out[index] will be free
 			}
 			else
-				free_tmp_out();//there will be an extra tmp_out	
+				free_tmp_out();//there will be an extra tmp_out		
 #ifdef POINTER_DEBUG
 			printf("block %d:\n", index);
-			printf("Out:");
-			print_list(pointer_out[index]);
 			printf("In:");
 			print_list(pointer_in[index]);
-#endif
-	
+			printf("Out:");
+			print_list(pointer_out[index]);
+#endif	
 		}
-		change = 0;/*Temp method*/
+	//	change = 0;/*Temp method*/
 	}
+#ifdef POINTER_DEBUG
+	printf("\n");
+#endif
 }
 
 static void generate_entity_for_each(struct triargexpr_list * tmp_node)
 {
 	struct triargexpr * expr = tmp_node -> entity;
 	struct value_info * arg1_info; 
+	struct entity_type entity;
 	switch(expr -> op)
 	{
 		case Subscript:
 			/*The arg1 must be id and is pointer or array*/
 			arg1_info = symbol_search(simb_table, cur_func_info -> func_symt, expr -> arg1.idname);	
 			if(arg1_info -> type -> type == Pointer)
-				tmp_node -> pointer_entity = var_list_copy(tmp_out[arg1_info -> no], tmp_node -> pointer_entity);	
+			{
+				tmp_node -> pointer_entity = var_list_new();
+				tmp_node -> pointer_entity = var_list_copy(tmp_out[arg1_info -> no], tmp_node -> pointer_entity);
+			}
 			break;
 		case Deref:
-			arg1_info = symbol_search(simb_table, cur_func_info -> func_symt, expr -> arg1.idname);	
-			if(arg1_info -> type -> type == Pointer)
-				tmp_node -> pointer_entity = var_list_copy(tmp_out[arg1_info -> no], tmp_node -> pointer_entity);
+			/*The arg1 can be any thing*/
+			if(expr -> arg1.type == IdArg)//must be a pointer or an array
+			{
+				arg1_info = symbol_search(simb_table, cur_func_info -> func_symt, expr -> arg1.idname);	
+				if(arg1_info -> type -> type == Pointer)//if Array, need not to deal with it
+				{
+					tmp_node -> pointer_entity = var_list_new();
+					tmp_node -> pointer_entity = var_list_copy(tmp_out[arg1_info -> no], tmp_node -> pointer_entity);
+				}
+			}
+			else if(expr -> arg1.type == ExprArg)
+			{
+				entity = search_entity(expr -> arg1.expr, 0);
+				switch(entity.ispointer)
+				{
+					case -1:
+						tmp_node -> pointer_entity = NULL;//Empty
+						break;
+					case 0:
+					case 2:
+						tmp_node -> pointer_entity = var_list_new();
+						tmp_node -> pointer_entity = var_list_append(tmp_node -> pointer_entity, entity.index);
+						break;
+					case 1:
+						tmp_node -> pointer_entity = var_list_new();
+						tmp_node -> pointer_entity = var_list_copy(tmp_out[entity.index], tmp_node -> pointer_entity);
+					default:
+						fprintf(stderr, "Error when generate_entity\n");
+						break;
+				}
+			}
 			break;
 		default:
 			break;
@@ -544,12 +605,23 @@ static void generate_entity_for_all()
 	{
 		index = DFS_array[block_index] -> index;
 		temp_node = DFS_array[block_index] -> head;
+
+		new_tmp_out();
+		pointer_list_copy(tmp_out, pointer_in[index]);
+
 		while(temp_node != NULL)
 		{
 			trans(temp_node);
 			generate_entity_for_each(temp_node);
+#ifdef ENTITY_DEBUG
+			print_triargexpr(*(temp_node -> entity));
+			var_list_print(temp_node -> pointer_entity);
+			printf("\n");
+#endif
 			temp_node = temp_node -> next;
 		}
+		
+		free_tmp_out();
 	}
 }
 
@@ -564,7 +636,7 @@ void pointer_analyse(int funcindex)
 #ifdef POINTER_DEBUG
 	printf("Done:generate_in_out_for_all\n");
 #endif
-	//generate_entity_for_all();
+	generate_entity_for_all();
 #ifdef POINTER_DEBUG
 	printf("Done:generate_entity_for_all\n");
 #endif
