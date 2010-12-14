@@ -5,17 +5,21 @@
 
 int IFStage(RegFile * storage, PipeState * pipe_state, uint32_t special_entry)
 {
-    static quit = 0;
+    static int quit = 0;
     
     uint32_t instr;
     int readinfo;
     if(storage->reg[PC] == 0)
     {
+        return -1;
         ++quit;
         if(quit == 5)           /* pipeline empty */
             return -1;
         else
+        {
+            pipe_state->id_in.bubble = 1;
             return 1;
+        }
     }
     else if(storage->reg[PC] == special_entry)
         instr = 0xffffffffU;
