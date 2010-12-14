@@ -39,8 +39,8 @@ extern void init_cache();
 
 extern struct Cacheinfo * get_cache_info();
 
-extern void cache_write(uint32_t addr, uint32_t data);
-extern void cache_read(uint32_t addr, uint32_t * dest);
+extern int cache_write(uint32_t addr, uint32_t data);/* miss: 1		hit: 0		write_through: -1 */
+extern int cache_read(uint32_t addr, uint32_t * dest);/* miss: 1	hit: 0	*/
 
 #endif
 
