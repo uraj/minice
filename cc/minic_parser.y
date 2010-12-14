@@ -553,8 +553,9 @@ constant : ICONSTANT {
                          #endif
                      }
          | SCONSTANT {
-						 //extern int symt_insert_conststr( , strdup($1));
-						 $$ = new_ast(Nullop, 1, NULL, new_sconst($1));
+						 char * str_name = symt_insert_conststr(curr_table, strdup($1));
+						 if(str_name != NULL)
+							$$ = new_ast(Nullop, 1, NULL, new_sconst(str_name));
                          #ifdef SHOWBNF
                          printf("constant : SCONSTANT\n");
                          #endif
