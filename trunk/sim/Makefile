@@ -1,4 +1,4 @@
 build:
 	cd objs && make
 db:
-	cd objs && make simu-db
+	cd objs && make sim-db
