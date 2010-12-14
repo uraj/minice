@@ -21,8 +21,9 @@ struct actvar_change
      enum change_type type;
 };
 
-static struct var_list *var_in;
 struct var_list *var_out;
+
+static struct var_list *var_in;
 static struct var_list *def;
 static struct var_list *use;
 static int *def_size;
@@ -778,18 +779,34 @@ static inline struct actvar_change *push_changes_into_expr(struct actvar_change 
      return change;
 }
 
+static void make_change_list(int num1 , int num2 , struct var_list *dest)
+{
+     var_list_clear(dest);
+     int temp;
+     if(num1 > num2)
+     {
+          temp = num1;
+          num1 = num2;
+          num2 = temp;
+     }
+     if(num1 != -1)
+          var_list_append(dest , num1);
+     if(num2 != -1)
+          var_list_append(dest , num2);
+}
+
 struct var_list *analyse_actvar(int *expr_num)//活跃变量分析
 {
-     int i;
+     int i , act_list_index = 0 , j;
      malloc_active_var();//活跃变量分析相关的数组空间分配
      initial_active_var();//完成活跃变量分析的初始化部分，生成def和use
      solve_equa_ud();//求解活跃变量方程组，得到var_in和var_out
      (*expr_num) = s_expr_num;//the num of expressions
-     
-     int add1 , add2 , del1 , del2;
-     struct var_list *actvar_list;
-     int act_list_index = 0 , j;
+
      struct actvar_change *temp_change = NULL;
+
+     int add1 , add2 , del1 , del2;
+     struct var_list *actvar_list;//
      actvar_list = (struct var_list *)malloc(sizeof(struct var_list) * s_expr_num);
      for(i = 0 ; i < s_expr_num ; i++)
           actvar_list[i].head = actvar_list[i].tail = NULL;
@@ -916,78 +933,17 @@ struct var_list *analyse_actvar(int *expr_num)//活跃变量分析
                printf("(%d) active varible:" , temp_expr->entity->index);
                var_list_print(&show_list);
 #endif
-/*               int d , a;
-               
-               for(d = 0 ; d < 2 ; d++)
-                    for(a = 2 ; a < 4 ; a++)
-                         if(temp_expr->actvar_change[a] == temp_expr->actvar_change[d])//如果一个变量既要添加又要删除，就不删除了
-                              temp_expr->actvar_change[d] = -1;
-               if(temp_expr->actvar_change[1] == -1)
-               {
-                    temp_expr->actvar_change[1] = temp_expr->actvar_change[0];
-                    temp_expr->actvar_change[0] = -1;
-               }
-               a = 2;
-               d = 0;
-               while(temp_expr->actvar_change[d] == -1 && d < 2)//跳过所有-1
-                    d++;
-               while(temp_expr->actvar_change[a] == -1 && a < 4)
-                    a++;
-               printf("(%d) active var: " , temp_expr->entity->index);
-               if(cur == NULL)//链表为空
-               {
-                    printf("//");
-                    for(; a < 4 ; a++)
-                         var_list_append(&show_list , temp_expr->actvar_change[a]);
-                    if((show_list.head) == NULL)
-                         printf("NO ACTIVE VAR!\n");
-                    else
-                         var_list_print(&show_list);
-               }
-               else
-               {
-                    while(cur != show_list.tail->next)
-                    {
-                         if(d < 2)
-                         {
-                              if((temp_expr->actvar_change[d]) == (cur->var_map_index))
-                              {
-                                   cur = var_list_delete(&show_list , former , cur);
-                                   d++;
-                                   if(show_list.head == NULL)
-                                        break;
-                                   continue;
-                              }
-                         }
-                         if(a < 4)
-                         {
-                              if((temp_expr->actvar_change[a]) == (cur->var_map_index))
-                              {
-                                   a++;
-                                   continue;
-                              }
-                              else if((temp_expr->actvar_change[a]) < (cur->var_map_index))
-                              {
-                                   former = var_list_insert(&show_list , former , temp_expr->actvar_change[a]);
-                                   printf("%d " , former->var_map_index);
-                                   a++;
-                                   continue;
-                              }
-                         }
-                         printf("%d " , cur->var_map_index);
-                         former = cur;
-                         cur = cur->next;
-                    }
-                    for(; a < 4 ; a++)
-                    {
-                         printf("%d " , temp_expr->actvar_change[a]);
-                         var_list_append(&show_list , temp_expr->actvar_change[a]);
-                    }
-                    printf("\n");
-//                    var_list_print(&show_list);
-}*/
                temp_expr = temp_expr->prev;
           }
      }
+     free_all();
      return actvar_list;
+}
+
+void free_all()//free all memory
+{
+     int i;
+     for(i = 0 ; i < g_block_num ; i++)//
+          var_list_free_bynode(var_out[i].head);
+     free(var_out);
 }
