@@ -80,7 +80,7 @@ extern struct symbol_table * symt_new();/*modified*/
 extern void symt_delete(struct symbol_table *t);
 
 extern int symt_insert(struct symbol_table *t , struct value_info *value);
-extern int symt_insert_conststr(struct symbol_table *t , char *str);//insert a constant string into the symbol table
+extern char *symt_insert_conststr(struct symbol_table *t , char *str);//insert a constant string into the symbol table
 
 extern struct value_info * symt_search(struct symbol_table *t , char *name);
 extern struct value_info * symbol_search(struct symbol_table *whole , struct symbol_table *curfunc , char *name);
