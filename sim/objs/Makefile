@@ -1,12 +1,12 @@
 CFLAGS=-c
 CFLAGS+=-Wall
 CFLAGS+=-I../src
-SIMU_OBJS=fetch.o decode.o control.o execute.o memaccess.o writeback.o elfmanip.o vmem.o memory.o
-SIMU_OBJS_DB=fetch.db decode.db control.db execute.db memaccess.db writeback.db elfmanip.db vmem.db memory.db
+SIM_OBJS=fetch.o decode.o control.o execute.o memaccess.o writeback.o elfmanip.o vmem.o memory.o
+SIM_OBJS_DB=fetch.db decode.db control.db execute.db memaccess.db writeback.db elfmanip.db vmem.db memory.db
 
-simu:../simu
-../simu:$(SIMU_OBJS) simulator.o debug.o
-	gcc $(SIMU_OBJS) simulator.o debug.o -o ../simu
+sim:../sim
+../sim:$(SIM_OBJS) simulator.o debug.o
+	gcc $(SIM_OBJS) simulator.o debug.o -o ../sim
 fetch.o:../src/pipeline/fetch.c ../src/pipeline/fetch.h ../src/pipeline/globdefs.h
 	gcc ../src/pipeline/fetch.c $(CFLAGS) -o $@
 control.o:../src/pipeline/control.c ../src/pipeline/control.h ../src/pipeline/globdefs.h
@@ -30,9 +30,9 @@ simulator.o:../src/simulator.c
 debug.o:../src/debug.c
 	gcc ../src/debug.c $(CFLAGS) -o $@
 
-simu-db:../simu-db
-../simu-db:$(SIMU_OBJS_DB) simulator.db debug.db
-	gcc -DDEBUG $(SIMU_OBJS_DB) simulator.db debug.db -o ../simu-db
+sim-db:../sim-db
+../sim-db:$(SIM_OBJS_DB) simulator.db debug.db
+	gcc -DDEBUG $(SIM_OBJS_DB) simulator.db debug.db -o ../sim-db
 fetch.db:../src/pipeline/fetch.c ../src/pipeline/fetch.h ../src/pipeline/globdefs.h
 	gcc -DDEBUG ../src/pipeline/fetch.c $(CFLAGS) -g -o $@
 control.db:../src/pipeline/control.c ../src/pipeline/control.h ../src/pipeline/globdefs.h
