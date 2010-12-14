@@ -108,9 +108,9 @@ struct mach_code//mach means machine
 
 	union
 	{
-		char sign;								/* 1 change sign, 0 not */
-		char link;								/* 1 jump and link, 0 not */
-		char offet;								/* 1 is +, and 0 is no, -1 is - */
+		char sign;								/* 1 change sign, 0 not *//* used in dp */
+		char link;								/* 1 jump and link, 0 not *//* used in branch */
+		char offet;								/* 1 is +, and 0 is no, -1 is - *//* used in mem */
 	};	
 
 	union
@@ -119,10 +119,18 @@ struct mach_code//mach means machine
 		enum brach_cond cond;					/* used in condition-jump */
 	};
 
-	enum indexed_type indexed;
+	enum indexed_type indexed;					/* used in mem */
+};
+
+struct mach_code_list
+{
+	struct mach_code * code;
+	struct mach_code_list * next;
 };
 
 extern struct triargtable ** table_list;
 extern struct symbol_table ** simb_table;  
+extern void gen_machine_code(int func_index);
+
 #endif
 
