@@ -177,7 +177,7 @@ int symt_insert(struct symbol_table *t , struct value_info *value)
 int symt_insert_conststr(struct symbol_table *t , char *str)//insert a constant string into the symbol table
 {
      char *id_name;
-     sprintf(id_name , ".LC%d" , t->str_num);
+     sprintf(id_name , ".LC%d" , g_const_str_num);
      struct value_info *new_vinfo = new_valueinfo(id_name);
      struct typetree *new_type = typet_new_type(Pointer);
      new_type->base_type = typet_new_type(Char);
@@ -200,6 +200,8 @@ int symt_insert_conststr(struct symbol_table *t , char *str)//insert a constant 
      t->const_str[t->str_num].string = strdup(str);
      t->const_str[t->str_num].flag = 0;
      t->str_num ++;
+     g_const_str_num++;
+     
      return 1;
 }
 

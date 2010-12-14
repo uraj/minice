@@ -38,6 +38,9 @@ int table_list_bound;/*the capacity of the array current now*/
 
 int g_table_list_size;/* size of the table list */
 int g_global_id_num = 0;/* total global id num, increase when insert global id */
+
+int g_const_str_num = 0;//total const string num, increase when insert const string
+
 int g_var_id_num = 0;/* total id num, increase when insert id */
 struct basic_block ** DFS_array;/* may only be a temp array */
 int g_block_num;
