@@ -1,12 +1,12 @@
 CFLAGS=-c
 CFLAGS+=-Wall
 CFLAGS+=-I../src
-EMU_OBJS=fetch.o decode.o control.o execute.o memaccess.o writeback.o elfmanip.o vmem.o memory.o
-EMU_OBJS_DB=fetch.db decode.db control.db execute.db memaccess.db writeback.db elfmanip.db vmem.db memory.db
+SIMU_OBJS=fetch.o decode.o control.o execute.o memaccess.o writeback.o elfmanip.o vmem.o memory.o
+SIMU_OBJS_DB=fetch.db decode.db control.db execute.db memaccess.db writeback.db elfmanip.db vmem.db memory.db
 
-emu:../emu
-../emu:$(EMU_OBJS) emulator.o debug.o
-	gcc $(EMU_OBJS) emulator.o debug.o -o ../emu
+simu:../simu
+../simu:$(SIMU_OBJS) simulator.o debug.o
+	gcc $(SIMU_OBJS) simulator.o debug.o -o ../simu
 fetch.o:../src/pipeline/fetch.c ../src/pipeline/fetch.h ../src/pipeline/globdefs.h
 	gcc ../src/pipeline/fetch.c $(CFLAGS) -o $@
 control.o:../src/pipeline/control.c ../src/pipeline/control.h ../src/pipeline/globdefs.h
@@ -25,14 +25,14 @@ vmem.o:../src/memory/vmem.c ../src/memory/vmem.h
 	gcc ../src/memory/vmem.c $(CFLAGS) -o $@
 memory.o:../src/memory/memory.c ../src/memory/memory.h
 	gcc ../src/memory/memory.c $(CFLAGS) -o $@
-emulator.o:../src/emulator.c
-	gcc ../src/emulator.c $(CFLAGS) -o $@
+simulator.o:../src/simulator.c
+	gcc ../src/simulator.c $(CFLAGS) -o $@
 debug.o:../src/debug.c
 	gcc ../src/debug.c $(CFLAGS) -o $@
 
-emu-db:../emu-db
-../emu-db:$(EMU_OBJS_DB) emulator.db debug.db
-	gcc -DDEBUG $(EMU_OBJS_DB) emulator.db debug.db -o ../emu-db
+simu-db:../simu-db
+../simu-db:$(SIMU_OBJS_DB) simulator.db debug.db
+	gcc -DDEBUG $(SIMU_OBJS_DB) simulator.db debug.db -o ../simu-db
 fetch.db:../src/pipeline/fetch.c ../src/pipeline/fetch.h ../src/pipeline/globdefs.h
 	gcc -DDEBUG ../src/pipeline/fetch.c $(CFLAGS) -g -o $@
 control.db:../src/pipeline/control.c ../src/pipeline/control.h ../src/pipeline/globdefs.h
@@ -51,7 +51,7 @@ vmem.db:../src/memory/vmem.c ../src/memory/vmem.h
 	gcc -DDEBUG ../src/memory/vmem.c $(CFLAGS) -g -o $@
 memory.db:../src/memory/memory.c ../src/memory/memory.h
 	gcc -DDEBUG ../src/memory/memory.c $(CFLAGS) -g -o $@
-emulator.db:../src/emulator.c
-	gcc -DDEBUG ../src/emulator.c $(CFLAGS) -g -o $@
+simulator.db:../src/simulator.c
+	gcc -DDEBUG ../src/simulator.c $(CFLAGS) -g -o $@
 debug.db:../src/debug.c
 	gcc -DDEBUG ../src/debug.c $(CFLAGS) -g -o $@
