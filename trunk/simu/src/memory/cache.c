@@ -190,7 +190,7 @@ inline struct Cacheinfo * get_cache_info()
 	return &cache_info;
 }
 
-void cache_write(uint32_t addr, uint32_t data)
+int cache_write(uint32_t addr, uint32_t data)
 {
 	unsigned int tag = addr >> (BLOCKLEN + SETLEN);
 	unsigned int set = (addr << TABLEN) >> (TABLEN + BLOCKLEN);
@@ -198,7 +198,7 @@ void cache_write(uint32_t addr, uint32_t data)
 	if(write_strategy == Write_through)//Write_through
 	{
 		vmem_write(addr, data);
-		return;
+		return -1;
 	}
 	int line;
 	for(line = 0; line < LINENUM; line ++)
@@ -208,17 +208,17 @@ void cache_write(uint32_t addr, uint32_t data)
 			cache_info.hit ++;
 			cache_info.save_write_time ++;
 			vmem_write(addr, data);//in fact, this should be written to cache, in emu we only care the statistic data
-			return;
+			return 0;
 		}
 	}
 	
 	cache_info.miss ++;
 	cache_overflow(tag, set, block);
 	vmem_write(addr, data);//in fact this should be written to cache
-	return;
+	return 1;
 }
 
-void cache_read(uint32_t addr, uint32_t * dest)
+int cache_read(uint32_t addr, uint32_t * dest)
 {
 	unsigned int tag = addr >> (BLOCKLEN + SETLEN);
 	unsigned int set = (addr << TABLEN) >> (TABLEN + BLOCKLEN);
@@ -230,11 +230,11 @@ void cache_read(uint32_t addr, uint32_t * dest)
 		{
 			cache_info.hit ++;
 			vmem_read(addr, dest);
-			return;
+			return 0;
 		}
 	}
 	cache_info.miss ++;
 	cache_overflow(tag, set, block);
 	vmem_read(addr, dest);
-	return;
+	return 1;
 }
