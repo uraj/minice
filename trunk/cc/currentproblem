@@ -22,13 +22,13 @@ new:
 15.How to deal with UncondJump (-1)//Done. -1 means the end block
 16.Some no use uncondjump convert from TrueJump and FalseJump//Done
 
-17.Deal with pointer
+17.Deal with pointer//Done
 18.Deal with Nullop in udanalyse
 19.Same arg name in arglist? should be a symtable too?//Done
 20.Unknow error....//Done
-21.deal with allocating register for condition jump
+21.deal with allocating register for condition jump//Done
 
-22 typet_free_typetree中的base_type莫名其妙等于1，问题出在测试文件zero.c的16行，minic_paser.y的359行
+22 typet_free_typetree中的base_type莫名其妙等于1，问题出在测试文件zero.c的16行，minic_paser.y的359行//Done
 
 23.--pointer, segmentation fault
 24.segmentation fault when testing test.c in minic_flowanalyse.c//Done

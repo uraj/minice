@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 static struct value_info * cur_func_info;//used only in varmap
-static int cur_expr_num;
+static int cur_expr_num;//should not be changed later, because the exprnum of table may be changed
 static int cur_var_id_num;
 
 static int * map_bridge;//connect index with var_info_index, the indexs are sequential. The length of the array is not sure.
@@ -51,6 +51,8 @@ static inline struct var_info *  new_var_info()
 	struct var_info * new_info = malloc(sizeof(struct var_info));
 	new_info -> is_define = -1;
 	new_info -> is_use = -1;
+	new_info -> reg_addr = -1;
+	new_info -> mem_addr = -1;
 	return new_info;
 }
 
@@ -126,4 +128,9 @@ struct var_info * get_info_from_index(int index)
 		return var_info_table[index];
 	else
 		return var_info_table[map_bridge[index - cur_var_id_num]];
+}
+
+int get_ref_var_num()
+{
+	return map_bridge_cur_index + cur_var_id_num;
 }

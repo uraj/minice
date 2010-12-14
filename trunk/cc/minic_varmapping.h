@@ -13,6 +13,8 @@ struct var_info//the struct to contain var's flags
 	/* some flags */
 	int is_define;
 	int is_use;
+	int reg_addr;
+	int mem_addr;
 	int index;
 };
 
@@ -23,6 +25,7 @@ extern int g_table_list_size;
 extern int get_index_of_temp(int expr);
 extern int get_index_of_id(char * idname);
 extern struct var_info * get_info_from_index(int index);
+extern int get_ref_var_num();/*return total number of vars which have been refered*/
 
 extern int new_var_map(int func_index);
 extern void free_var_map();

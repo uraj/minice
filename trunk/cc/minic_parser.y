@@ -36,13 +36,11 @@ struct triargtable **table_list;/*all funcs' table in one array*/
 int table_list_index;/*the current index to insert table*/
 int table_list_bound;/*the capacity of the array current now*/
 
-//Mark, may need, should deal with it in the code.
 int g_table_list_size;/* size of the table list */
 int g_global_id_num = 0;/* total global id num, increase when insert global id */
 int g_var_id_num = 0;/* total id num, increase when insert id */
 struct basic_block ** DFS_array;/* may only be a temp array */
 int g_block_num;
-//Mark
 
 struct triargexpr_list *ghead, *gtail;/*the tmp indirect table*/
 struct triargexpr *gtriargexpr_table;/*the tmp direct table*/
@@ -552,7 +550,8 @@ constant : ICONSTANT {
                          #endif
                      }
          | SCONSTANT {
-                         $$ = new_ast(Nullop, 1, NULL, new_sconst($1));
+						 string = strdup($1);
+						 $$ = new_ast(Nullop, 1, NULL, new_sconst($1));
                          #ifdef SHOWBNF
                          printf("constant : SCONSTANT\n");
                          #endif
