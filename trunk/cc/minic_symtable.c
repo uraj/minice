@@ -174,7 +174,7 @@ int symt_insert(struct symbol_table *t , struct value_info *value)
 	return 1;
 }
 
-int symt_insert_conststr(struct symbol_table *t , char *str)//insert a constant string into the symbol table
+char *symt_insert_conststr(struct symbol_table *t , char *str)//insert a constant string into the symbol table
 {
      char *id_name;
      sprintf(id_name , ".LC%d" , g_const_str_num);
@@ -185,7 +185,7 @@ int symt_insert_conststr(struct symbol_table *t , char *str)//insert a constant 
      if(symt_insert(t , new_vinfo) == 0)
      {
           printf("insert constant string error!");
-          return 0;
+          return NULL;
      }
      if(t->str_num == t->cur_strarray_size)
      {
@@ -202,7 +202,7 @@ int symt_insert_conststr(struct symbol_table *t , char *str)//insert a constant 
      t->str_num ++;
      g_const_str_num++;
      
-     return 1;
+     return id_name;
 }
 
 char *get_conststr(struct symbol_table *t , int i)
