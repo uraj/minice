@@ -1,6 +1,8 @@
 #ifndef __MINIC_MACHINECODE_H__
 #define __MINIC_MACHINECODE_H__
 
+/*I'm not sure whether it is good to divide the op into three types*/
+
 enum mach_arg_type { Unused = 0, Mach_Reg, Mach_Imm};
 
 struct mach_arg
@@ -45,11 +47,11 @@ enum dp_op_type
 	CADD/* no dest, no sign */
 };
 
-enum mem_op_type//width?
+enum mem_op_type//width? the fields for memory are already to many..
 {
 	LOD,
 	STR
-};
+};/* no arg3 for half word and signed data */
 
 enum branch_op_type
 {
@@ -85,6 +87,13 @@ enum shift_type
 	RR		/* roll right */
 };
 
+enum indexed_type
+{
+	PRENW,/* pre indexed and not write base register */
+	PREW, /* pre indexed and write base register */
+	POST /* post indexed and write base register */
+}
+
 struct mach_code//mach means machine
 {
 	enum mach_op_type op_type;
@@ -106,14 +115,11 @@ struct mach_code//mach means machine
 
 	union
 	{
-		enum shift_type shift;					/* LL LR AR RR */
-		enum brach_cond cond;
+		enum shift_type shift;					/* used in data-processing and memory-access*/
+		enum brach_cond cond;					/* used in condition-jump */
 	};
 
-	char indexed;							/* 1 is pre_indexed
-											   0 is post_indexed */
-	char write;								/* 1 write base register
-											   0 not */
+	enum indexed_type indexed;
 };
 
 extern struct triargtable ** table_list;

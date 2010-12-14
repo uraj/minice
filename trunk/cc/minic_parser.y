@@ -550,7 +550,7 @@ constant : ICONSTANT {
                          #endif
                      }
          | SCONSTANT {
-						 string = strdup($1);
+						 //extern int symt_insert_conststr( , strdup($1));
 						 $$ = new_ast(Nullop, 1, NULL, new_sconst($1));
                          #ifdef SHOWBNF
                          printf("constant : SCONSTANT\n");
