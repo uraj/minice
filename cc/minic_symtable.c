@@ -22,6 +22,27 @@ int ELFhash(char *str)
 	return h;
 }
 
+static inline struct value_info **new_myid_array(int size)
+{
+     struct value_info **new_myid = (struct value_info **)malloc(sizeof(struct value_info *) * size);
+     int i;
+     for(i = 0 ; i < size ; i++)
+          new_myid[i] = NULL;
+     return new_myid;
+}
+
+static inline struct string_info *new_conststr_array(int size)
+{
+     struct string_info *new_conststr = (struct string_info *)malloc(sizeof(struct string_info *) * size);
+     int i;
+     for(i = 0 ; i < size ; i++)
+     {
+          new_conststr[i].string = NULL;
+          new_conststr[i].flag = 0;
+     }
+     return new_conststr;
+}
+
 struct symbol_table * symt_new()
 {
 	struct symbol_table * t = (struct symbol_table *)malloc(sizeof(struct symbol_table));
@@ -36,9 +57,15 @@ struct symbol_table * symt_new()
     t->arg_no_min = 0;
     t->arg_no_max = 0;
     t->func = NULL;
+    
     t->id_num = 0;
     t->cur_idarray_size = 4;
-    t->myid = (struct value_info **)malloc(sizeof(struct value_info *) * (t->cur_idarray_size));
+    t->myid = new_myid_array(t->cur_idarray_size);
+    
+    t->str_num = 0;
+    t->cur_strarray_size = 4;
+    t->const_str = new_conststr_array(t->cur_strarray_size);
+    
 	return t;
 }
 
@@ -62,21 +89,23 @@ void symt_delete(struct symbol_table *t)
 		}
 	}
 	free(t->head);
+    free(t->myid);
+    free(t->const_str);
 	free(t);
 }
 
-static void var_no_update(struct symbol_table *t , struct value_info *value)
-{
+static void var_no_update(struct symbol_table *t , struct value_info *value)//when an ident is pushed into the symbol
+{//table,there is some information to be updated,including ident's No. , count of idents
      if(value == NULL)
           return;
      if(value->type->type == Function)
           return;
-     if(t->id_num >= t->cur_idarray_size)
+     if(t->id_num >= t->cur_idarray_size)//length_varible array's current size is not enough,we must twice it
      {
           struct value_info **temp = t->myid;
           int i;
           t->cur_idarray_size *= 2;
-          t->myid = (struct value_info **)malloc(sizeof(struct vale_info *) * (t->cur_idarray_size));
+          t->myid = new_myid_array(t->cur_idarray_size);
           for(i = 0 ; i < (t->id_num) ; i++)
                t->myid[i] = temp[i];
           free(temp);
@@ -143,6 +172,57 @@ int symt_insert(struct symbol_table *t , struct value_info *value)
 	temp_node->next = NULL;
 	temp->next = temp_node;
 	return 1;
+}
+
+int symt_insert_conststr(struct symbol_table *t , char *str)//insert a constant string into the symbol table
+{
+     char *id_name;
+     sprintf(id_name , ".LC%d" , t->str_num);
+     struct value_info *new_vinfo = new_valueinfo(id_name);
+     struct typetree *new_type = typet_new_type(Pointer);
+     new_type->base_type = typet_new_type(Char);
+     new_vinfo->type = new_type;
+     if(symt_insert(t , new_vinfo) == 0)
+     {
+          printf("insert constant string error!");
+          return 0;
+     }
+     if(t->str_num == t->cur_strarray_size)
+     {
+          t->cur_strarray_size *= 2;
+          struct string_info *temp = t->const_str;
+          t->const_str = new_conststr_array(t->cur_strarray_size);
+          int i;
+          for(i = 0 ; i < t->str_num ; i++)
+               t->const_str[i] = temp[i];
+          free(temp);
+     }
+     t->const_str[t->str_num].string = strdup(str);
+     t->const_str[t->str_num].flag = 0;
+     t->str_num ++;
+     return 1;
+}
+
+char *get_conststr(struct symbol_table *t , int i)
+{
+     if(t == NULL)
+          return NULL;
+     if(i >= t->str_num)
+          return NULL;
+     if(t->const_str[i].flag == 0)
+          return NULL;
+     return t->const_str[i].string;
+}
+
+int strinfo_setflag(struct symbol_table *t , char *id_name , int flag)
+{
+     int i = id_name[3] - '0';
+     if(t == NULL)
+          return 0;
+     if(i >= t->str_num)
+          return 0;
+     t->const_str[i].flag = flag;
+     return 1;
 }
 
 struct value_info *symt_search(struct symbol_table *t , char *name)
