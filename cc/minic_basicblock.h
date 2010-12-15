@@ -26,8 +26,8 @@ struct basic_block_list//used for prev_list next_list and DFS_list
 	struct basic_block * entity;
 	struct basic_block_list * next;
 };
-
 extern int g_block_num;
+extern struct symbol_table * simb_table;
 extern struct triargtable ** table_list; 
 extern struct basic_block ** DFS_array;
 

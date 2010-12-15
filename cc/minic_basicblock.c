@@ -2,6 +2,7 @@
 #include "minic_triargtable.h"
 #include "minic_triargexpr.h"
 #include "minic_varmapping.h"
+#include "minic_flowanalyse.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -104,7 +105,17 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 				*/
 			case Subscript:                  /* [] */
 				if(expr.arg1.type == IdArg)/* in fact it is sure */
-					get_info_from_id(expr.arg1.idname);
+				{
+					struct var_info * tmp_var_info = get_info_of_id(expr.arg1.idname);
+					struct value_info * tmp_func_info = symt_search(simb_table, table_list[cur_func_index] -> funcname);
+					struct value_info * tmp_value_info = symbol_search(simb_table, tmp_func_info -> func_symt, expr.arg1.idname);
+					if(tmp_value_info -> type -> type == Array )
+					{
+						if(tmp_var_info -> ref_point == NULL)
+							tmp_var_info -> ref_point = var_list_new();
+						tmp_var_info -> ref_point = var_list_append(tmp_var_info -> ref_point, expr.index);
+					}
+				}
 			case Uminus:                     /* -  */	
 			case Ref:                        /* &  */
 			case Deref:                      /* '*' */
