@@ -37,6 +37,27 @@ static inline struct basic_block_list * basic_block_list_append(struct basic_blo
 	return newnode;
 }
 
+static struct triarg unary_search(struct triargexpr * table, struct triargexpr * expr)
+{
+	struct triarg tmp_arg;
+	switch(expr -> op)
+	{
+		case Uplus:                      /* +  */
+		case Plusplus:                   /* ++ */
+		case Minusminus:                 /* -- */
+			if(expr -> arg1.type == ExprArg)
+			{
+				tmp_arg = unary_search(table, &table[expr -> arg1.expr]); 
+				if(tmp_arg.type != -1)
+					expr -> arg1 = tmp_arg;
+			}
+			return expr -> arg1;
+		default:
+			tmp_arg.type = -1;
+			return tmp_arg;
+	}
+}
+
 static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for entry and record them
 {
 	int i;
@@ -50,6 +71,9 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 			case Assign:					 /* = */
 				if(expr.arg1.type == ExprArg)
 					insert_tempvar(expr.arg1.expr);
+				if(expr.arg2.type == ExprArg)/* mark */
+					insert_tempvar(expr.arg2.expr);//will be removed as a kind of optimizing later
+
 				break;//Current now, don't treat assign reference as real reference, can be optimizing some, and will be optimized some
 			case Eq:                         /* == */
 			case Neq:                        /* != */
@@ -67,9 +91,19 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 					insert_tempvar(expr.arg2.expr);
 				break;	
 			case Uplus:                      /* +  */
-			case Uminus:                     /* -  */
 			case Plusplus:                   /* ++ */
 			case Minusminus:                 /* -- */
+				/*
+				//this optimizing shall be opened later
+				{
+					struct triarg tmp_arg;
+					tmp_arg = unary_search(table, &table[i]);
+					if(tmp_arg.type == ExprArg)
+						insert_tempvar(tmp_arg.type);
+				}
+				break;
+				*/
+			case Uminus:                     /* -  */	
 			case Ref:                        /* &  */
 			case Deref:                      /* '*' */
 			case Arglist:

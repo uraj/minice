@@ -119,7 +119,7 @@ struct mach_code//mach means machine
 		enum brach_op_type branch_op;
 	};
 
-	struct mach_arg dest;
+	int dest;//only reg
 	
 	union
 	{

@@ -33,3 +33,4 @@ new:
 23.--pointer, segmentation fault
 24.segmentation fault when testing test.c in minic_flowanalyse.c//Done
 25.error when pointer = array head
+26.const calculate

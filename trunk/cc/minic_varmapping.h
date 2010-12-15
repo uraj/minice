@@ -15,6 +15,7 @@ struct var_info//the struct to contain var's flags
 	int is_use;
 	int reg_addr;
 	int mem_addr;
+	int base_type;
 	int index;
 };
 
