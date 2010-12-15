@@ -49,6 +49,7 @@ struct triargexpr_list *ghead, *gtail;/*the tmp indirect table*/
 struct triargexpr *gtriargexpr_table;/*the tmp direct table*/
 int gtriargexpr_table_index;/*the current index of the direct table*/
 int gtriargexpr_table_bound;/*the current capacity of the direct table*/
+
 %}
 %locations
 %start program 

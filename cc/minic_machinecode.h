@@ -4,7 +4,7 @@
 
 /*I'm not sure whether it is good to divide the op into three types*/
 
-enum mach_arg_type { Unused = 0, Mach_Reg, Mach_Imm};
+enum mach_arg_type { Unused = 0, Mach_Reg, Mach_Imm, Mach_ID};
 
 struct mach_arg
 {
@@ -13,6 +13,7 @@ struct mach_arg
     {
         uint8_t reg;
 		uint32_t imme;
+		char * idname;
     };
 };
 
@@ -57,13 +58,11 @@ enum mem_op_type//width? the fields for memory are already to many..
 	LODB,
 	STRB,
 	LOD,
-	STR		/* if these two, need the 
+	STR		/* if these two, need the S and H */ 
 };/* no arg3 for half word and signed data */
 
-enum width_type
+enum special_width
 {
-	W,
-	B,
 	H,
 	SH,
 	SB
@@ -137,19 +136,31 @@ struct mach_code//mach means machine
 		uint8_t offet;								/* 1 is +, and 0 is no, -1 is - *//* used in mem */
 	};	
 
-	enum shift_type shift;					/* used in data-processing and memory-access*/
+	union
+	{
+		enum shift_type shift;					/* used in data-processing and memory-access*/
+		enum special_width width;
+	};
 
 	enum indexed_type indexed;					/* used in mem */
 };
 
 struct mach_code_list
 {
-	struct mach_code * code;
+	struct mach_code code;
 	struct mach_code_list * next;
+};
+
+struct mach_code_table
+{
+	struct mach_code_list * head, * tail;
+	int mach_code_num;
 };
 
 extern struct triargtable ** table_list;
 extern struct symbol_table ** simb_table;  
+extern struct mach_code_table * code_table;
+
 extern void gen_machine_code(int func_index);
 
 #endif

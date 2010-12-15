@@ -120,6 +120,16 @@ int get_index_of_id(char * idname)
 	return id_info -> no;
 }
 
+struct var_info * get_info_of_temp(int expr)
+{
+	return get_info_from_index(get_index_of_temp(expr));
+}
+
+struct var_info * get_info_of_id(char * idname)
+{
+	return get_info_from_index(get_index_of_id(idname));
+}
+
 struct var_info * get_info_from_index(int index)
 {
 	if(index < 0 || index >= (map_bridge_cur_index + cur_var_id_num))
@@ -130,7 +140,17 @@ struct var_info * get_info_from_index(int index)
 		return var_info_table[map_bridge[index - cur_var_id_num]];
 }
 
-int get_ref_var_num()
+int is_global(char * idname)/* new and used, just mark */
+{
+	if(idname[0] == '.')/* if the ID is const string, just return 1 */
+		return 1;
+	struct value_info * tmp_info = symt_search(simb_table, idname);
+	if(tmp_info == NULL)
+		return 0;
+	else return 1;
+}
+
+int get_ref_var_num()/* new and used, just mark */
 {
 	return map_bridge_cur_index + cur_var_id_num;
 }
