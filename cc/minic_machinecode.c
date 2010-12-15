@@ -2,6 +2,7 @@
 #include "minic_varmapping.h"
 #include "minic_regalloc.h"
 #include <stdio.h>
+#define INITIAL_MACH_CODE_SIZE 100
 
 enum Arg_Flag
 {
@@ -11,57 +12,57 @@ enum Arg_Flag
 };
 
 static struct ralloc_info alloc_reg;
+static int reg_dpt[32];//register discription
+static int cur_sp;
+static int total_tag_num;//set zero in new_code_table_list 
+
+
 static struct triargtable * cur_table;
+static int value_info * cur_func_info;
+
 static int cur_var_id_num;
 static int cur_ref_var_num;
-static int value_info * cur_func_info;
+static int cur_func_index;
+
 static var_list * active_var_array; 
-
-static int reg_dpt[32];//register discription
-
-static int cur_sp;
-static int cur_code_index;
-
-static int total_tag_num;//set zero in new_code_table_list 
 
 /* may only use bp sp lr and pc, so there is 29 registers can be used*/
 static const int max_reg_num = 27;
 
+static int cur_code_index;
+static int cur_code_bound;
 static inline void set_cur_function(int func_index)
 {
 	cur_table = table_list[func_index];
 	cur_func_info = symt_search(simb_table ,table_list[func_index] -> funcname);//the 
 	cur_var_id_num = table_list[func_index] -> var_id_num;
 	cur_ref_var_num = get_ref_var_num();//the varmapping is always right during this file
-	
-	code_table[func_index].table = calloc(1, sizeof(struct mach_code_table));  
-	code_table[func_index].code_num = 0;
+	cur_func_index = func_index;
+
 	cur_sp = 0;//just point to bp
+
 	cur_code_index = 0;
+	cur_code_bound = INITIAL_MACH_CODE_SIZE; 
+	code_table[func_index].table = calloc(cur_code_bound, sizeof(struct mach_code));  
+	code_table[func_index].code_num = 0;
 }
 
-static inline void new_active_var_array()
+static void insert_code(struct mach_code code)
 {
-	active_var_array = calloc(cur_table -> exprnum, sizeof(struct var_list));//the exprnum should be updated
-	//copy
+    if(cur_code_index >= cur_code_bound)
+    {
+        struct mach_code * tmp_code_table = calloc(2 * cur_code_bound, sizeof(struct mach_code));
+        memcpy(tmp_code_table, code_table[cur_func_index].table, sizeof(struct mach_code) * cur_table_bound); 
+        table_list_bound *= 2;
+        free(table_list);
+        table_list = tmp_table_list;
+    }
+    table_list[table_list_index++] = newtable;
 }
 
-static inline struct mach_code_list * new_mach_code_list()
+static inline void insert_code(struct mach_code code)
 {
-	struct mach_code_list * new_node;
-	new_node = calloc(1, sizeof(struct mach_code_list));
-	new_node -> code = calloc(1, sizeof(struct mach_code));
-	new_node -> next = NULL;
-}
-
-static inline void free_mach_code_list(struct mach_code_list * old_node)
-{
-	if(old_node != NULL)
-	{
-		if(old_node -> code != NULL)
-			free(old_node -> code);
-		free(old_node);
-	}
+	code_table[cur_func_index].table[]
 }
 
 static inline struct mach_code_list * new_push_node()
