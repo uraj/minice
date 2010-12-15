@@ -406,51 +406,53 @@ static void gen_per_code(struct triargexpr * expr)
 					arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
 				}
 				else
-					arg1_flag = Arg_Imm;
+					arg1_flag = Arg_Imm;	
 
-
-				if(expr -> arg2.type != ImmArg)
+				if(dest_flag == Arg_Reg)
 				{
-					if(expr -> arg2.type == IdArg)
+					if(arg1_flag == Arg_Mem)
 					{
-						arg2_index = get_index_of_id(expr -> arg2.idname);
-						arg2_info = get_info_from_index(arg2_index);
+						if(expr -> op == Uminus)
+						{
+							/* lod tempreg */;
+							/* mvn tempreg, dest */;
+							/* restore for arg1 */;
+						}
+						else
+							/* lod dest, arg1 */;
 					}
 					else
 					{
-						arg2_index = get_index_of_temp(expr -> arg2.expr);
-						arg2_info = get_info_from_index(arg2_index);
+						if(expr -> op == Uminus)
+							/* mvn arg1, dest */;
+						else /* mov arg1, dest */;
 					}
-
-					arg2_flag = mach_prepare_arg(arg2_index, arg2_info, 1);
 				}
-				else
-					arg2_flag = Arg_Imm;
-
-				if(arg1_flag == Arg_Mem)
-					/* lod tempreg */;
-				else if(arg1_flag == Arg_Imm)//Only one Imm
-					/* mov immd tempreg  */;
-
-				if(arg2_flag == Arg_Imm)
-					/* lod tempreg */;
-				else if(arg2_flag == Arg_IMm)
-					/* mov immd tempreg */;
-
-				if(dest_flag == Arg_Reg)
-					/* add or sub or mul */;
 				else
 				{
-					/* add or sub to tempreg */;
-					/* str */;
-					/* restore tempreg */;
-				}
-				/* restore tempreg for arg2 */;
-				/* restore tempreg for arg1 */;
+					if(arg1_flag == Arg_Mem)
+					{
+						/* lod tempreg */;
+						if(expr -> op == Uminus)
+							/* mvn tempreg, tempreg */;
+						/* str tempreg, dest */;
+						/* restore for arg1 */;
+					}
+					else
+					{
+						if(expr -> op == Uminus)
+							/* mvn arg1, arg1 */;
+						/* str arg1, dest */;
+					}
+				}	
 				break;
 			}
 
 		case Subscript:                  /* [] */
+			{
+
+			}
+
 		case Funcall:                    /* () */
 
 
