@@ -627,7 +627,7 @@ int main(int argc, char* argv[])
 		curr_table = cur_func_info->func_symt;
 		make_fd(i);
 		pointer_analyse(i);	
-		//curfun_actvar_lists = analyse_actvar(&curfun_expr_num);
+		curfun_actvar_lists = analyse_actvar(&curfun_expr_num , i);
         /*here is the register allotting and the assemble codes generating*/
         //for(j = 0 ; j < curfun_expr_num ; j++)
         //     var_list_free_bynode(curfun_actvar_lists[j].head);

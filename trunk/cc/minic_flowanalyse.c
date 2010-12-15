@@ -522,10 +522,37 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
      }
      else if(arg->type == ExprArg)
      {
+          if(arg->expr == -1)
+               return;
           i = get_index_of_temp(arg->expr);
+          struct triargexpr_list *temp_expr_node = cur_func_triarg_table->index_to_list[arg->expr];
+          struct triargexpr *temp_expr = temp_expr_node->entity;
+          int change = 0;
+          if(temp_expr->op == Deref)//*p
+          {
+               struct var_list *temp_point_list = temp_expr_node->pointer_entity;
+               if(temp_point_list != NULL
+                  && temp_point_list->head != NULL
+                  &&temp_point_list->head == temp_point_list->tail)//只有一个元素，直接将该指针换成对应实体变量
+               {
+                    struct var_info *temp_var_info = get_info_from_index(temp_point_list->head->var_map_index);
+                    if(temp_var_info->ref_point == NULL)//此指针为数组
+                    {
+                         arg->type = IdArg;
+                         arg->idname=(get_valueinfo_byno(cur_func_sym_table,temp_point_list->head->var_map_index))->name;
+                         i = get_index_of_id(arg->idname);
+                         change = 1;
+                    }
+               }
+          }
 #ifdef SHOW_FLOW_DEBUG
           if(i != -1)//***************************
-               printf("      mapid:%d->expr:%d " , i , arg->expr);//*************************
+          {
+               if(change == 0)
+                    printf("      mapid:%d->expr:%d " , i , arg->expr);//*************************
+               else
+                    printf("      mapid:%d->idname:%s " , i , arg->idname);//*****************************
+          }
 #endif
      }
      else
@@ -570,7 +597,7 @@ static void initial_func_var(int func_index)//通过函数index获得当前函�
 {
      cur_func_vinfo = symt_search(simb_table ,table_list[func_index]->funcname);
      cur_func_sym_table = cur_func_vinfo->func_symt;
-     cur_func_triarg_table = table_list[func_index]->table;
+     cur_func_triarg_table = table_list[func_index];
      
      /*由于一个数组变量的所有数组元素对应定值点的map_id构成的链ref_point在形成时没有排序去重，所以这里补充了这个工作。*/
      int total_id_num = simb_table->id_num + cur_func_sym_table->id_num;
@@ -726,18 +753,20 @@ static void solve_equa_ud()//求解活跃变量方程组
      free(var_in);
 }
 
-static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)//get the map_index of arg,but if arg is a *p,we must do something about the point_entity list.Return -1 if we can't find the map_id or we find more than one idents in the point_entity list but dest is NULL.If point_entity list has only one ident,replace arg with it and return its map_id.If point_entity list has more than one idents and dest isn't NULL,it'll return the map_id of arg and put the point_entity list in dest.
+static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)//get the map_index of arg,but if arg is a *p,we must do something about the pointer_entity list.Return -1 if we can't find the map_id or we find more than one idents in the pointer_entity list but dest is NULL.If pointer_entity list has only one ident,replace arg with it and return its map_id.If pointer_entity list has more than one idents and dest isn't NULL,it'll return the map_id of arg and put the pointer_entity list in dest.
 {
      if(arg->type == IdArg)
           return (get_index_of_id(arg->idname));
      else if(arg->type == ExprArg)
      {
+          if(arg->expr == -1)
+               return -1;
           struct triargexpr_list *temp_expr_node = cur_func_triarg_table->index_to_list[arg->expr];
           struct triargexpr *temp_expr = temp_expr_node->entity;
           if(temp_expr->op == Deref)//*p
           {
-               struct var_list *temp_point_list = temp_expr_node->point_entity;
-               if(dest == NULL)//此arg为引用编号
+               struct var_list *temp_point_list = temp_expr_node->pointer_entity;
+               if(dest == NULL)//此arg为引用编号(temp_point_list == NULL)
                {
                     if(temp_point_list == NULL)
                          return -2;
@@ -749,7 +778,7 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)/
                          if(temp_var_info->ref_point != NULL)//此指针为数组
                          {
                               var_list_free(temp_point_list);
-                              temp_expr_node->point_entity = temp_var_info->ref_point;//实体链指向数组的定点链
+                              temp_expr_node->pointer_entity = temp_var_info->ref_point;//实体链指向数组的定点链
                               //     (*dest) = temp_var_info->ref_point;
                               return get_index_of_temp(arg->expr);
                          }
@@ -769,7 +798,7 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)/
                     if(temp_var_info->ref_point != NULL)//此指针为数组
                     {
                          var_list_free(temp_point_list);
-                         temp_expr_node->point_entity = temp_var_info->ref_point;//实体链指向数组的定点链
+                         temp_expr_node->pointer_entity = temp_var_info->ref_point;//实体链指向数组的定点链
                          (*dest) = temp_var_info->ref_point;//该数组中所有元素的三元式编号的map_id都需要从活跃变量中删除
                          return get_index_of_temp(arg->expr);
                     }
@@ -810,10 +839,9 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
      solve_equa_ud();//求解活跃变量方程组，得到var_in和var_out
      
      (*expr_num) = s_expr_num;//the num of expressions
-     int act_list_index = 0;
-     struct actvar_change *temp_change = NULL;
 
-     int i , j , add1 , add2 , del1 , del2 , flag_first;
+     int i , add1 , add2 , del1 , del2 , flag_first;
+     int act_list_index = 0;
      struct var_list *actvar_list;//
      actvar_list = (struct var_list *)malloc(sizeof(struct var_list) * s_expr_num);
      for(i = 0 ; i < s_expr_num ; i++)
@@ -838,8 +866,8 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
          c）如果是三元式编号，处理会复杂一些：
              1）如果编号对应三元式的操作类型不是Deref，直接返回该三元式编号的map_id；
              2）如果编号对应三元式操作类型为Deref，即解除引用，那么如果：
-                 a）point_entity中只有1个元素。这种情况下，直接将argi替换成该元素，addi就是该元素的map_id；
-                 b）point_entity中有好几个元素。addi还是原来的编号的map_id。
+                 a）pointer_entity中只有1个元素。这种情况下，直接将argi替换成该元素，addi就是该元素的map_id；
+                 b）pointer_entity中有好几个元素。addi还是原来的编号的map_id。
      如果只有一个操作数，则add2=-1。如此之后，便将add1和add2通过make_list制作成了添加链。add_list获得过程不会对point_list进行任何操作。
   2）获得得到next_del_list。
      每当遇到三元式中的一个argi，如果是被赋值的元素，则交由get_index_of_arg处理，其中第二个参数为&point_list，返回值放到变量deli中。
@@ -848,8 +876,8 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
          c）如果是三元式编号，处理会复杂一些：
              1）如果编号对应三元式的操作类型不是Deref，直接返回该三元式编号的map_id；
              2）如果编号对应三元式操作类型为Deref，即解除引用，那么如果：
-                 a）point_entity中只有1个元素。这种情况下，直接将argi替换成该元素，deli就是该元素的map_id；
-                 b）point_entity中有好几个元素。此时将(*dest)也就是point_list指向point_entity，deli为原来编号的map_id。
+                 a）pointer_entity中只有1个元素。这种情况下，直接将argi替换成该元素，deli就是该元素的map_id；
+                 b）pointer_entity中有好几个元素。此时将(*dest)也就是point_list指向pointer_entity，deli为原来编号的map_id。
   然后再从上一条的活跃变量中删除del_list，添加add_list就可以了
 */
      for(i = 0 ; i < g_block_num ; i++)
@@ -970,9 +998,16 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     act_list_index++;
                }
           after_make_actvarlist:
+#ifdef SHOW_FLOW_DEBUG
+               printf("del:");
+               var_list_print(del_list);
+               printf("add:");
+               var_list_print(add_list);
+#endif
 #ifdef SHOWACTVAR
+               print_triargexpr(*(temp_expr->entity));
                printf("(%d) active varible:" , temp_expr->entity->index);
-               var_list_print(&show_list);
+               var_list_print(actvar_list + act_list_index -1);
 #endif
                temp_expr = temp_expr->prev;
           }
