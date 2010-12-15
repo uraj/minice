@@ -13,9 +13,8 @@ struct var_list
      struct var_list_node *tail;
 };
 
-extern struct var_list *var_out;
-
-extern struct symbol_table *curr_table;
+extern struct symbol_table *simb_table;
+extern struct triargtable **table_list;
 
 /*var_list_node*/
 extern struct var_list_node *var_list_node_new();
