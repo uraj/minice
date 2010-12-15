@@ -554,10 +554,11 @@ constant : ICONSTANT {
                          #endif
                      }
          | SCONSTANT {
-						 char * str_name = symt_insert_conststr(curr_table, strdup($1));
-						 if(str_name != NULL)
-							$$ = new_ast(Nullop, 1, NULL, new_sconst(str_name));
-                         #ifdef SHOWBNF
+              struct token_info str_info = symt_insert_conststr(curr_table, strdup($1.sval));
+              if(str_info.sval != NULL)
+							$$ = new_ast(Nullop, 1, NULL, new_var(str_info.sval));
+              
+#ifdef SHOWBNF
                          printf("constant : SCONSTANT\n");
                          #endif
                      }
