@@ -174,6 +174,9 @@ void op_printer(enum operator op, FILE* output_buff)
         case Return:
             fprintf(output_buff, "Return");
             break;
+        case Temp:
+            fprintf(output_buff, "Temp");
+            break;
         case Nullop:
             fprintf(output_buff, "Nullop");
             break;

@@ -65,7 +65,7 @@ int subexpr_arithval_gen(const struct subexpr_info* subexpr)
      */
     
     /* gen (1) */
-    expr.op = Nullop;
+    expr.op = Temp;
     expr.width = 4;
     expr.index = insert_triargexpr(expr);
     
