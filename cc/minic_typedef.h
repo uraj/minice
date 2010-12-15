@@ -32,13 +32,14 @@ enum operator /* do NOT change the order of the list */
     Plusplus,                   /* ++ */
     Minusminus,                 /* -- */
     Ref,                        /* &  */
-    Deref,                      /* '*' */
+    Deref,                      /* *  */
 
     /* Special */
     Arglist,
     Return,
     
     /* Empty */
+    Temp,
     Nullop,
 };
 
