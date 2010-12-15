@@ -83,7 +83,7 @@ static inline enum arg_flag mach_prepare_arg(int arg_index, struct var_info * ar
 			arg_info -> reg_addr = alloc_reg.result[arg_index];
 		if(arg_type == 1)
 		{
-			if(is_global(arg2_index))
+			if(is_global(arg_index))
 			{
 				/* load global var */
 			}
@@ -92,9 +92,9 @@ static inline enum arg_flag mach_prepare_arg(int arg_index, struct var_info * ar
 	else
 	{
 		flag = Arg_Mem;
-		if(arg1_info -> mem_addr == -1)
+		if(arg_info -> mem_addr == -1)
 		{
-			if(!isglobal(arg1_index))
+			if(!isglobal(arg_index))
 			{
 				/* push and mark*/
 			}
@@ -118,7 +118,7 @@ static void gen_per_code(struct triargexpr * expr)
 					arg1_index = get_index_of_id(expr -> arg1.idname);
 					arg1_info = get_info_from_index(arg1_index);
 				}
-				else//can't be immed
+				else//need to deal with * and []
 				{
 					arg1_index = get_index_of_temp(expr -> arg1.expr);
 					arg1_info = get_info_from_index(arg1_index);
@@ -450,16 +450,210 @@ static void gen_per_code(struct triargexpr * expr)
 
 		case Subscript:                  /* [] */
 			{
+				struct int dest_index, arg1_index;
+				struct var_info * dest_info, * arg1_info; 
+				enum arg_flag dest_flag, arg1_flag;
 
+				dest_index = get_index_of_temp(expr -> index);
+				if(dest_index == -1)
+					break;
+				dest_info = get_info_from_index(dest_index);
+
+				dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
+
+				//ImmArg op ImmArg should be optimized before
+				arg1_index = get_index_of_id(expr -> arg1.idname);//can only be id
+				arg1_info = get_info_from_index(arg1_index);
+				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
+
+				if(expr -> arg2.type != ImmArg)
+				{
+					if(expr -> arg2.type == IdArg)
+					{
+						arg2_index = get_index_of_id(expr -> arg2.idname);
+						arg2_info = get_info_from_index(arg2_index);
+					}
+					else
+					{
+						arg2_index = get_index_of_temp(expr -> arg2.expr);
+						arg2_info = get_info_from_index(arg2_index);
+					}
+					arg2_flag = mach_prepare_arg(arg2_index, arg2_info, 1);
+				}
+				else
+					arg2_flag = Arg_Imm;	
+					
+				if(arg1_flag == Arg_Mem)
+					/* lod arg1_flag, tempreg1 */;
+
+				if(arg2_flag == Arg_Mem)
+				{
+					/* lod arg2_flag, tempreg2 */;
+					if(dest_flag == Arg_Mem)
+					{
+						/* lod tempreg1, [tempreg1, {+}tempreg2] */;
+						/* str tempreg1, dest */;
+					}
+					else
+						/* lod dest, [tempreg1, {+}tempreg2] */;
+					/* restore tempreg1 and tempreg2 */;
+				}
+				else if(arg2_flag == Arg_Imm)
+				{
+					if(/*arg2_flag >= 5 bits*/)
+					{
+						/*mov arg2_flag, tempreg2*/;
+						if(dest_flag == Arg_Mem)
+						{
+							/* lod tempreg1, [tempreg1,{+}tempreg2] */;
+							/* str tempreg1, dest */;
+							/* restore tempreg1 and tempreg2 */;
+						}
+						else
+							/* lod dest, [tempreg1,{+}tempreg2] */;
+						/* restore tempreg1 and tempreg2 */;
+					}
+					else
+					{
+						if(dest_flag == Arg_Mem)
+						{
+							/* lod tempreg1, [tempreg1, arg2] */;
+							/* str tempreg1, dest */;
+						}
+						else
+							/* lod dest, [tempreg1, arg2] */;
+						/* restore tempreg1 */;
+					}
+				}
+				break;	
 			}
 
-		case Funcall:                    /* () */
-
-
 		case Ref:                        /* &  */
+			{
+				struct int dest_index, arg1_index;
+				struct var_info * dest_info, * arg1_info; 
+				enum arg_flag dest_flag, arg1_flag;
+
+				dest_index = get_index_of_temp(expr -> index);
+				if(dest_index == -1)
+					break;
+				dest_info = get_info_from_index(dest_index);
+
+				dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
+
+				//ImmArg op ImmArg should be optimized before
+				if(expr -> arg1.type == IdArg)
+				{
+					arg1_index = get_index_of_id(expr -> arg1.idname);
+					arg1_info = get_info_from_index(arg1_index);
+				}
+				else//can't be immed
+				{
+					arg1_index = get_index_of_temp(expr -> arg1.expr);
+					arg1_info = get_info_from_index(arg1_index);
+				}
+
+				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
+
+				if(arg1_info -> mem_addr == -1)
+				{
+					/* push arg1 */;
+				}
+
+				if(dest_flag == Arg_Reg)
+				{
+					if(/* arg1 -> mem_addr > 9 bits */)//the mem_addr need some adjust
+					{
+						/* mov tempreg, mem_addr */;
+						/* mov dest, tempreg*/;
+						/* restore tempreg */;
+					}
+					else
+						/* mov dest, mem_addr; */
+				}
+				else
+				{
+					if(/* arg1 -> mem_addr > 9 bits */)//the mem_addr need some adjust
+						/* mov tempreg, mem_addr */;
+					else
+						/* mov tempreg, mem_addr */;
+
+					/* str tempreg, dest */;
+					/* str tempreg, dest */
+					/* restore tempreg */;
+
+				}
+				break;
+			}
+
 		case Deref:                      /* '*' */
+			{
+				struct int dest_index, arg1_index;
+				struct var_info * dest_info, * arg1_info; 
+				enum arg_flag dest_flag, arg1_flag;
+
+				dest_index = get_index_of_temp(expr -> index);
+				if(dest_index == -1)
+					break;
+				dest_info = get_info_from_index(dest_index);
+
+				dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
+
+				//ImmArg op ImmArg should be optimized before
+				if(expr -> arg1.type == IdArg)
+				{
+					arg1_index = get_index_of_id(expr -> arg1.idname);
+					arg1_info = get_info_from_index(arg1_index);
+				}
+				else//can't be immed
+				{
+					arg1_index = get_index_of_temp(expr -> arg1.expr);
+					arg1_info = get_info_from_index(arg1_index);
+				}
+
+				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
+
+				if(dest_flag == Arg_Reg)
+				{
+					if(arg1_flag == Arg_Reg)
+						/* lod dest, [arg1] */;
+					else
+					{
+						/* lod dest, tempreg */;
+						/* lod dest, [tempreg] */;
+						/* restore dest */;
+					}
+				}
+				else
+				{
+					if(arg1_flag == Arg_Reg)
+					{
+						/* lod tempreg, [arg1] */;
+						/* str tempreg, dest */;
+						/* restore tempreg */;
+					}
+					else
+					{
+						/* lod tempreg2, arg1.mem_addr */;
+						/* lod tempreg,  [tempreg2]*/;
+						/* str tempreg, dest */;
+						/* restore tempreg */;
+						/* restore tempreg2 */;
+					}
+				}
+				break;
+			}	
+		
+		case Funcall:                    /* () */
+			{
+				/* b.l arg1.idname */;
+				/* caller save */; // callee save and sp ip fp deal at the head of each function */
+			}
 
 		case Arglist:
+			{
+				/* push */
+			}
 		case Return:
 
 		case Nullop:

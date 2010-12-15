@@ -70,8 +70,10 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 		switch(expr.op)
 		{
 			case Assign:					 /* = */
-				if(expr.arg1.type == ExprArg)
-					insert_tempvar(expr.arg1.expr);
+				/*
+				   if(expr.arg1.type == ExprArg)
+						insert_tempvar(expr.arg1.expr);
+				*/
 				if(expr.arg2.type == ExprArg)/* mark */
 					insert_tempvar(expr.arg2.expr);//will be removed as a kind of optimizing later
 
