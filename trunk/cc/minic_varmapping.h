@@ -24,8 +24,14 @@ extern int g_table_list_size;
 
 extern int get_index_of_temp(int expr);
 extern int get_index_of_id(char * idname);
+
+extern struct var_info * get_info_of_temp(int expr);
+extern struct var_info * get_info_of_id(char * idname);
+
 extern struct var_info * get_info_from_index(int index);
 extern int get_ref_var_num();/*return total number of vars which have been refered*/
+
+extern int is_global(int index);
 
 extern int new_var_map(int func_index);
 extern void free_var_map();
