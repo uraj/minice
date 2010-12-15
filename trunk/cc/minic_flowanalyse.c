@@ -8,7 +8,6 @@
 #define SHOWACTVAR 1
 #define SHOW_FLOW_DEBUG 1
 
-
 enum change_type
 {
      Add,
@@ -21,9 +20,12 @@ struct actvar_change
      enum change_type type;
 };
 
-struct var_list *var_out;
+static struct symbol_table *cur_func_sym_table;
+static struct value_info *cur_func_vinfo;
+static struct triargtable *cur_func_triarg_table;
 
 static struct var_list *var_in;
+static struct var_list *var_out;
 static struct var_list *def;
 static struct var_list *use;
 static int *def_size;
@@ -76,7 +78,7 @@ inline void var_list_print(struct var_list *list)
 
 struct var_list *var_list_new()
 {
-     struct var_list *new_list = (struct var_list *)malloc(sizeof(struct var_list *));
+     struct var_list *new_list = (struct var_list *)malloc(sizeof(struct var_list));
      new_list->head = new_list->tail = NULL;
      return new_list;
 }
@@ -117,6 +119,22 @@ void var_list_sort(struct var_list *list_array , int size)//将一个定值点�
 		temp_node = temp_node->next;
 	}
 	free(trans_array);
+}
+
+int var_list_count(struct var_list *list)
+{
+     if(list == NULL)
+          return 0;
+     if(list->head == NULL)
+          return 0;
+     struct var_list_node *temp = list->head;
+     int count = 0;
+     while(temp != list->tail->next)
+     {
+          count++;
+          temp = temp->next;
+     }
+     return count;
 }
 
 void var_list_del_repeate(struct var_list *list)//将排好序的链去重
@@ -320,7 +338,7 @@ struct var_list *var_list_copy(struct var_list *source , struct var_list *dest)
 struct var_list *var_list_merge(struct var_list *adder , struct var_list *dest)//将变量链adder和dest合并，并写入dest内
 {
      if(adder == NULL)
-          return NULL;
+          return dest;
      if(dest == NULL)
           dest = var_list_new();
      if(adder->head == NULL)
@@ -548,6 +566,28 @@ static void malloc_active_var()
      }
 }
 
+static void initial_func_var(int func_index)//通过函数index获得当前函数对应的函数信息，符号表和三元式链表
+{
+     cur_func_vinfo = symt_search(simb_table ,table_list[func_index]->funcname);
+     cur_func_sym_table = cur_func_vinfo->func_symt;
+     cur_func_triarg_table = table_list[func_index]->table;
+     
+     /*由于一个数组变量的所有数组元素对应定值点的map_id构成的链ref_point在形成时没有排序去重，所以这里补充了这个工作。*/
+     int total_id_num = simb_table->id_num + cur_func_sym_table->id_num;
+     int i;
+     struct var_info *temp_var_info;
+     for(i = 0 ; i < total_id_num ; i++)
+     {
+          temp_var_info = get_info_from_index(i);
+          if(temp_var_info == NULL)
+               continue;
+          if(temp_var_info->ref_point == NULL)
+               continue;
+          var_list_sort(temp_var_info->ref_point , var_list_count(temp_var_info->ref_point));
+          var_list_del_repeate(temp_var_info->ref_point);
+     }
+}
+
 static void initial_active_var()//活跃变量分析的初始化部分def和use
 {
      int i;
@@ -563,8 +603,8 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
 #endif
           if(i == 0)//第一个块要把函数参数放入def[0]当中
           {
-               int start = curr_table->arg_no_min;
-               int end = curr_table->arg_no_max;
+               int start = cur_func_sym_table->arg_no_min;
+               int end = cur_func_sym_table->arg_no_max;
                int j;
                for(j = start ; j < end ; j++)
                     var_list_append(def , j);
@@ -686,97 +726,64 @@ static void solve_equa_ud()//求解活跃变量方程组
      free(var_in);
 }
 
-static inline int get_index_of_arg(struct triarg *arg)
+static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)//get the map_index of arg,but if arg is a *p,we must do something about the point_entity list.Return -1 if we can't find the map_id or we find more than one idents in the point_entity list but dest is NULL.If point_entity list has only one ident,replace arg with it and return its map_id.If point_entity list has more than one idents and dest isn't NULL,it'll return the map_id of arg and put the point_entity list in dest.
 {
      if(arg->type == IdArg)
           return (get_index_of_id(arg->idname));
      else if(arg->type == ExprArg)
+     {
+          struct triargexpr_list *temp_expr_node = cur_func_triarg_table->index_to_list[arg->expr];
+          struct triargexpr *temp_expr = temp_expr_node->entity;
+          if(temp_expr->op == Deref)//*p
+          {
+               struct var_list *temp_point_list = temp_expr_node->point_entity;
+               if(dest == NULL)//此arg为引用编号
+               {
+                    if(temp_point_list == NULL)
+                         return -2;
+                    if(temp_point_list->head == NULL)
+                         return -2;
+                    if(temp_point_list->head == temp_point_list->tail)//只有一个元素
+                    {
+                         struct var_info *temp_var_info = get_info_from_index(temp_point_list->head->var_map_index);
+                         if(temp_var_info->ref_point != NULL)//此指针为数组
+                         {
+                              var_list_free(temp_point_list);
+                              temp_expr_node->point_entity = temp_var_info->ref_point;//实体链指向数组的定点链
+                              //     (*dest) = temp_var_info->ref_point;
+                              return get_index_of_temp(arg->expr);
+                         }
+                         arg->type = IdArg;
+                         arg->idname=(get_valueinfo_byno(cur_func_sym_table,temp_point_list->head->var_map_index))->name;
+                         return temp_point_list->head->var_map_index;
+                    }
+                    return get_index_of_temp(arg->expr);
+               }
+               if(temp_point_list == NULL)//预示该代码可能会段错误，要把下一条的活跃变量全部清空，这里做不了，返回-2
+                    return -2;
+               if(temp_point_list->head == NULL)//预示该代码可能会段错误，要把下一条的活跃变量全部清空，这里做不了，返回-2
+                    return -2;
+               if(temp_point_list->head == temp_point_list->tail)//只有一个元素
+               {
+                    struct var_info *temp_var_info = get_info_from_index(temp_point_list->head->var_map_index);
+                    if(temp_var_info->ref_point != NULL)//此指针为数组
+                    {
+                         var_list_free(temp_point_list);
+                         temp_expr_node->point_entity = temp_var_info->ref_point;//实体链指向数组的定点链
+                         (*dest) = temp_var_info->ref_point;//该数组中所有元素的三元式编号的map_id都需要从活跃变量中删除
+                         return get_index_of_temp(arg->expr);
+                    }
+                    arg->type = IdArg;
+                    arg->idname = (get_valueinfo_byno(cur_func_sym_table , temp_point_list->head->var_map_index))->name;
+                    return temp_point_list->head->var_map_index;
+               }
+               (*dest) = temp_point_list;
+               return (get_index_of_temp(arg->expr));
+          }
           return (get_index_of_temp(arg->expr));
+     }
      else
           return -1;
-}
-
-static inline struct actvar_change *push_changes_into_expr(struct actvar_change *change , int del1 , int del2 , int add1 , int add2)
-{
-     if(change == NULL)
-          change = (struct actvar_change *)malloc(sizeof(struct actvar_change ) * gc_change_num);
-     int temp;
-     struct actvar_change temp_change[4];
-     if(del1 > del2)//firstly,keep the deled or the added varibles in order
-     {
-          temp = del1;
-          del1 = del2;
-          del2 = temp;
-     }
-     if(add1 > add2)
-     {
-          temp = add1;
-          add1 = add2;
-          add2 = temp;
-     }
-     temp_change[0].type = temp_change[1].type = Del;
-     temp_change[0].var_map_index = del1;
-     temp_change[1].var_map_index = del2;
-     temp_change[2].type = temp_change[3].type = Add;
-     temp_change[2].var_map_index = add1;
-     temp_change[3].var_map_index = add2;
-
-     int j , a = 2 , d = 0;
-     for(j = 0 ; j < 4 ; j++)//combine the two part
-     {
-          if(a == 4)
-          {
-               for(;(j < 4) && (d < 2) ; j++ , d++)
-               {
-                    change[j].var_map_index = temp_change[d].var_map_index;
-                    change[j].type = temp_change[d].type;
-               }
-               break;
-          }
-          if(d == 2)
-          {
-               for(;(j < 4) && (a < 4) ; j++ , a++)
-               {
-                    change[j].var_map_index = temp_change[a].var_map_index;
-                    change[j].type = temp_change[a].type;
-               }
-               break;
-          }
-          if(temp_change[a].var_map_index < temp_change[d].var_map_index)
-          {
-               change[j].var_map_index = temp_change[a].var_map_index;
-               change[j].type = temp_change[a].type;
-               a++;
-          }
-          else if(temp_change[a].var_map_index == temp_change[d].var_map_index)
-          {
-               change[j].var_map_index = -1;
-               change[j++].type = temp_change[d].type;
-               d++;
-               change[j].var_map_index = temp_change[a].var_map_index;
-               change[j].type = temp_change[a].type;
-               a++;
-          }
-          else
-          {
-               change[j].var_map_index = temp_change[d].var_map_index;
-               change[j].type = temp_change[d].type;
-               d++;
-          }
-     }
-     
-#ifdef SHOW_FLOW_DEBUG
-     int i;
-     for(i = 0 ; i < 4 ; i++)
-     {
-          if(change[i].type == Del)
-               printf("del%d " , change[i].var_map_index);
-          else
-               printf("add%d " , change[i].var_map_index);
-     }
-     printf("\n");
-#endif
-     return change;
 }
 
 static void make_change_list(int num1 , int num2 , struct var_list *dest)
@@ -789,23 +796,24 @@ static void make_change_list(int num1 , int num2 , struct var_list *dest)
           num1 = num2;
           num2 = temp;
      }
-     if(num1 != -1)
+     if(num1 >= 0)
           var_list_append(dest , num1);
-     if(num2 != -1)
+     if(num2 >= 0)
           var_list_append(dest , num2);
 }
 
-struct var_list *analyse_actvar(int *expr_num)//活跃变量分析
+struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分析
 {
-     int i , act_list_index = 0 , j;
+     initial_func_var(func_index);//通过函数index获得当前函数信息，以便后续使用
      malloc_active_var();//活跃变量分析相关的数组空间分配
      initial_active_var();//完成活跃变量分析的初始化部分，生成def和use
      solve_equa_ud();//求解活跃变量方程组，得到var_in和var_out
+     
      (*expr_num) = s_expr_num;//the num of expressions
-
+     int act_list_index = 0;
      struct actvar_change *temp_change = NULL;
 
-     int add1 , add2 , del1 , del2;
+     int i , j , add1 , add2 , del1 , del2 , flag_first;
      struct var_list *actvar_list;//
      actvar_list = (struct var_list *)malloc(sizeof(struct var_list) * s_expr_num);
      for(i = 0 ; i < s_expr_num ; i++)
@@ -813,12 +821,42 @@ struct var_list *analyse_actvar(int *expr_num)//活跃变量分析
      
      struct var_list show_list;//temp list of active varible
      show_list.head = show_list.tail = NULL;
+     struct var_list *del_list = var_list_new();
+     struct var_list *next_del_list = var_list_new();
+     struct var_list *add_list = var_list_new();
+     struct var_list *point_list = NULL;//deal with *p,or it is NULL
      struct triargexpr_list *temp_expr;
-     
+/*
+  思路：
+  del_list——当前三元式要删除的变量的map_id
+  add_list——当前三元式要增加的变量的map_id
+  next_del_list——下一个三元式要删除变量的map_id，每处理一个三元式，都将它复制给del_list，然后再得出next_del_list
+  1）获得得到add_list。
+     每当遇到三元式中的一个argi，只要它不是被赋值的元素，则交由get_index_of_arg处理，其中第二个参数为NULL，返回值放到变量addi中。
+         a）argi如果是立即数，get_index_of_arg返回-1；
+         b）argi如果是ident，get_index_of_arg返回该ident的map_id；
+         c）如果是三元式编号，处理会复杂一些：
+             1）如果编号对应三元式的操作类型不是Deref，直接返回该三元式编号的map_id；
+             2）如果编号对应三元式操作类型为Deref，即解除引用，那么如果：
+                 a）point_entity中只有1个元素。这种情况下，直接将argi替换成该元素，addi就是该元素的map_id；
+                 b）point_entity中有好几个元素。addi还是原来的编号的map_id。
+     如果只有一个操作数，则add2=-1。如此之后，便将add1和add2通过make_list制作成了添加链。add_list获得过程不会对point_list进行任何操作。
+  2）获得得到next_del_list。
+     每当遇到三元式中的一个argi，如果是被赋值的元素，则交由get_index_of_arg处理，其中第二个参数为&point_list，返回值放到变量deli中。
+         a）argi如果是立即数，get_index_of_arg返回-1；
+         b）argi如果是ident，get_index_of_arg返回该ident的map_id；
+         c）如果是三元式编号，处理会复杂一些：
+             1）如果编号对应三元式的操作类型不是Deref，直接返回该三元式编号的map_id；
+             2）如果编号对应三元式操作类型为Deref，即解除引用，那么如果：
+                 a）point_entity中只有1个元素。这种情况下，直接将argi替换成该元素，deli就是该元素的map_id；
+                 b）point_entity中有好几个元素。此时将(*dest)也就是point_list指向point_entity，deli为原来编号的map_id。
+  然后再从上一条的活跃变量中删除del_list，添加add_list就可以了
+*/
      for(i = 0 ; i < g_block_num ; i++)
      {
           temp_expr = DFS_array[i]->tail;
           del1 = del2 = -1;
+          flag_first = 1;
           var_list_copy(var_out + i , &show_list);
 #ifdef SHOWACTVAR
           printf("\nblock (%d)\n" , i);
@@ -827,108 +865,111 @@ struct var_list *analyse_actvar(int *expr_num)//活跃变量分析
           {
                switch(temp_expr->entity->op)
                {
-               case Assign:
-                    add2 = get_index_of_arg(&(temp_expr->entity->arg2));
+               case Assign:       //=
+                    add2 =  get_index_of_arg(&(temp_expr->entity->arg2) , NULL);
                     add1 = -1;
-                    temp_change = push_changes_into_expr(temp_change , del1 , del2 , add1 , add2);
-                    del1 = get_index_of_arg(&(temp_expr->entity->arg1));
+                    make_change_list(add1 , add2 , add_list);
+                    if(del1 == -2 || del2 == -2)//上一句中对指针实体赋值，而且该指针指向不明确，当前活跃变量链就是add_list
+                    {
+                         var_list_copy(add_list , actvar_list + act_list_index);
+                         act_list_index++;
+                         goto after_make_actvarlist;
+                    }
+                    var_list_copy(next_del_list , del_list);
+                    
+                    del1 = get_index_of_arg(&(temp_expr->entity->arg1) , &point_list);
                     del2 = get_index_of_temp(temp_expr->entity->index);
+                    make_change_list(del1 , del2 , next_del_list);
+                    next_del_list = var_list_merge(point_list , next_del_list);
+                    point_list = NULL;
                     break;
-               case Land:
-               case Lor:
-               case Eq:
-               case Neq:
-               case Ge:
-               case Le:
-               case Nge:
-               case Nle:
-               case Plus:
-               case Minus:
-               case Mul://二元操作
-                    add1 = get_index_of_arg(&(temp_expr->entity->arg1));
-                    add2 = get_index_of_arg(&(temp_expr->entity->arg2));
-                    temp_change = push_changes_into_expr(temp_change , del1 , del2 , add1 , add2);
+                    
+                    /*binary op*/
+               case Land:        //&&
+               case Lor:         //||
+               case Eq:          //==
+               case Neq:         //!=
+               case Ge:          //>=
+               case Le:          //<=
+               case Nge:         //<
+               case Nle:         //>
+               case Plus:        //+
+               case Minus:       //-
+               case Mul:         //*
+               case Subscript:   //[]
+                    add1 = get_index_of_arg(&(temp_expr->entity->arg1) , NULL);
+                    add2 = get_index_of_arg(&(temp_expr->entity->arg2) , NULL);
+                    make_change_list(add1 , add2 , add_list);
+                    if(del1 == -2 || del2 == -2)//上一句中对指针实体赋值，而且该指针指向不明确，当前活跃变量链就是add_list
+                    {
+                         var_list_copy(add_list , actvar_list + act_list_index);
+                         act_list_index++;
+                         goto after_make_actvarlist;
+                    }
+                    var_list_copy(next_del_list , del_list);
+                    
                     del1 = -1;
                     del2 = get_index_of_temp(temp_expr->entity->index);
+                    make_change_list(del1 , del2 , next_del_list);
                     break;
-               case Lnot:
-               case Uplus:
-               case Plusplus:
-               case Minusminus:
-               case Ref:
-               case Deref:
-               case Arglist:
-               case Return:
-               case UncondJump:
-               case FalseJump:
-               case TrueJump:
+
+                    /*Unary op or jump*/
+               case Lnot:        //!
+               case Uplus:       //+
+               case Plusplus:    //++
+               case Minusminus:  //--
+               case Ref:         //&
+               case Deref:       //*
+               case Arglist:     //parameters
+               case Return:      //return
+               case UncondJump:  //
+               case FalseJump:   //if true jump
+               case TrueJump:    //if false jump
                     add1 = -1;
-                    add2 = get_index_of_arg(&(temp_expr->entity->arg1));
-                    temp_change = push_changes_into_expr(temp_change , del1 , del2 , add1 , add2);
+                    add2 = get_index_of_arg(&(temp_expr->entity->arg1) , NULL);
+                    make_change_list(add1 , add2 , add_list);
+                    if(del1 == -2 || del2 == -2)//上一句中对指针实体赋值，而且该指针指向不明确，当前活跃变量链就是add_list
+                    {
+                         var_list_copy(add_list , actvar_list + act_list_index);
+                         act_list_index++;
+                         goto after_make_actvarlist;
+                    }
+                    var_list_copy(next_del_list , del_list);
+                    
                     del1 = -1;
                     del2 = get_index_of_temp(temp_expr->entity->index);
+                    make_change_list(del1 , del2 , next_del_list);
                     break;
                default:
+                    add1 = add2 = -1;
+                    make_change_list(add1 , add2 , add_list);
+                    if(del1 == -2 || del2 == -2)//上一句中对指针实体赋值，而且该指针指向不明确，当前活跃变量链就是add_list
+                    {
+                         var_list_copy(add_list , actvar_list + act_list_index);
+                         act_list_index++;
+                         goto after_make_actvarlist;
+                    }
+                    var_list_copy(next_del_list , del_list);
+                    
+                    del1 = -1;
+                    del2 = get_index_of_temp(temp_expr->entity->index);
+                    make_change_list(del1 , del2 , next_del_list);
                     break;
                }
-
-               struct var_list_node *former , *cur;
-               cur = show_list.head;
-               former = NULL;
-               j = 0;
-               if(cur != NULL)
+               if(flag_first == 1)
                {
-                    while(former != show_list.tail && j < gc_change_num)
-                    {
-                         if(temp_change[j].var_map_index == -1)//-1 is no use
-                         {
-                              j++;
-                              continue;
-                         }
-                         if(temp_change[j].type == Del)//to delete
-                         {
-                              if(show_list.head == NULL)//list is empty
-                              {
-                                   j++;
-                                   continue;
-                              }
-                              if(temp_change[j].var_map_index < (cur->var_map_index))//didn't find the index
-                              {
-                                   j++;
-                                   continue;
-                              }
-                              if(temp_change[j].var_map_index == (cur->var_map_index))//find the node to delete
-                              {
-                                   cur = var_list_delete(&show_list , former , cur);
-                                   j++;
-                                   if(show_list.head == NULL)
-                                        break;
-                                   continue;
-                              }
-                         }
-                         else
-                         {
-                              if(temp_change[j].var_map_index == cur->var_map_index)//already in the list,no need to add
-                                   j++;
-                              else if((temp_change[j].var_map_index) < (cur->var_map_index))//it's time to insert
-                              {
-                                   former = var_list_insert(&show_list , former , temp_change[j].var_map_index);
-                                   j++;
-                                   continue;
-                              }
-                         }
-                         former = cur;
-                         cur = cur->next;
-                    }
+                    var_list_sub(var_out + i , del_list , actvar_list + act_list_index);
+                    var_list_merge(add_list , actvar_list + act_list_index);
+                    act_list_index++;
+                    flag_first = 0;
                }
-               for(; j < gc_change_num ; j++)
+               else
                {
-                    if(temp_change[j].var_map_index == -1 || temp_change[j].type == Del)
-                         continue;
-                    var_list_append(&show_list , temp_change[j].var_map_index);
+                    var_list_sub(actvar_list + act_list_index - 1 , del_list , actvar_list + act_list_index);
+                    var_list_merge(add_list , actvar_list + act_list_index);
+                    act_list_index++;
                }
-               var_list_copy(&show_list , actvar_list + act_list_index);
-               act_list_index++;
+          after_make_actvarlist:
 #ifdef SHOWACTVAR
                printf("(%d) active varible:" , temp_expr->entity->index);
                var_list_print(&show_list);
