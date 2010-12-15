@@ -17,6 +17,8 @@ static int cur_ref_var_num;
 static int value_info * cur_func_info;
 static var_list * active_var_array; 
 
+static int reg_dpt[32];//register discription
+
 static int cur_sp;
 static int cur_code_index;
 
@@ -82,9 +84,8 @@ static inline enum arg_flag mach_prepare_arg(int arg_index, struct var_info * ar
 		if(arg_info -> reg_addr == -1)
 		{
 			arg_info -> reg_addr = alloc_reg.result[arg_index];
-			if()
-			/* store oldreg */;
-			/* 
+			/* if new_arg != old_arg swap */
+		}
 		if(arg_type == 1)
 		{
 			if(is_global(arg_index))
@@ -360,7 +361,7 @@ static void gen_per_code(struct triargexpr * expr)
 				}
 				else
 				{
-					arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);/* when must be 1, not be 0 */
+					arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
 
 					if(arg1_flag == Arg_Mem)//can't be immd
 						/* lod tempreg */;
@@ -686,12 +687,48 @@ static void gen_per_code(struct triargexpr * expr)
 
 		case Return:
 			{
+				struct int arg1_index;
+				struct var_info * arg1_info; 
+				enum arg_flag arg1_flag;
 
+				if(expr -> arg1.type == IdArg)
+				{
+					arg1_index = get_index_of_id(expr -> arg1.idname);
+					arg1_info = get_info_from_index(arg1_index);
+				}
+				else//can't be immed
+				{
+					arg1_index = get_index_of_temp(expr -> arg1.expr);
+					arg1_info = get_info_from_index(arg1_index);
+				}
+
+				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
+
+				if(arg1_flag == Arg_Reg)
+				{
+					/* if arg1 in r0 can be optimized */;
+					/* mov arg1, r0 */;
+				}
+				else
+					/* lod r0, arg1 */;
+				break;
 			}
 
 		case Nullop:
+			break;
 
 	}
+}
+
+void new_code_table_list()
+{
+	code_table_list = calloc(g_table_list_size, sizeof(struct mach_code_table)); 
+	total_tag_num = 0;
+}
+
+void free_code_table_list()
+{
+	free(code_table_list);
 }
 
 void gen_machine_code(int func_index)//Don't forget NULL at last

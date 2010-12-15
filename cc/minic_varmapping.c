@@ -53,6 +53,7 @@ static inline struct var_info *  new_var_info()
 	new_info -> is_use = -1;
 	new_info -> reg_addr = -1;
 	new_info -> mem_addr = -1;
+	new_info -> tag_num = -1; 
 	new_info -> ref_point = NULL;
 	return new_info;
 }
