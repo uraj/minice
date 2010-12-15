@@ -84,7 +84,6 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 			case Plus:                       /* +  */
 			case Minus:                      /* -  */
 			case Mul:                        /* *  */
-			case Subscript:                  /* [] */
 				if(expr.arg1.type == ExprArg)
 					insert_tempvar(expr.arg1.expr);
 				if(expr.arg2.type == ExprArg)
@@ -103,6 +102,9 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 				}
 				break;
 				*/
+			case Subscript:                  /* [] */
+				if(expr.arg1.type == IdArg)/* in fact it is sure */
+					get_info_from_id(expr.arg1.idname);
 			case Uminus:                     /* -  */	
 			case Ref:                        /* &  */
 			case Deref:                      /* '*' */

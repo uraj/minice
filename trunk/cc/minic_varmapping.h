@@ -3,6 +3,7 @@
 
 #include "minic_symtable.h"
 #include "minic_triargexpr.h"
+#include "minic_flowanalyse.h"
 
 /* this is for mapping the operands of triargexpr to a integer, which */
 /* will be useful during data flow analyze and register allocation */
@@ -15,7 +16,9 @@ struct var_info//the struct to contain var's flags
 	int is_use;
 	int reg_addr;
 	int mem_addr;
-	int base_type;
+
+	struct var_list * ref_point;//only for array
+	
 	int index;
 };
 
