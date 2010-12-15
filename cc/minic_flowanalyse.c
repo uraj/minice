@@ -531,6 +531,8 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
           if(temp_expr->op == Deref)//*p
           {
                struct var_list *temp_point_list = temp_expr_node->pointer_entity;
+               printf("//************************(%d)" , temp_expr->index);
+               var_list_print(temp_point_list);
                if(temp_point_list != NULL
                   && temp_point_list->head != NULL
                   &&temp_point_list->head == temp_point_list->tail)//只有一个元素，直接将该指针换成对应实体变量
@@ -608,10 +610,32 @@ static void initial_func_var(int func_index)//通过函数index获得当前函�
           temp_var_info = get_info_from_index(i);
           if(temp_var_info == NULL)
                continue;
+          printf("%s  " , get_valueinfo_byno(cur_func_sym_table , i)->name);
           if(temp_var_info->ref_point == NULL)
                continue;
+          printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+          var_list_print(temp_var_info->ref_point);
+          struct var_list_node *cur_node = temp_var_info->ref_point->head;
+          struct var_list_node *former_node = NULL;
+          if(cur_node == NULL)
+               continue;
+          int map_id;
+          while(cur_node != temp_var_info->ref_point->tail->next)
+          {
+               map_id = get_index_of_temp(cur_node->var_map_index);
+               if(map_id < 0)
+               {
+                    cur_node = var_list_delete(temp_var_info->ref_point , former_node , cur_node);
+                    continue;
+               }
+               cur_node->var_map_index = map_id;
+               former_node = cur_node;
+               cur_node = cur_node->next;
+          }
           var_list_sort(temp_var_info->ref_point , var_list_count(temp_var_info->ref_point));
           var_list_del_repeate(temp_var_info->ref_point);
+          printf("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+          var_list_print(temp_var_info->ref_point);
      }
 }
 
@@ -686,7 +710,7 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                     analyse_expr_index(temp->entity->index , DEFINE , i);
                     break;
                }
-               
+               print_triargexpr(*(temp->entity));printf("\n");//**************************************
                temp = temp->next;
           }
           var_list_sort(def + i , def_size[i]);//when DEFs and USEs are made
