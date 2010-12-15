@@ -7,7 +7,7 @@
 //#define POINTER_DEBUG	/*Use to debug in out*/
 //#define FUNC_DEBUG
 //#define TRANS_DEBUG		/*Use to debug trans*/	//almost right
-#define ENTITY_DEBUG	/*Use to debug entity list*/
+//#define ENTITY_DEBUG	/*Use to debug entity list*/
 static int cur_var_id_num;
 static struct var_list *** pointer_in;
 static struct var_list *** pointer_out;

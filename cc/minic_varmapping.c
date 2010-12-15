@@ -140,14 +140,9 @@ struct var_info * get_info_from_index(int index)
 		return var_info_table[map_bridge[index - cur_var_id_num]];
 }
 
-int is_global(char * idname)/* new and used, just mark */
+int is_global(int index)/* new and used, just mark */
 {
-	if(idname[0] == '.')/* if the ID is const string, just return 1 */
-		return 1;
-	struct value_info * tmp_info = symt_search(simb_table, idname);
-	if(tmp_info == NULL)
-		return 0;
-	else return 1;
+	/* need this later */
 }
 
 int get_ref_var_num()/* new and used, just mark */

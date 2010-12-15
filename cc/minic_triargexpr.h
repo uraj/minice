@@ -4,7 +4,7 @@
 #include "minic_ast.h"
 #include "minic_typetree.h"
 
-enum triarg_type { IdArg, ImmArg, ExprArg };
+enum triarg_type { IdArg = 0, ImmArg, ExprArg };
 
 struct triarg
 {
