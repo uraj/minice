@@ -160,7 +160,10 @@ static struct var_list * var_list_copy_array(struct var_list *source , struct va
 			var_list_append(dest , temp->var_map_index);
 		temp = temp->next;
 	}
-	var_list_append(dest , temp->var_map_index);
+
+	struct value_info * tmp_info = get_valueinfo_byno(cur_func_info -> func_symt, temp -> var_map_index);//must be id in this file
+	if(tmp_info -> type -> type == Array)
+		var_list_append(dest , temp->var_map_index);
 	return dest;
 }
 
