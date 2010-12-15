@@ -24,6 +24,8 @@ int ELFhash(char *str)
 
 static inline struct value_info **new_myid_array(int size)
 {
+     if(size <= 0)
+          return NULL;
      struct value_info **new_myid = (struct value_info **)malloc(sizeof(struct value_info *) * size);
      int i;
      for(i = 0 ; i < size ; i++)
@@ -33,7 +35,9 @@ static inline struct value_info **new_myid_array(int size)
 
 static inline struct string_info *new_conststr_array(int size)
 {
-     struct string_info *new_conststr = (struct string_info *)malloc(sizeof(struct string_info *) * size);
+     if(size <= 0)
+          return NULL;
+     struct string_info *new_conststr = (struct string_info *)malloc(sizeof(struct string_info) * size);
      int i;
      for(i = 0 ; i < size ; i++)
      {
@@ -174,18 +178,21 @@ int symt_insert(struct symbol_table *t , struct value_info *value)
 	return 1;
 }
 
-char *symt_insert_conststr(struct symbol_table *t , char *str)//insert a constant string into the symbol table
+struct token_info symt_insert_conststr(struct symbol_table *t ,char *str)//insert a constant string into symbol table
 {
-     char *id_name;
+     char id_name[10];
      sprintf(id_name , ".LC%d" , g_const_str_num);
      struct value_info *new_vinfo = new_valueinfo(id_name);
      struct typetree *new_type = typet_new_type(Pointer);
+     struct token_info tk;
+     tk.sval = id_name;
      new_type->base_type = typet_new_type(Char);
      new_vinfo->type = new_type;
      if(symt_insert(t , new_vinfo) == 0)
      {
           printf("insert constant string error!");
-          return NULL;
+          tk.sval = NULL;
+          return tk;
      }
      if(t->str_num == t->cur_strarray_size)
      {
@@ -198,11 +205,11 @@ char *symt_insert_conststr(struct symbol_table *t , char *str)//insert a constan
           free(temp);
      }
      t->const_str[t->str_num].string = strdup(str);
-     t->const_str[t->str_num].flag = 0;
      t->str_num ++;
      g_const_str_num++;
+     printf("%s->%s\n" , id_name , t->const_str[t->str_num - 1].string);
      
-     return id_name;
+     return tk;
 }
 
 char *get_conststr(struct symbol_table *t , int i)
