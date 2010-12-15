@@ -15,7 +15,7 @@ int loop()
 			b();
 		}
 	}
-	if(a > c)
+	if(a)
 	{
 		for(a = c; a < c; a ++)
 		{

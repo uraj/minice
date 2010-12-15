@@ -145,23 +145,18 @@ struct mach_code//mach means machine
 	enum indexed_type indexed;					/* used in mem */
 };
 
-struct mach_code_list
-{
-	struct mach_code code;
-	struct mach_code_list * next;
-};
-
 struct mach_code_table
 {
-	struct mach_code_list * head, * tail;
-	int mach_code_num;
+	struct mach_code * table;
+	int code_num;
 };
 
+extern struct mach_code_table * code_table_list;
 extern struct triargtable ** table_list;
 extern struct symbol_table ** simb_table;  
-extern struct mach_code_table * code_table;
 
 extern void gen_machine_code(int func_index);
-
+extern void new_code_table_list();
+extern void free_code_table_list();
 #endif
 
