@@ -151,6 +151,7 @@ struct mach_code_table
 	int code_num;
 };
 
+extern int g_table_list_size; 
 extern struct mach_code_table * code_table_list;
 extern struct triargtable ** table_list;
 extern struct symbol_table ** simb_table;  

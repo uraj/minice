@@ -14,11 +14,14 @@ struct var_info//the struct to contain var's flags
 	/* some flags */
 	int is_define;
 	int is_use;
+	
 	int reg_addr;
-	int mem_addr;
+	int mem_addr;/* can be union with is_define and is use */
 
 	struct var_list * ref_point;//only for array
-	
+
+	int tag_num;// the expr jump to which tag /* can be union */
+
 	int index;
 };
 

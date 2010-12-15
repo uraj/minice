@@ -116,7 +116,7 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 					{
 						if(tmp_var_info -> ref_point == NULL)
 							tmp_var_info -> ref_point = var_list_new();
-						tmp_var_info -> ref_point = var_list_append(tmp_var_info -> ref_point, expr.index);
+						tmp_var_info -> ref_point = var_list_append(tmp_var_info -> ref_point, expr.index);//dongdong trans index to mapid
 					}
 				}/* make array ref point list used when flush array elem in regs */
 
