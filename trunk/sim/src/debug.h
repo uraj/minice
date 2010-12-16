@@ -6,10 +6,9 @@
 extern const RegFile * gp_reg;
 extern const PipeState * pg_pipe;
 
-extern void print_regfile();
+extern void pregs();
+extern void pstack(uint32_t addr);
+extern void pstack_range(uint32_t addr_b, uint32_t addr_e);
 extern void print_stage_info(const StageInfo * sinfo);
-extern void print_mem_word(uint32_t vaddr);
-extern void print_mem_halfword(uint32_t vaddr);
-extern void print_mem_byte(uint32_t vaddr);
 
 #endif
