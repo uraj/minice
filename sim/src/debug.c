@@ -28,7 +28,7 @@ void pregs()
     return;
 }
 
-void print_mem_word(uint32_t vaddr)
+static inline void  print_mem_word(uint32_t vaddr)
 {
     uint32_t data_32;
     if(mem_read_direct_w(vaddr, &data_32))
@@ -38,7 +38,7 @@ void print_mem_word(uint32_t vaddr)
     return;
 }
 
-void print_mem_halfword(uint32_t vaddr)
+static inline void print_mem_halfword(uint32_t vaddr)
 {
     uint16_t data_16;
     if(mem_read_direct_h(vaddr, &data_16))
@@ -48,7 +48,7 @@ void print_mem_halfword(uint32_t vaddr)
     return;
 }
 
-void print_mem_byte(uint32_t vaddr)
+static inline void print_mem_byte(uint32_t vaddr)
 {
     uint8_t data_8;
     if(mem_read_direct_b(vaddr, &data_8))
@@ -57,3 +57,20 @@ void print_mem_byte(uint32_t vaddr)
         printf("0x%08x: 0x%08x\n", vaddr, data_8);
     return;
 }
+
+void pstack(uint32_t addr)
+{
+    print_mem_word(addr);
+    return;
+}
+
+void pstack_range(uint32_t addr_b, uint32_t addr_e)
+{
+    while(addr_b < addr_e)
+    {
+        print_mem_word(addr_b);
+        addr_b -= 4;
+    }
+    return;
+}
+

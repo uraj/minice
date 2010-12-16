@@ -3,15 +3,21 @@
 #include <memory.h>
 #include <getopt.h>
 #include <unistd.h>
+#include <setjmp.h>
 
 #include <loader/elfmanip.h>
 #include <memory/memory.h>
 #include <pipeline.h>
 #include <debug.h>
+#include <console/console.h>
 
+/* used by memory.h */
 L2PT L1PageTable[L1PTSIZE];
 const RegFile * gp_reg = NULL;
 const PipeState * gp_pipe = NULL;
+
+/* used by console() */
+jmp_buf beginning;
 
 typedef struct
 {
@@ -59,6 +65,8 @@ void simulate_init(RegFile * storage, PipeState * pipe_state) /* important */
 
 StatInfo simulate(uint32_t simulation_entry, uint32_t special_entry)
 {
+    setjmp(beginning);
+    
     StatInfo stat_info;
     stat_info.cycle_count = 0;
     stat_info.instr_count = 0;
@@ -94,6 +102,8 @@ StatInfo simulate(uint32_t simulation_entry, uint32_t special_entry)
 
 StatInfo simulate_db(uint32_t simulation_entry, uint32_t special_entry)
 {
+    setjmp(beginning);
+    
     StatInfo stat_info;
     stat_info.cycle_count = 0;
     stat_info.instr_count = 0;
@@ -110,8 +120,10 @@ StatInfo simulate_db(uint32_t simulation_entry, uint32_t special_entry)
     
     while(1)
     {
+        console();
+        
         ++stat_info.cycle_count;
-
+        
         printf("Stage: WB\t");
         print_stage_info(&(pipe_state.wb_in.sinfo));
 
@@ -164,7 +176,7 @@ inline void usage()
 
 int main(int argc, char * argv[])
 {
-    char option = 0, * filename;
+    char option = 0, * filename = NULL;
     int db_option = 0, stat_option = 0, file_option = 0;
     while((option = getopt(argc, argv, "f:dsh")) != -1)
     {

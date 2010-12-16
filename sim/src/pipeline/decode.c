@@ -108,7 +108,7 @@ static int read_register(const RegFile * storage, const PipeState * pipe_state, 
 
 static uint32_t operand2_shift(uint32_t base, uint8_t bias, ShiftType stype, int setMSR, PSW * MSR)
 {
-    uint32_t ret;
+    uint32_t ret = 0;
     switch(stype)
     {
         case LShiftLeft:
@@ -269,7 +269,7 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
     InstrType itype = get_instr_type(pipe_state->id_in.instruction);
     InstrFields ifields = get_fields(pipe_state->id_in.instruction);
     int data_hazard;
-    uint32_t data;
+    uint32_t data;              /* uninitialized */
 
     gen_control_signals(&ifields, itype, &(pipe_state->ex_in));
     
