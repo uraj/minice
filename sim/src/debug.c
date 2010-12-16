@@ -2,9 +2,12 @@
 #include <stdio.h>
 #include <memory/vmem.h>
 
-void print_stage_info(const StageInfo * sinfo)
+void print_stage_info()
 {
-    printf("0x%08x 0x%08x\n", sinfo->pc, sinfo->icode);
+    printf("Stage  WB: <0x%08x> 0x%08x\n", gp_pipe->wb_in.sinfo.pc, gp_pipe->wb_in.sinfo.icode);
+    printf("Stage MEM: <0x%08x> 0x%08x\n", gp_pipe->mem_in.sinfo.pc, gp_pipe->mem_in.sinfo.icode);
+    printf("Stage  EX: <0x%08x> 0x%08x\n", gp_pipe->ex_in.sinfo.pc, gp_pipe->ex_in.sinfo.icode);
+    printf("Stage  ID: <0x%08x> 0x%08x\n", gp_pipe->id_in.sinfo.pc, gp_pipe->id_in.sinfo.icode);
     return;
 }
 
@@ -73,4 +76,3 @@ void pstack_range(uint32_t addr_b, uint32_t addr_e)
     }
     return;
 }
-

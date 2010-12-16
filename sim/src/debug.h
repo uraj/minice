@@ -4,11 +4,11 @@
 #include <pipeline.h>
 
 extern const RegFile * gp_reg;
-extern const PipeState * pg_pipe;
+extern const PipeState * gp_pipe;
 
 extern void pregs();
+extern void print_stage_info();
 extern void pstack(uint32_t addr);
 extern void pstack_range(uint32_t addr_b, uint32_t addr_e);
-extern void print_stage_info(const StageInfo * sinfo);
 
 #endif

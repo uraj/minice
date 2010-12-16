@@ -13,10 +13,12 @@
 
 /* used by memory.h */
 L2PT L1PageTable[L1PTSIZE];
+
+/* used by debug.h */
 const RegFile * gp_reg = NULL;
 const PipeState * gp_pipe = NULL;
 
-/* used by console() */
+/* used by console() in console.c */
 jmp_buf beginning;
 
 typedef struct
@@ -105,16 +107,16 @@ StatInfo simulate_db(uint32_t simulation_entry, uint32_t special_entry)
     setjmp(beginning);
     
     StatInfo stat_info;
-    stat_info.cycle_count = 0;
-    stat_info.instr_count = 0;
-    stat_info.bubble_count = 0;
-    
     RegFile storage;
     PipeState pipe_state;
     gp_reg = &storage;
     gp_pipe = &pipe_state;
     
     /* initialization */
+    stat_info.cycle_count = 0;
+    stat_info.instr_count = 0;
+    stat_info.bubble_count = 0;
+
     simulate_init(&storage, &pipe_state);
     storage.reg[PC] = simulation_entry;
     
@@ -123,27 +125,15 @@ StatInfo simulate_db(uint32_t simulation_entry, uint32_t special_entry)
         console();
         
         ++stat_info.cycle_count;
-        
-        printf("Stage: WB\t");
-        print_stage_info(&(pipe_state.wb_in.sinfo));
 
         WBStage(&storage, &pipe_state);
         stat_info.bubble_count += pipe_state.wb_in.bubble;  
 
-        printf("Stage: MEM\t");
-        print_stage_info(&(pipe_state.mem_in.sinfo));
-
         MEMStage(&storage, &pipe_state);
         pipe_state.wb_in.sinfo = pipe_state.mem_in.sinfo;
 
-        printf("Stage: EX\t");
-        print_stage_info(&(pipe_state.ex_in.sinfo));
-
         EXStage(&storage, &pipe_state);
         pipe_state.mem_in.sinfo = pipe_state.ex_in.sinfo;        
-
-        printf("Stage: ID\t");
-        print_stage_info(&(pipe_state.id_in.sinfo));
 
         if(IDStage(&storage, &pipe_state) == -1)
         {
