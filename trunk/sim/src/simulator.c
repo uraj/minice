@@ -37,7 +37,6 @@ void simulate_init(RegFile * storage, PipeState * pipe_state) /* important */
     memset(storage->reg, 0, 32 * sizeof(uint32_t));
     storage->reg[SP] = 0xf0000000;
     storage->reg[FP] = 0xf0000000;
-    storage->reg[LR] = 0;
     storage->CMSR.N = 0;
     storage->CMSR.Z = 0;
     storage->CMSR.C = 0;
@@ -122,13 +121,15 @@ StatInfo simulate_db(uint32_t simulation_entry, uint32_t special_entry)
     
     while(1)
     {
-        console();
+        //       console();
         
         ++stat_info.cycle_count;
 
         WBStage(&storage, &pipe_state);
-        stat_info.bubble_count += pipe_state.wb_in.bubble;  
-
+        stat_info.bubble_count += pipe_state.wb_in.bubble;
+        
+        printf("Stage MEM: <0x%08x> 0x%08x\n", pipe_state.mem_in.sinfo.pc, pipe_state.mem_in.sinfo.icode);
+        
         MEMStage(&storage, &pipe_state);
         pipe_state.wb_in.sinfo = pipe_state.mem_in.sinfo;
 

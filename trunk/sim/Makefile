@@ -2,8 +2,8 @@ CFLAGS=-c
 CFLAGS+=-Wall
 CFLAGS+=-Isrc
 OBJ_DIR=objs/
-SIM_OBJS=$(OBJ_DIR)console.o $(OBJ_DIR)fetch.o $(OBJ_DIR)decode.o $(OBJ_DIR)control.o $(OBJ_DIR)execute.o $(OBJ_DIR)memaccess.o $(OBJ_DIR)writeback.o $(OBJ_DIR)elfmanip.o $(OBJ_DIR)vmem.o $(OBJ_DIR)memory.o $(OBJ_DIR)simulator.db $(OBJ_DIR)debug.db
-SIM_OBJS_DB=$(OBJ_DIR)console.db $(OBJ_DIR)fetch.db $(OBJ_DIR)decode.db $(OBJ_DIR)control.db $(OBJ_DIR)execute.db $(OBJ_DIR)memaccess.db $(OBJ_DIR)writeback.db $(OBJ_DIR)elfmanip.db $(OBJ_DIR)vmem.db $(OBJ_DIR)memory.db $(OBJ_DIR)simulator.o $(OBJ_DIR)debug.o
+SIM_OBJS=$(OBJ_DIR)console.o $(OBJ_DIR)fetch.o $(OBJ_DIR)decode.o $(OBJ_DIR)control.o $(OBJ_DIR)execute.o $(OBJ_DIR)memaccess.o $(OBJ_DIR)writeback.o $(OBJ_DIR)elfmanip.o $(OBJ_DIR)vmem.o $(OBJ_DIR)memory.o $(OBJ_DIR)simulator.o $(OBJ_DIR)debug.o
+SIM_OBJS_DB=$(OBJ_DIR)console.db $(OBJ_DIR)fetch.db $(OBJ_DIR)decode.db $(OBJ_DIR)control.db $(OBJ_DIR)execute.db $(OBJ_DIR)memaccess.db $(OBJ_DIR)writeback.db $(OBJ_DIR)elfmanip.db $(OBJ_DIR)vmem.db $(OBJ_DIR)memory.db $(OBJ_DIR)simulator.db $(OBJ_DIR)debug.db
 
 sim:$(SIM_OBJS_DB)
 	gcc -DDEBUG $(SIM_OBJS_DB) -o $@

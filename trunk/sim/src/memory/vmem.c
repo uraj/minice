@@ -9,8 +9,6 @@ int mem_read_direct_b(uint32_t addr, uint8_t * dest)
     PTelem * ptelem = &L1PageTable[addr >> 25][(addr >> 15) & 0x3ff];
     if(ptelem->flag == NAPage)
         return 1;
-    if(ptelem->flag == XPage)
-        return 2;
     *dest = *(uint8_t *)(ptelem->pageref + (addr & 0x7fff));
     return 0;
 }
@@ -25,8 +23,6 @@ int mem_read_direct_h(uint32_t addr, uint16_t * dest)
     PTelem * ptelem = &L1PageTable[addr >> 25][(addr >> 15) & 0x3ff];
     if(ptelem->flag == NAPage)
         return 1;
-    if(ptelem->flag == XPage)
-        return 2;
     *dest = *(uint16_t *)(ptelem->pageref + (addr & 0x7fff));
     return 0;
 }

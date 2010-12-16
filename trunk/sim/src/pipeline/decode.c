@@ -232,7 +232,7 @@ static uint32_t gen_operand2(RegFile * storage, const PipeState * pipe_state, co
             *data =  operand2_shift(
                 ifields->rotate_imm9,
                 ifields->rotate,
-                stype,
+                RotateRight,
                 setMSR,
                 &(storage->CMSR));
             break;
