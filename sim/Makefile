@@ -1,4 +1,4 @@
-build:
+build-db:
 	cd objs && make
-db:
-	cd objs && make sim-db
+build-release:
+	cd objs && make sim-re
