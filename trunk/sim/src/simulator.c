@@ -8,7 +8,6 @@
 #include <loader/elfmanip.h>
 #include <memory/memory.h>
 #include <pipeline.h>
-#include <debug.h>
 #include <console/console.h>
 
 /* used by memory.h */
@@ -66,8 +65,6 @@ void simulate_init(RegFile * storage, PipeState * pipe_state) /* important */
 
 StatInfo simulate(uint32_t simulation_entry, uint32_t special_entry)
 {
-    setjmp(beginning);
-    
     StatInfo stat_info;
     stat_info.cycle_count = 0;
     stat_info.instr_count = 0;
@@ -121,7 +118,7 @@ StatInfo simulate_db(uint32_t simulation_entry, uint32_t special_entry)
     
     while(1)
     {
-        //       console();
+        console();
         
         ++stat_info.cycle_count;
 
