@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <memory/vmem.h>
 
-void print_stage_info()
+void ppipe()
 {
     printf("Stage  WB: <0x%08x> 0x%08x\n", gp_pipe->wb_in.sinfo.pc, gp_pipe->wb_in.sinfo.icode);
     printf("Stage MEM: <0x%08x> 0x%08x\n", gp_pipe->mem_in.sinfo.pc, gp_pipe->mem_in.sinfo.icode);

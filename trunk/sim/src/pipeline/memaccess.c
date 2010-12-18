@@ -28,7 +28,7 @@ int MEMStage(RegFile * storage, PipeState * pipe_state)
         if(pipe_state->mem_in.load) /* load */
         {
             uint32_t data;
-            int readinfo;
+            int readinfo = -1;
             FwdData mem_fwd;
             mem_fwd.freg = 0xff; /* defualt: no forwarding */
             if(pipe_state->mem_in.addr_sel == 0)
@@ -60,7 +60,7 @@ int MEMStage(RegFile * storage, PipeState * pipe_state)
         }
         else                    /* store */
         {
-            int write_info;
+            int write_info = -1;
             if(pipe_state->mem_in.addr_sel == 0)
                 write_info = mem_write(
                     pipe_state->mem_in.val_ex,
