@@ -11,3 +11,5 @@ b.l
 
 operand2 generate / shift type passed
 寄存器的立即数逻辑左移
+寄存器的立即数算数右移
+立即数的循环右移

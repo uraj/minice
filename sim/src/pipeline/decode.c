@@ -63,7 +63,7 @@ static InstrType get_instr_type(instr code)
         case 1U:
             if(GET_FIELD(code, 28, 26) == 0U)
                 return Multiply;
-            else
+            else if(GET_FIELD(code, 28, 26) == 4U)
                 return Branch_Ex;
         default:
             exit(1);
