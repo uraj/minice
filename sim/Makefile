@@ -27,8 +27,6 @@ $(OBJ_DIR)memory.db:src/memory/memory.c src/memory/memory.h
 	gcc -DDEBUG src/memory/memory.c $(CFLAGS) -g -o $@
 $(OBJ_DIR)simulator.db:src/simulator.c
 	gcc -DDEBUG src/simulator.c $(CFLAGS) -g -o $@
-$(OBJ_DIR)debug.db:src/debug.c
-	gcc -DDEBUG src/debug.c $(CFLAGS) -g -o $@
 $(OBJ_DIR)console.db:src/console/console.c src/console/console.h
 	gcc -DDEBUG src/console/console.c $(CFLAGS) -g -o $@
 
@@ -54,7 +52,5 @@ $(OBJ_DIR)memory.o:src/memory/memory.c src/memory/memory.h
 	gcc src/memory/memory.c $(CFLAGS) -O2 -o $@
 $(OBJ_DIR)simulator.o:src/simulator.c
 	gcc src/simulator.c $(CFLAGS) -O2 -o $@
-$(OBJ_DIR)debug.o:src/debug.c
-	gcc src/debug.c $(CFLAGS) -O2 -o $@
 $(OBJ_DIR)console.o:src/console/console.c src/console/console.h
 	gcc src/console/console.c $(CFLAGS) -O2 -o $@
