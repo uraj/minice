@@ -5,10 +5,10 @@
 #include <unistd.h>
 #include <setjmp.h>
 
-#include <loader/elfmanip.h>
+#include "loader.h"
+#include "pipeline.h"
+#include "console.h"
 #include <memory/memory.h>
-#include <pipeline.h>
-#include <console/console.h>
 
 /* used by memory.h */
 L2PT L1PageTable[L1PTSIZE];
