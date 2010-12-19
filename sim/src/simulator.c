@@ -57,9 +57,9 @@ void simulate_init(RegFile * storage, PipeState * pipe_state) /* important */
     pipe_state->wb_in.sinfo.pc = 0;
     
     /* data forwarding related */
-    pipe_state->id_in.ex_fwd[0].freg = 0xff;
-    pipe_state->id_in.ex_fwd[1].freg = 0xff;
-    pipe_state->id_in.mem_fwd.freg = 0xff;
+    pipe_state->ex_fwd[0].freg = 0xff;
+    pipe_state->ex_fwd[1].freg = 0xff;
+    pipe_state->mem_fwd.freg = 0xff;
     return;
 }
 
@@ -86,7 +86,7 @@ StatInfo simulate(uint32_t simulation_entry, uint32_t special_entry)
         stat_info.bubble_count += pipe_state.wb_in.bubble;  
         MEMStage(&storage, &pipe_state);
         EXStage(&storage, &pipe_state);
-        if(IDStage(&storage, &pipe_state) == -1)
+        if(IDStage(&storage, &pipe_state) == 1)
         {
             pipe_state.ex_in.bubble = 1;
             continue;           /* stalling */
@@ -125,15 +125,13 @@ StatInfo simulate_db(uint32_t simulation_entry, uint32_t special_entry)
         WBStage(&storage, &pipe_state);
         stat_info.bubble_count += pipe_state.wb_in.bubble;
         
-        printf("Stage MEM: <0x%08x> 0x%08x\n", pipe_state.mem_in.sinfo.pc, pipe_state.mem_in.sinfo.icode);
-        
         MEMStage(&storage, &pipe_state);
         pipe_state.wb_in.sinfo = pipe_state.mem_in.sinfo;
 
         EXStage(&storage, &pipe_state);
         pipe_state.mem_in.sinfo = pipe_state.ex_in.sinfo;        
 
-        if(IDStage(&storage, &pipe_state) == -1)
+        if(IDStage(&storage, &pipe_state) == 1)
         {
             pipe_state.ex_in.bubble = 1;
             continue;           /* stalling */
@@ -142,8 +140,7 @@ StatInfo simulate_db(uint32_t simulation_entry, uint32_t special_entry)
         if(IFStage(&storage, &pipe_state, special_entry) == -1)
             break;
         ++stat_info.instr_count;
-        pipe_state.id_in.sinfo.icode = pipe_state.id_in.instruction;
-        pipe_state.id_in.sinfo.pc = storage.reg[PC] - 4;
+     
     }
     return stat_info;
 }

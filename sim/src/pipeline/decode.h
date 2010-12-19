@@ -1,5 +1,5 @@
-#ifndef __MINIEMU_DECODE_H__
-#define __MINIEMU_DECODE_H__
+#ifndef __MINISIM_DECODE_H__
+#define __MINISIM_DECODE_H__
 
 #include <pipeline/globdefs.h>
 

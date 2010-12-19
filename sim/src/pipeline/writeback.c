@@ -8,23 +8,25 @@ int WBStage(RegFile * storage, PipeState * pipe_state)
     switch(pipe_state->wb_in.dest_sel)
     {
         case WB_ValEx:
-            storage->reg[pipe_state->wb_in.val_ex_dest]
-                = pipe_state->wb_in.val_ex;
+            if(pipe_state->wb_in.val_ex_dest != PC) /* PC is not editable in WB stage */
+                storage->reg[pipe_state->wb_in.val_ex_dest]
+                    = pipe_state->wb_in.val_ex;
             break;
         case WB_ValMem:
             storage->reg[pipe_state->wb_in.val_mem_dest]
                 = pipe_state->wb_in.val_mem;
             break;
         case WB_Both:
-            storage->reg[pipe_state->wb_in.val_ex_dest]
-                = pipe_state->wb_in.val_ex;
+            if(pipe_state->wb_in.val_ex_dest != PC)
+                storage->reg[pipe_state->wb_in.val_ex_dest]
+                    = pipe_state->wb_in.val_ex;
             storage->reg[pipe_state->wb_in.val_mem_dest]
                 = pipe_state->wb_in.val_mem;
             break;
         case WB_Neither:
             break;
         default:
-            exit(4);
+            exit(5);
     }
     return 0;
 }

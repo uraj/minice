@@ -8,7 +8,7 @@ int MEMStage(RegFile * storage, PipeState * pipe_state)
     if(pipe_state->mem_in.bubble)
     {
         pipe_state->wb_in.bubble = 1;
-        pipe_state->id_in.mem_fwd.freg = 0xff;
+        pipe_state->mem_fwd.freg = 0xff;
         return 0;
     }
     else
@@ -19,7 +19,7 @@ int MEMStage(RegFile * storage, PipeState * pipe_state)
     pipe_state->wb_in.val_ex_dest = pipe_state->mem_in.wb_val_ex_dest;
     pipe_state->wb_in.val_mem_dest = pipe_state->mem_in.wb_val_mem_dest;
     
-    pipe_state->id_in.mem_fwd.freg = 0xff;
+    pipe_state->mem_fwd.freg = 0xff;
     
     if(pipe_state->mem_in.addr_sel == 2)
         return 0;
@@ -55,7 +55,7 @@ int MEMStage(RegFile * storage, PipeState * pipe_state)
             if(pipe_state->mem_in.wb_dest_sel == 1 || pipe_state->mem_in.wb_dest_sel == 2)
             {
                 mem_fwd.freg = pipe_state->mem_in.wb_val_mem_dest;
-                pipe_state->id_in.mem_fwd = mem_fwd;
+                pipe_state->mem_fwd = mem_fwd;
             }
         }
         else                    /* store */

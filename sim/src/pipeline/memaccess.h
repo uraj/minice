@@ -1,5 +1,5 @@
-#ifndef __MINIEMU_MEMACESS_H__
-#define __MINIEMU_MEMACESS_H__
+#ifndef __MINISIM_MEMACESS_H__
+#define __MINISIM_MEMACESS_H__
 
 #include <pipeline/globdefs.h>
 

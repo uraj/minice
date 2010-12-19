@@ -158,8 +158,8 @@ int EXStage(RegFile * storage, PipeState * pipe_state)
         pipe_state->mem_in.bubble = 1;
         
         /* data forwarding */
-        pipe_state->id_in.ex_fwd[1] = pipe_state->id_in.ex_fwd[0];
-        pipe_state->id_in.ex_fwd[0].freg = 0xffU;
+        pipe_state->ex_fwd[1] = pipe_state->ex_fwd[0];
+        pipe_state->ex_fwd[0].freg = 0xffU;
         return 0;
     }
     pipe_state->mem_in.bubble = 0;
@@ -189,8 +189,8 @@ int EXStage(RegFile * storage, PipeState * pipe_state)
         pipe_state->wb_in.val_ex = ex_fwd.fdata;
         
         /* data forwading */
-        pipe_state->id_in.ex_fwd[1] = pipe_state->id_in.ex_fwd[0];
-        pipe_state->id_in.ex_fwd[0] = ex_fwd;
+        pipe_state->ex_fwd[1] = pipe_state->ex_fwd[0];
+        pipe_state->ex_fwd[0] = ex_fwd;
             
         return 1;
     }
@@ -224,8 +224,8 @@ int EXStage(RegFile * storage, PipeState * pipe_state)
             pipe_state->mem_in.val_ex = ex_fwd.fdata;
             
             /* data forwarding */
-            pipe_state->id_in.ex_fwd[1] = pipe_state->id_in.ex_fwd[0];
-            pipe_state->id_in.ex_fwd[0] = ex_fwd;
+            pipe_state->ex_fwd[1] = pipe_state->ex_fwd[0];
+            pipe_state->ex_fwd[0] = ex_fwd;
         }
         return 0;
     }

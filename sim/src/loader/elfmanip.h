@@ -1,5 +1,5 @@
-#ifndef __MINIEMU_ELFMANIP_H__
-#define __MINIEMU_ELFMANIP_H__
+#ifndef __MINISIM_ELFMANIP_H__
+#define __MINISIM_ELFMANIP_H__
 
 #include <elf.h>
 #include <stdio.h>

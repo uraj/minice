@@ -1,5 +1,5 @@
-#ifndef __MINIEMU_MEMORY_H__
-#define __MINIEMU_MEMORY_H__
+#ifndef __MINISIM_MEMORY_H__
+#define __MINISIM_MEMORY_H__
 
 #include <memory/vmem.h>
 #include <stdint.h>

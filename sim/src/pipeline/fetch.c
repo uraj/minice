@@ -1,7 +1,8 @@
-#include <pipeline/fetch.h>
 #include <memory/memory.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "fetch.h"
 
 int IFStage(RegFile * storage, PipeState * pipe_state, uint32_t special_entry)
 {
@@ -9,6 +10,22 @@ int IFStage(RegFile * storage, PipeState * pipe_state, uint32_t special_entry)
     uint32_t pc = storage->reg[PC];
     uint32_t instr;
     int readinfo;
+    
+    if(pipe_state->ex_fwd[0].freg == PC)
+    {
+        pc = pipe_state->ex_fwd[0].fdata;
+    }
+    else if(pipe_state->mem_fwd.freg == PC)
+    {
+        pc = pipe_state->mem_fwd.fdata;
+    }
+    else if(pipe_state->ex_fwd[1].freg == PC)
+    {
+        pc = pipe_state->ex_fwd[1].fdata;
+    }
+    else
+        pc = storage->reg[PC];
+    
     if(pc == 0)
     {
         ++quit;
@@ -37,6 +54,6 @@ int IFStage(RegFile * storage, PipeState * pipe_state, uint32_t special_entry)
     pipe_state->id_in.sinfo.icode = instr;
     pipe_state->id_in.sinfo.pc = pc;
     
-    storage->reg[PC] += 4;
+    storage->reg[PC] = pc + 4;
     return 0;
 }
