@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <setjmp.h>
-#include <console/console.h>
-#include <console/bptree.h>
 #include <memory/vmem.h>
+
+#include "interact.h"
+#include "bptree.h"
 
 #define BP_MAX 10
 
@@ -45,9 +46,9 @@ void pregs()
 
 void pfwd()
 {
-    printf("EX forwarding 0: dest=%hu, value=0x%08x", (uint16_t)(gp_pipe->id_in.ex_fwd[0].freg), gp_pipe->id_in.ex_fwd[0].fdata);
-    printf("EX forwarding 1: dest=%hu, value=0x%08x", (uint16_t)(gp_pipe->id_in.ex_fwd[1].freg), gp_pipe->id_in.ex_fwd[1].fdata);
-    printf("EX forwarding 1: dest=%hu, value=0x%08x", (uint16_t)(gp_pipe->id_in.mem_fwd.freg), gp_pipe->id_in.mem_fwd.fdata);
+    printf("EX forwarding 0: dest=%hu, value=0x%08x", (uint16_t)(gp_pipe->ex_fwd[0].freg), gp_pipe->ex_fwd[0].fdata);
+    printf("EX forwarding 1: dest=%hu, value=0x%08x", (uint16_t)(gp_pipe->ex_fwd[1].freg), gp_pipe->ex_fwd[1].fdata);
+    printf("EX forwarding 1: dest=%hu, value=0x%08x", (uint16_t)(gp_pipe->mem_fwd.freg), gp_pipe->mem_fwd.fdata);
     return;
 }
 

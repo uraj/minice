@@ -1,5 +1,5 @@
-#ifndef __MINIEMU_FETCH_H__
-#define __MINIEMU_FETCH_H__
+#ifndef __MINISIM_FETCH_H__
+#define __MINISIM_FETCH_H__
 
 #include <pipeline/globdefs.h>
 

@@ -1,5 +1,5 @@
-#ifndef __MINIEMU_PIPELINE_H__
-#define __MINIEMU_PIPELINE_H__
+#ifndef __MINISIM_PIPELINE_H__
+#define __MINISIM_PIPELINE_H__
 
 #include <pipeline/fetch.h>
 #include <pipeline/decode.h>

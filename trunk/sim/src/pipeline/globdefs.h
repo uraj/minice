@@ -1,5 +1,5 @@
-#ifndef __MINIEMU_GLOBDEFS_H__
-#define __MINIEMU_GLOBDEFS_H__
+#ifndef __MINISIM_GLOBDEFS_H__
+#define __MINISIM_GLOBDEFS_H__
 
 #include <stdint.h>
 
@@ -70,8 +70,6 @@ typedef struct
     StageInfo sinfo;
     int bubble;
     instr instruction;
-    FwdData ex_fwd[2];
-    FwdData mem_fwd;
 } ID_input;
 
 #define ALU_NOP 0xffU
@@ -187,6 +185,9 @@ typedef struct
 
 typedef struct
 {
+    FwdData ex_fwd[2];
+    FwdData mem_fwd;
+    
     ID_input id_in;
     EX_input ex_in;
     MEM_input mem_in;

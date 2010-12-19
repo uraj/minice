@@ -1,5 +1,5 @@
-#ifndef __MINIEMU_EXECUTE_H__
-#define __MINIEMU_EXECUTE_H__
+#ifndef __MINISIM_EXECUTE_H__
+#define __MINISIM_EXECUTE_H__
 
 #include <pipeline/globdefs.h>
 

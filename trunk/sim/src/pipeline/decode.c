@@ -86,8 +86,9 @@ static InstrType get_instr_type(instr code)
     }
 }
 
+
 /* detect data hazard, return 1: hazard exists, stall the pipeline; return 0: secure */
-static int read_register(const RegFile * storage, const PipeState * pipe_state, uint8_t reg_index, uint32_t * dest)
+int read_register(const RegFile * storage, const PipeState * pipe_state, uint8_t reg_index, uint32_t * dest)
 {
     /* laod interlock */
     if((pipe_state->mem_in.bubble == 0 ) &&
@@ -95,14 +96,14 @@ static int read_register(const RegFile * storage, const PipeState * pipe_state, 
        (reg_index == pipe_state->mem_in.wb_val_mem_dest))
         return 1;
     /* search EX forwarding queue's first slot */
-    if(reg_index == pipe_state->id_in.ex_fwd[0].freg)
-        *dest = pipe_state->id_in.ex_fwd[0].fdata;
+    if(reg_index == pipe_state->ex_fwd[0].freg)
+        *dest = pipe_state->ex_fwd[0].fdata;
     /* then search MEM forwading slot */
-    else if(reg_index == pipe_state->id_in.mem_fwd.freg)
-        *dest = pipe_state->id_in.mem_fwd.fdata;
+    else if(reg_index == pipe_state->mem_fwd.freg)
+        *dest = pipe_state->mem_fwd.fdata;
     /* then search EX forwarding queue's second slot */
-    else if(reg_index == pipe_state->id_in.ex_fwd[1].freg)
-        *dest = pipe_state->id_in.ex_fwd[1].fdata;
+    else if(reg_index == pipe_state->ex_fwd[1].freg)
+        *dest = pipe_state->ex_fwd[1].fdata;
     /* regular read */
     else
         *dest = storage->reg[reg_index];
