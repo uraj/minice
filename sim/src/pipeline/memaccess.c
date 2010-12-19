@@ -9,7 +9,7 @@ int MEMStage(RegFile * storage, PipeState * pipe_state)
     {
         pipe_state->wb_in.bubble = 1;
         pipe_state->id_in.mem_fwd.freg = 0xff;
-        return 1;
+        return 0;
     }
     else
         pipe_state->wb_in.bubble = 0;
@@ -22,7 +22,7 @@ int MEMStage(RegFile * storage, PipeState * pipe_state)
     pipe_state->id_in.mem_fwd.freg = 0xff;
     
     if(pipe_state->mem_in.addr_sel == 2)
-        return 1;
+        return 0;
     else
     {
         if(pipe_state->mem_in.load) /* load */
@@ -78,5 +78,5 @@ int MEMStage(RegFile * storage, PipeState * pipe_state)
             }
         }
     }
-    return 1;
+    return 0;
 }

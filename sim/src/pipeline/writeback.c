@@ -4,7 +4,7 @@
 int WBStage(RegFile * storage, PipeState * pipe_state)
 {
     if(pipe_state->wb_in.bubble)
-        return 1;
+        return 0;
     switch(pipe_state->wb_in.dest_sel)
     {
         case WB_ValEx:
@@ -26,6 +26,5 @@ int WBStage(RegFile * storage, PipeState * pipe_state)
         default:
             exit(4);
     }
-    return 1;
+    return 0;
 }
-

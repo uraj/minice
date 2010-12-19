@@ -160,7 +160,7 @@ int EXStage(RegFile * storage, PipeState * pipe_state)
         /* data forwarding */
         pipe_state->id_in.ex_fwd[1] = pipe_state->id_in.ex_fwd[0];
         pipe_state->id_in.ex_fwd[0].freg = 0xffU;
-        return 1;
+        return 0;
     }
     pipe_state->mem_in.bubble = 0;
     FwdData ex_fwd;
@@ -192,7 +192,7 @@ int EXStage(RegFile * storage, PipeState * pipe_state)
         pipe_state->id_in.ex_fwd[1] = pipe_state->id_in.ex_fwd[0];
         pipe_state->id_in.ex_fwd[0] = ex_fwd;
             
-        return 2;
+        return 1;
     }
     else if(pipe_state->ex_in.aluopcode != ALU_NOP)
     {
@@ -227,7 +227,7 @@ int EXStage(RegFile * storage, PipeState * pipe_state)
             pipe_state->id_in.ex_fwd[1] = pipe_state->id_in.ex_fwd[0];
             pipe_state->id_in.ex_fwd[0] = ex_fwd;
         }
-        return 1;
+        return 0;
     }
-    return 1;
+    return 0;
 }

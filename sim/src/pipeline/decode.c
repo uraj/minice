@@ -50,7 +50,8 @@ static InstrType get_instr_type(instr code)
         case 5U:
             return Branch_Cond;
         default:
-            exit(1);
+            fprintf(stderr, "invalid instruction: 0x%08x\n", code);
+            exit(2);
     }
   L1:
     switch(GET_FIELD(code, 8, 8))
@@ -66,7 +67,8 @@ static InstrType get_instr_type(instr code)
             else if(GET_FIELD(code, 28, 26) == 4U)
                 return Branch_Ex;
         default:
-            exit(1);
+            fprintf(stderr, "invalid instruction: 0x%08x\n", code);
+            exit(2);
     }
   L2:
     switch(GET_FIELD(code, 8, 8))
@@ -79,7 +81,8 @@ static InstrType get_instr_type(instr code)
             else
                 return LS_Hw_ImmOff;
         default:
-            exit(1);
+            fprintf(stderr, "invalid instruction: 0x%08x\n", code);
+            exit(2);
     }
 }
 
@@ -191,7 +194,7 @@ static uint32_t gen_operand2(RegFile * storage, const PipeState * pipe_state, co
             stype = RotateRight;
             break;
         default:
-            exit(1);
+            exit(2);
     }
     switch(itype)
     {
@@ -264,7 +267,7 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
     if(pipe_state->id_in.bubble == 1)
     {
         pipe_state->ex_in.bubble = 1;
-        return 1;
+        return 0;
     }
     InstrType itype = get_instr_type(pipe_state->id_in.instruction);
     InstrFields ifields = get_fields(pipe_state->id_in.instruction);
@@ -283,7 +286,7 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
         printf("%d\n", data);
         fflush(stdout);
         storage->reg[PC] = storage->reg[LR];
-        return 1;
+        return 0;
     }
     
     /* branch */
@@ -296,7 +299,7 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
             if(data_hazard)
             {
                 pipe_state->ex_in.bubble = 1;
-                return -1;
+                return 1;
             }
             storage->reg[LR] = data;
         }
@@ -304,11 +307,11 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
         if(data_hazard)
         {
             pipe_state->ex_in.bubble = 1;
-            return -1;
+            return 1;
         }
         storage->reg[PC] = data;
         storage->reg[PC] &= 0xfffffffcU; /* PC word align */
-        return 1;
+        return 0;
     }
     else if(itype == Branch_Cond)
     {
@@ -321,7 +324,7 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
                 if(data_hazard)
                 {
                     pipe_state->ex_in.bubble = 1;
-                    return -1;
+                    return 1;
                 }
                 storage->reg[LR] = data;
             }
@@ -330,7 +333,7 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
                 offset |= 0xfc000000U;
             storage->reg[PC] += offset;
         }
-        return 1;
+        return 0;
     }
     
     pipe_state->ex_in.bubble = 0;
@@ -343,14 +346,14 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
         if(data_hazard)
         {
             pipe_state->ex_in.bubble = 1;
-            return -1;
+            return 1;
         }
         pipe_state->ex_in.val_rn = data;
         data_hazard = read_register(storage, pipe_state, ifields.rm, &data);
         if(data_hazard)
         {
             pipe_state->ex_in.bubble = 1;
-            return -1;
+            return 1;
         }
         pipe_state->ex_in.val_rm = data;
         
@@ -361,7 +364,7 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
             if(data_hazard)
             {
                 pipe_state->ex_in.bubble = 1;
-                return -1;
+                return 1;
             }
             pipe_state->ex_in.val_rs = data;
         }
@@ -369,7 +372,7 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
             pipe_state->ex_in.mulop = Mul;
         
         pipe_state->ex_in.aluopcode = ALU_NOP;
-        return 1;
+        return 0;
     }
     else
         pipe_state->ex_in.mulop = MulNop;
@@ -382,7 +385,7 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
         if(data_hazard)
         {
             pipe_state->ex_in.bubble = 1;
-            return -1;
+            return 1;
         }
         else
             pipe_state->ex_in.operand1 = data;
@@ -392,7 +395,7 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
     if(data_hazard)
     {
         pipe_state->ex_in.bubble = 1;
-        return -1;
+        return 1;
     }
     else
         pipe_state->ex_in.operand2 = data;
@@ -414,7 +417,7 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
             if(data_hazard)
             {
                 pipe_state->ex_in.bubble = 1;
-                return -1;
+                return 1;
             }
             else
                 pipe_state->ex_in.val_rd = data;
@@ -423,5 +426,5 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
     else
         pipe_state->ex_in.aluopcode = ifields.opcode;
 
-    return 1;
+    return 0;
 }
