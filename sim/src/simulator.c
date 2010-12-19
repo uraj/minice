@@ -158,7 +158,7 @@ void print_stat_info(const StatInfo * stat_info)
 
 inline void usage()
 {
-    fprintf(stderr, "Usage: minisim [-d] [-t] -f FILE\n");
+    fprintf(stderr, "Usage: minisim [-s] [-d] [-t] -f FILE\n");
     return;
 }
 

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <setjmp.h>
 #include <console/console.h>
+#include <console/bptree.h>
 #include <memory/vmem.h>
 
 #define BP_MAX 10
@@ -105,13 +106,12 @@ void console()
     static size_t bufsize = 32;
     static char uinput[32];
     /* breakpoint */
-    BpTree * bpoints = NULL;
+    static BpTree * bpoints = NULL;
     
     int bp_count = 0;
     
     /* trap and continue */
-    static int trap = 0;
-    static unsigned int con = 0;
+    static int trap = 1;
     
     char * temp = uinput;
     int argc;
@@ -123,13 +123,8 @@ void console()
         goto L_enterconsole;
     }
     /* search break points */
-    if(bp_search(bpoints, gp_reg.reg[31]))
-    {
-        if(con != 0)
-            --con;
-        else
-            goto L_enterconsole;
-    }
+    if(bp_search(bpoints, gp_reg->reg[31]))
+        goto L_enterconsole;
     
     return;
     
@@ -143,19 +138,21 @@ void console()
     
     switch(uinput[0])
     {
-        case 'b':               /* set break points */
+        case 'b':               /* set break points */                
             if(bp_count < BP_MAX)
             {
-                if(bp_add(&bpoints, gp_reg->reg[31]))
-                    printf("break point added: 0x%08x\n", gp_reg->reg[31]);
+                if(sscanf(uinput + 1, "%x", &arg1) == 0)
+                    arg1 = gp_reg->reg[31];
+                if(bp_add(&bpoints, arg1))
+                    printf("break point added: 0x%08x\n", arg1);
                 else
-                    printf("a break point has already been set at 0x%08X\n" gp_reg->reg[31]);
+                    printf("a break point has already been set at 0x%08x\n", arg1);
             }
             else
                 puts("break point slot full.");
             goto L_getinput;
         case 'd':
-            if(sscanf(uinput + 1, "%u", arg1) == 0)
+            if(sscanf(uinput + 1, "%x", &arg1) == 0)
                 puts("bad command.");
             else if(bp_del(&bpoints, arg1))
                 printf("break ponit deleted: 0x%08x\n", arg1);
@@ -166,10 +163,6 @@ void console()
             puts("sim quit");
             exit(0);
         case 'c':
-            if(sscanf(uinput + 1, "%u", &con) == 0)
-                con = 0;
-            else
-                --con;
             return;
         case 'n':
             trap = 1;
@@ -187,7 +180,7 @@ void console()
                     pfwd();
                     goto L_getinput;
                 case 's':       /* print stage */
-                    argc = sscanf(uinput + 1, "%x %x", &arg1, &arg2);
+                    argc = sscanf(uinput + 2, "%x %x", &arg1, &arg2);
                     if(argc == 0)
                         puts("print stack: no address given.\n");
                     if(argc == 1)
@@ -207,8 +200,7 @@ void console()
             {
                 case 'y':
                 case 'Y':
-                    con = 0;    /* static */
-                    
+                    trap = 1;   /* static */
                     flush_stdin();
                     longjmp(beginning, 1); /* restart */
                     break;
