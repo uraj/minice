@@ -1,5 +1,5 @@
-#ifndef __MINISIM_CONSOLE_H__
-#define __MINISIM_CONSOLE_H__
+#ifndef __MINISIM_INTERACT_H__
+#define __MINISIM_INTERACT_H__
 
 #include <pipeline.h>
 
