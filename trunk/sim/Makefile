@@ -2,8 +2,8 @@ CFLAGS=-c
 CFLAGS+=-Wall
 CFLAGS+=-Isrc
 OBJ_DIR=objs/
-SIM_OBJS=$(OBJ_DIR)console.o $(OBJ_DIR)fetch.o $(OBJ_DIR)decode.o $(OBJ_DIR)control.o $(OBJ_DIR)execute.o $(OBJ_DIR)memaccess.o $(OBJ_DIR)writeback.o $(OBJ_DIR)elfmanip.o $(OBJ_DIR)vmem.o $(OBJ_DIR)memory.o $(OBJ_DIR)simulator.o
-SIM_OBJS_DB=$(OBJ_DIR)console.db $(OBJ_DIR)fetch.db $(OBJ_DIR)decode.db $(OBJ_DIR)control.db $(OBJ_DIR)execute.db $(OBJ_DIR)memaccess.db $(OBJ_DIR)writeback.db $(OBJ_DIR)elfmanip.db $(OBJ_DIR)vmem.db $(OBJ_DIR)memory.db $(OBJ_DIR)simulator.db
+SIM_OBJS=$(OBJ_DIR)console.o $(OBJ_DIR)fetch.o $(OBJ_DIR)decode.o $(OBJ_DIR)control.o $(OBJ_DIR)execute.o $(OBJ_DIR)memaccess.o $(OBJ_DIR)writeback.o $(OBJ_DIR)elfmanip.o $(OBJ_DIR)vmem.o $(OBJ_DIR)memory.o $(OBJ_DIR)simulator.o $(OBJ_DIR)bptree.o
+SIM_OBJS_DB=$(OBJ_DIR)console.db $(OBJ_DIR)fetch.db $(OBJ_DIR)decode.db $(OBJ_DIR)control.db $(OBJ_DIR)execute.db $(OBJ_DIR)memaccess.db $(OBJ_DIR)writeback.db $(OBJ_DIR)elfmanip.db $(OBJ_DIR)vmem.db $(OBJ_DIR)memory.db $(OBJ_DIR)simulator.db $(OBJ_DIR)bptree.db
 
 sim:$(SIM_OBJS_DB)
 	gcc -DDEBUG $(SIM_OBJS_DB) -o $@
@@ -29,6 +29,8 @@ $(OBJ_DIR)simulator.db:src/simulator.c
 	gcc -DDEBUG src/simulator.c $(CFLAGS) -g -o $@
 $(OBJ_DIR)console.db:src/console/console.c src/console/console.h
 	gcc -DDEBUG src/console/console.c $(CFLAGS) -g -o $@
+$(OBJ_DIR)bptree.db:src/console/bptree.c src/console/bptree.h
+	gcc src/console/bptree.c $(CFLAGS) -g -o $@
 
 sim-re:$(SIM_OBJS)
 	gcc $(SIM_OBJS) -O2 -o sim-re
@@ -54,3 +56,5 @@ $(OBJ_DIR)simulator.o:src/simulator.c
 	gcc src/simulator.c $(CFLAGS) -O2 -o $@
 $(OBJ_DIR)console.o:src/console/console.c src/console/console.h
 	gcc src/console/console.c $(CFLAGS) -O2 -o $@
+$(OBJ_DIR)bptree.o:src/console/bptree.c src/console/bptree.h
+	gcc src/console/bptree.c $(CFLAGS) -O2 -o $@
