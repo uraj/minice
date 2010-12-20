@@ -19,7 +19,7 @@
 //#define DEBUG
 //#define SHOWBNF
 //#define SHOWLOCALCODE
-#define SHOWCODE
+//#define SHOWCODE
 
 const size_t MAXIDLEN = 31; /* 31 is the minimum length supported by compilers according to ANCI C standard */
 
@@ -637,12 +637,14 @@ int main(int argc, char* argv[])
         for(j = 0 ; j < map_id_num ; j++)
              printf("map_id%d is in regester%d\n" , j , alloc_reg.result[j]);
         printf("\ntotally consume %d regesters\n" , alloc_reg.consume);
+        
+        printf("varlist:\n");
         for(j = 0 ; j < curfun_expr_num ; j++)
         {
-             var_list_print(curfun_actvar_lists + j);
-             var_list_free_bynode(curfun_actvar_lists[j].head);
+            var_list_print(curfun_actvar_lists + j);
+            var_list_free_bynode(curfun_actvar_lists[j].head);
         }
-        
+        printf("varlist ends.\n");
         free(curfun_actvar_lists);
 	}
     syms_delete(parm_stack);
