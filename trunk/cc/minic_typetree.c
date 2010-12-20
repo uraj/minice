@@ -5,15 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct typetree * typet_new_type(enum data_type newtype)
+inline struct typetree * typet_new_type(enum data_type newtype)
 {
-	struct typetree * newtree = malloc(sizeof(struct typetree));
+	struct typetree * newtree = calloc(sizeof(struct typetree), 1);
 	newtree -> type = newtype;
-    newtree -> size = 0;
-    newtree -> return_type = NULL;
-    newtree -> parm_list = NULL;
-    newtree -> base_type = NULL;
-    newtree -> next_parm = NULL;
 	return newtree;
 }
 
@@ -31,9 +26,11 @@ struct typetree * typet_typetree_dup(const struct typetree * src)
             case Array:
                 obj -> size = src -> size;
                 obj -> base_type = typet_typetree_dup(src -> base_type);
+                obj -> return_type = NULL;
                 break;
             case Pointer:
                 obj -> base_type = typet_typetree_dup(src -> base_type);
+                obj -> return_type = NULL;
                 break;
             case Function:
                 obj -> return_type = typet_typetree_dup(src -> return_type);

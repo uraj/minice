@@ -1,6 +1,7 @@
 #include "minic_regalloc.h"
 #include <stdlib.h>
 #include <memory.h>
+#include <stdio.h>
 
 typedef struct
 {
@@ -36,12 +37,12 @@ static char ** igraph_m_construct(struct var_list * vlist, int size, int var_num
         struct var_list_node * ofocus = vlist[i].head;
         do
         {
-            struct var_list_node * ifocus = ofocus->next;
-            while(ifocus != vlist[i].tail)
+            struct var_list_node * ifocus = ofocus;
+            do
             {
-                igraph_m[ifocus->var_map_index][ofocus->var_map_index] = 1;
                 ifocus = ifocus->next;
-            }
+                igraph_m[ifocus->var_map_index][ofocus->var_map_index] = 1;
+            }while(ifocus != vlist[i].tail);
             ofocus = ofocus->next;
         }
         while(ofocus != vlist[i].tail);     
@@ -143,8 +144,9 @@ static void delete_node(char ** var_set, int n, int node)
 
 int color_interfer_graph(struct adjlist ** ig, int * alloc_info, const int max_reg, int * stack, const int top)
 {
-    int i, j;
+    int i, j, ret = 0;
     char * color = malloc(sizeof(char) * max_reg);
+    char * used = calloc(sizeof(char), max_reg);
     struct adjlist * temp = NULL;
     for(i = 0; i < top; ++i)
     {
@@ -159,8 +161,13 @@ int color_interfer_graph(struct adjlist ** ig, int * alloc_info, const int max_r
         for(j = 1; j <= max_reg && color[j - 1] != 0; ++j)
             ;
         alloc_info[stack[i]] = j;
+        used[j - 1] = 1;
     }
-    return 0;
+    free(color);
+    for(i = 0; i < max_reg; ++i)
+        ret += used[i];
+    free(used);
+    return ret;
 }
 
 static int check(struct adjlist ** ig, int * alloc_info, int n)
@@ -188,7 +195,8 @@ static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** igl
     ret.result = calloc(sizeof(int), n);
     int * statck = malloc(n * sizeof(int));
     isort_elem * elem = malloc(n * sizeof(isort_elem));
-    int top = 0, left = n, i, j;
+    int top = 0, left = n, i;
+    
     while(left > 0)
     {
         get_degree((const char **)igmatrix, n, elem);
@@ -224,11 +232,22 @@ static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** igl
 
 struct ralloc_info reg_alloc(struct var_list * vlist, int vlist_size, int var_num, const int max_reg)
 {
-    char ** igraph_m = igraph_m_construct(vlist, vlist_size, var_num);
+    char ** igraph_m = igraph_m_construct(vlist, vlist_size, var_num);    
     struct adjlist ** igraph_l = igraph_l_construct(igraph_m, var_num);
     struct ralloc_info ret;
     ret = reg_alloc_core(igraph_m, igraph_l, var_num, max_reg);//*******************8
     free_igraph_m(igraph_m, var_num);
     free_igraph_l(igraph_l, var_num);
     return ret;
+}
+
+void pm(char ** m, int var_num)
+{
+    int i, j;
+    for(i = 0; i < var_num; ++i)
+    {
+        for(j = 0; j < i; ++j)
+            printf("%d ", (int)m[i][j]);
+        printf("\n");
+    }
 }
