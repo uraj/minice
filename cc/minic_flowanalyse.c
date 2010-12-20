@@ -634,7 +634,6 @@ static void initial_func_var(int func_index)//通过函数index获得当前函�
           }
           var_list_sort(temp_var_info->ref_point , var_list_count(temp_var_info->ref_point));
           var_list_del_repeate(temp_var_info->ref_point);
-          printf("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
           var_list_print(temp_var_info->ref_point);
      }
 }
