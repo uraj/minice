@@ -15,6 +15,7 @@
 #include "minic_basicblock.h"
 #include "minic_flowanalyse.h"
 #include "minic_aliasanalyse.h"
+     #include "minic_regalloc.h"
 //#define DEBUG
 //#define SHOWBNF
 //#define SHOWLOCALCODE
@@ -629,9 +630,20 @@ int main(int argc, char* argv[])
 		pointer_analyse(i);	
 		curfun_actvar_lists = analyse_actvar(&curfun_expr_num , i);
         /*here is the register allotting and the assemble codes generating*/
-        //for(j = 0 ; j < curfun_expr_num ; j++)
-        //     var_list_free_bynode(curfun_actvar_lists[j].head);
-        //free(curfun_actvar_lists);
+
+        int map_id_num = get_ref_var_num();
+        struct ralloc_info alloc_reg = reg_alloc(curfun_actvar_lists , curfun_expr_num , map_id_num , 27);
+        printf("\n");
+        for(j = 0 ; j < map_id_num ; j++)
+             printf("map_id%d is in regester%d\n" , j , alloc_reg.result[j]);
+        printf("\ntotally consume %d regesters\n" , alloc_reg.consume);
+        for(j = 0 ; j < curfun_expr_num ; j++)
+        {
+             var_list_print(curfun_actvar_lists + j);
+             var_list_free_bynode(curfun_actvar_lists[j].head);
+        }
+        
+        free(curfun_actvar_lists);
 	}
     syms_delete(parm_stack);
     syms_delete(type_stack);

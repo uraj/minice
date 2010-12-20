@@ -227,7 +227,7 @@ struct ralloc_info reg_alloc(struct var_list * vlist, int vlist_size, int var_nu
     char ** igraph_m = igraph_m_construct(vlist, vlist_size, var_num);
     struct adjlist ** igraph_l = igraph_l_construct(igraph_m, var_num);
     struct ralloc_info ret;
-    reg_alloc_core(igraph_m, igraph_l, var_num, max_reg);
+    ret = reg_alloc_core(igraph_m, igraph_l, var_num, max_reg);//*******************8
     free_igraph_m(igraph_m, var_num);
     free_igraph_l(igraph_l, var_num);
     return ret;
