@@ -4,6 +4,8 @@
 #include <stdio.h>
 #define INITIAL_MACH_CODE_SIZE 100
 #define MAX_LABEL_NAME_LEN 20
+#define SP 29
+#define FP 27
 
 enum Arg_Flag
 {
@@ -12,14 +14,14 @@ enum Arg_Flag
 	Arg_Mem
 };
 
-struct reg_dpt
+struct Reg_Dpt
 {
 	int content;
 	int dirty;
 };
 
 static struct ralloc_info alloc_reg;
-static int reg_dpt[32];//register discription
+static struct Reg_Dpt reg_dpt[32];//register discription
 static int cur_sp;
 static int total_label_num;//set zero in new_code_table_list 
 
@@ -233,6 +235,9 @@ static inline int ref_jump_dest(int expr_id)//get the label for jump dest
 /************************** deal with label end *************************/
 
 
+
+
+
 /**************************** gen load var beg *****************************/
 static inline int push_temp_var(int var_index);//push to stack and mark the varinfo
 {
@@ -245,9 +250,38 @@ static inline void pop_temp_var();
 {
 }
 
-static inline void load_global_var();
-static inline void store_global_var();
+static inline void load_global_var(struct var_info * g_v_info, int reg_num)
+{
+	struct value_info * tmp_info = get_valueinfo_byno(cur_func_info -> func_symt, g_v_info -> index); 
+	int offset = g_v_info -> mem_addr;
+	struct mach_arg address, null;
+	address.type = Mach_Label;
+	address.label = gen_new_var_offset(offset);
+	null.type = Unused;
+	insert_mem_code(LDW, reg_num, address, null, null, 0, NO);
+	if(tmp_info -> type -> type == Char)
+		insert_mem_code(STB, reg_num, reg_num, null, null, 0, NO);
+	else insert_mem_code(STW, reg_num, reg_num, null, null, 0, NO);
+}
+
+static inline void store_global_var(struct var_info * g_v_info, int reg_num)
+{
+	struct value_info * tmp_info = get_valueinfo_byno(cur_func_info -> func_symt, g_v_info -> index); 
+	int offset = g_v_info -> mem_addr;
+	int tmp_reg_num = gen_tempreg(&reg_num, 1);
+	struct mach_arg address, null;
+	address.type = Mach_Label;
+	address.label = gen_new_var_offset(offset);
+	null.type = Unused;
+	insert_mem_code(LDW, tmp_reg_num, address, null, null, 0, NO);
+	if(tmp_info -> type -> type == Char)
+		insert_mem_code(STB, reg_num, tmp_reg_num, null, null, 0, NO);
+	else insert_mem_code(STW, reg_num, tmp_reg_num, null, null, 0, NO);
+	restore_tempreg(tmp_reg_num);
+}
 /**************************** gen load var end *****************************/
+
+
 
 /************************** get temp reg begin ***********************/
 static inline int gen_tempreg(int * except, int size);//general an temp reg for the var should be in memory
@@ -293,25 +327,15 @@ static inline void check_reg(int reg_num)//must deal with dirty and has_refed be
 	int var_index = reg_dpt[reg_num].content;
 	if(is_global(var_index) && reg_dpt[reg_num].dirty)//the reg with string cann't be dirty, so the index here can only be g_var
 	{
-		struct value_info * tmp_info = get_valueinfo_byno(simb_table, var_index);//index = id for global var
-		int offset = ref_global_var(var_index);
-		int tmp_reg_num = gen_tempreg(reg_num);
-		struct mach_arg address, null;
-		address.type = Mach_Label;
-		address.label = gen_new_var_offset(offset);
-		null.type = Unused;
-		insert_mem_code(LDW, tmp_reg_num, address, null, null, 0, NO);
-		if(tmp_info -> type -> type == Char)
-			insert_mem_code(STB, reg_num, tmp_reg_num, null, null, 0, NO);
-		else insert_mem_code(STW, reg_num, tmp_reg_num, null, null, 0, NO);
-		restore_tempreg(tmp_reg_num);
+		struct var_info * tmp_info = get_info_from_index(var_index); 
+		store_global_var(tmp_info, reg_num);
 	}
 }//mark************************************************************
 
-static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struct var_info * arg_info, int arg_type)/* arg_type : 0=>dest, 1=>normal */
+static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struct var_info * arg_info, int arg_type)/* arg_type : 0=>dest, 1=>normal *///ref_global_var!!!
 {
 	enum Arg_Flag flag;
-	
+	//ref_gloal_var	
 	if(alloc_reg.result[arg_index] != -1)
 	{
 		flag = Arg_Reg;
@@ -333,11 +357,11 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 	else
 	{
 		flag = Arg_Mem;
-		if(arg_info -> mem_addr == -1)
+		if(arg_info -> mem_addr == INITIAL_MEM_ADDR)
 		{
 			if(!isglobal(arg_index))
 			{
-				/* push and mark*/
+				/* push and mark */
 			}
 		}
 	}
@@ -545,53 +569,113 @@ static void gen_per_code(struct triargexpr * expr)
 		case Minus:                      /* -  */	
 		case Mul:                        /* *  */
 			{
-				int tempreg1, tmpreg2;
-				int except[2];
+				int tempreg1 = arg1_info -> reg_addr, tmpreg2 = arg2_info -> arg2_info -> reg_addr;
+				int mark1 = 0, mark2 = 0;
+				int except[3];
 				int ex_size = 0;
 				if(dest_flag == Arg_Reg)
+					except[ex_size++] = dest_info -> reg_addr;
+				if(arg1_flag == Arg_Reg)
+					except[ex_size++] = tempreg1;
+				if(arg2_flag == Arg_Reg)
+					except[ex_size++] = tempreg2;
+
+				if(arg1_flag != Arg_Reg)
 				{
-					if(arg1_flag != Arg_Reg)
-					{
-						except[ex_size++] = dest_info -> reg_addr;
-						dest_info -> reg_addr = gen_tempreg(except, ex_size);
-						if(arg1_flag == Arg_Mem)
-						{
-							if(isglobal(arg1_index))
-							{
-								struct mach_arg tmp_arg1, null;
-								tmp_arg1.type = Mach_Label;
-								tmp_arg1.label = gen_new_var_offset(arg1_info -> mem_addr);
-								insert(LDW, dest_info -> reg_addr, tmp_arg1, null, null, 0, NO);
-							}
-							else if(arg1_flag == Arg_Imm)//Only one Imm
-							{
-								struct mach_arg tmp_arg1, null;
-								tmp_arg1.type = Mach_Imm;
-								tmp_arg1.imme = expr -> arg1.imme;
-								insert(MOV, dest_info -> reg_addr, null, tmp_arg1.imme, 0, NO);
-							}
-						}
-					}
+					tempreg1 = gen_tempreg(except, ex_size);
+					mark1 = 1;
+					except[ex_size++] = tempreg1;
+				}
 
-					if(arg2_flag == Arg_Imm)
-					{
-						except[ex_size++] = 
-						/* lod tempreg */;
-					else if(arg2_flag == Arg_IMm)
-					/* mov immd tempreg */;
+				if(arg2_flag != Arg_Reg)
+				{
+					tempreg2 = gen_tempreg(except, ex_size);
+					mark2 = 1;
+					except[ex_size++] = tempreg2;
+				}
 
-					/* add or sub or mul */;
+				struct mach_arg tmp_fp, tmp_offset;
 				
-					
+				if(arg1_flag == Arg_Mem)
+				{
+					if(isglobal(arg1_index))
+						load_global_var(arg1_info, tempreg1);
+					else
+					{
+						tmp_fp.type = Mach_Reg;
+						tmp_fp.reg = FP;//need width later
+						tmp_offset.type = Mach_Imm;
+						tmp_offset.imme = arg1_info -> mem_addr;
+						insert_mem_code(LDW, tempreg1, tmp_fp, tmp_offset, null, 1, NO);
+					}
+				}
+				else if(arg1_flag == Arg_Imm)//Only one Imm
+				{
+					tmp_arg1.type = Mach_Imm;
+					tmp_arg1.imme = expr -> arg1.imme;
+					insert_dp_code(MOV, tempreg1, null, tmp_arg1.imme, 0, NO);
+				}
+			
+				if(arg2_flag == Arg_Mem)
+				{
+					if(isglobal(arg2_index))
+						load_global_var(arg2_info, tempreg2);
+					else
+					{
+						tmp_fp.type = Mach_Reg;
+						tmp_fp.reg = FP;
+						tmp_offset.type = Mach_Imm;
+						tmp_offset.imme = arg2_info -> mem_addr;
+						insert_mem_code(LDW, tempreg2, tmp_fp, tmp_offset, null, 1, NO);
+					}
+				}
+				else if(arg2_flag == Arg_Imm)//Only one Imm
+				{
+					tmp_arg2.type = Mach_Imm;
+					tmp_arg2.imme = expr -> arg1.imme;
+					insert_dp_code(MOV, tempreg2, null, tmp_arg2.imme, 0, NO);
+				}	
+
+				enum mach_op_type op_type;
+				switch(expr -> op)
+				{
+					case Plus:
+						op_type = ADD;
+						break;
+					case Minus:
+						op_type = SUB;
+						break;
+					case Mul:
+						op_type = MUL;
+						break;
+				}
+
+				if(dest_flag == Arg_Reg)
+				{
+					reg_dpt[dest_info -> reg_addr].dirty = 1;
+					insert_dp_code(op_type, dest_info -> reg_addr, tempreg1, tempreg2, NO);
 				}
 				else
 				{
-					/* add or sub to tempreg */;
-					/* str */;
-					/* restore tempreg */;
+					int tempdest;
+					if(mark1)
+						tempdest = tempreg1;
+					else if(mark2)
+						tempdest = tempreg2;
+					else tempdest = gen_tempreg(except, ex_size);
+					insert_dp_code(op_type, tempdest, tempreg1, tempreg2, 0, NO);	
+					tmp_fp.type = Mach_Reg;
+					tmp_fp.reg = FP;//need width later
+					tmp_offset.type = Mach_Imm;
+					tmp_offset.imme = dest_info -> mem_addr;
+					insert_mem_code(STW, tempdest, tmp_arg1, tmp_offset, null, 1, NO);   
+					if(!mark1 && !mark2)
+						restore_tempreg(tempdest);
 				}
-				/* restore tempreg for arg2 */;
-				/* restore tempreg for arg1 */;
+				if(mark1)
+					restore_tempreg(tempreg1);
+				if(mark2)
+					restore_tempreg(tempreg2);
 				break;
 			}
 
