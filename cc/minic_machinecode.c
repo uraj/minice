@@ -332,7 +332,7 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 
 static void gen_per_code(struct triargexpr * expr)
 {
-	struct int dest_index, arg1_index, arg2_index;
+    int dest_index, arg1_index, arg2_index;
 	struct var_info * dest_info, * arg1_info, * arg2_info; 
 	enum arg_flag dest_flag, arg1_flag, arg2_flag;
 
