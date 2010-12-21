@@ -14,9 +14,14 @@ enum Arg_Flag
 
 struct global_var_dpt
 {
-	int dirty;
 	int last_ref;
 	char has_refed;
+};
+
+struct reg_dpt
+{
+	int content;
+	int dirty;
 };
 
 static struct ralloc_info alloc_reg;
@@ -27,7 +32,7 @@ static int total_tag_num;//set zero in new_code_table_list
 static struct global_var_dpt * g_var_dpt;
 static int * global_var_tag_offset;
 static int ref_g_var_num;
-static int global_var_tag;
+static char * global_var_tag;
 
 static struct triargtable * cur_table;
 static int value_info * cur_func_info;
@@ -40,6 +45,8 @@ static var_list * active_var_array;
 static const int max_reg_num = 27;
 static int cur_code_index;
 static int cur_code_bound;
+
+/****************************** initial begin ***************************/
 static inline void set_cur_function(int func_index)
 {
 	cur_table = table_list[func_index];
@@ -52,8 +59,7 @@ static inline void set_cur_function(int func_index)
 	g_var_dpt = calloc(g_global_id_num, sizeof(struct global_var_dpt));//need get last ref from active var analyse
 	global_var_tag_offset = calloc(g_global_id_num + string_num, sizeof(int));//need free
 	ref_g_var_num = 0;
-	global_var_tag = total_tag_num ++;//as the head element of the global var
-
+	global_var_tag = gen_new_tag(total_tag_num ++);//as the head element of the global var
 	cur_sp = 0;//just point to bp
 
 	cur_code_index = 0;
@@ -62,15 +68,21 @@ static inline void set_cur_function(int func_index)
 	code_table_list[func_index].code_num = 0;
 	int index;
 	for(index = 0; index < 31; index ++)
-		reg_dpt[index] = -1;
+	{
+		reg_dpt[index].content = -1;
+		reg_dpt[index].dirty = 0;
+	}
 }
 
 static inline void leave_cur_function()
 {
 	free(global_var_tag_offset);
 	free(g_var_dpt);
+	free(global_var_tag);
 }
+/*************************** initial end *******************************/
 
+/*************************** insert code begin *************************/
 static inline void insert_code(struct mach_code newcode)
 {
     if(cur_code_index >= cur_code_bound)
@@ -85,14 +97,96 @@ static inline void insert_code(struct mach_code newcode)
 	code_table_list[cur_func_index].table[cur_code_index++] = newcode;
 }
 
-static inline void insert_tag_code(int tag_num)
+static inline void insert_tag_code(char * tag_name)
 {
 	struct mach_code new_code;
 	new_code.op_type = TAG;
-	new_code.tag_num = tag_num;
+	new_code.tag_name = tag_name;
 	insert_code(new_code);
 }
 
+static inline void insert_dp_code(enum dp_op_type dp_op, int dest, struct mach_arg arg1, struct mach_arg arg2, struct mach_arg arg3, int sign, enum shift_type shift)
+{
+	struct mach_code new_code;
+	new_code.op_type = DP;
+	new_code.dp_op = dp_op;
+	new_code.dest = dest;
+	new_code.arg1 = arg1;
+	new_code.arg2 = arg2;
+	new_code.arg3 = arg3;
+	new_code.sign = sign;
+	new_code.shift = shift;
+	insert_code(newcode);
+}
+
+static inline void insert_cond_dp_code(enum dp_op_type dp_op, int dest, enum condition_type cond, struct mach_arg arg2, struct mach_arg arg3, int sign, enum shift_type shift)
+{
+	struct mach_code new_code;
+	new_code.op_type = DP;
+	new_code.dp_op = dp_op;
+	new_code.dest = dest;
+	new_code.cond = cond;
+	new_code.arg2 = arg2;
+	new_code.arg3 = arg3;
+	new_code.sign = sign;
+	new_code.shift = shift;
+	insert_code(newcode);
+}
+
+static inline void insert_mem_code(enum mem_op_type mem_op, int dest, struct mach_arg arg1, struct mach_arg arg2, struct mach_arg arg3, int offset, enum shift_type shift, enum indexed_type indexed)
+{
+	struct mach_code new_code;
+	new_code.op_type = MEM;
+	new_code.mem_op = mem_op;
+	new_code.dest = dest;
+	new_code.arg1 = arg1;
+	new_code.arg2 = arg2;
+	new_code.arg3 = arg3;
+	new_code.offset = offset;
+	new_code.shift = shift;
+	new_code.indexed = indexed;
+	insert_code(newcode);	
+}
+
+static inline void insert_special_mem_code(enum mem_op_type mem_op, int dest, struct mach_arg arg1, struct mach_arg arg2, struct mach_arg arg3, int offset, enum special_width width, enum indexed_type indexed)
+{
+	struct mach_code new_code;
+	new_code.op_type = MEM;
+	new_code.mem_op = mem_op;
+	new_code.dest = dest;
+	new_code.arg1 = arg1;
+	new_code.arg2 = arg2;
+	new_code.arg3 = arg3;
+	new_code.offset = offset;
+	new_code.width = width;
+	new_code.indexed = indexed;
+	insert_code(newcode);	
+}
+
+static inline void insert_branch_imm_code(enum branch_op_type branch_op, char * dest_tag_name, enum condition_type cond, char link)
+{
+	struct mach_code new_code;
+	new_code.op_type = BRANCH;
+	new_code.branch_op = branch_op;
+	new_code.dest_tag_name = dest_tag_name;
+	new_code.cond = cond;
+	new_code.link = link;
+	insert_code(newcode);
+}
+
+static inline void insert_branch_reg_code(enum branch_op_type branch_op, int dest, char link)
+{
+	struct mach_code new_code;
+	new_code.op_type = BRANCH;
+	new_code.branch_op = branch_op;
+	new_code.dest = dest;
+	new_code.link = link;
+	insert_code(newcode);
+}
+/*************************** insert code over *************************/
+
+
+/****************** deal with global var begin ************************/
 static inline int ref_global_var(int var_id)//get the global var offset
 {
 	struct var_info * id_info = get_info_of_id(var_id);
@@ -104,20 +198,35 @@ static inline int ref_global_var(int var_id)//get the global var offset
 	return id_info -> tag_offset; 
 }
 
-static inline char * check_is_dest(int exprnum)
+static inline char * gen_new_var_offset(int offset)//need free later
+{
+	char tag_name[MAX_TAG_NAME_LEN];
+	strcpy(tag_name, global_var_tag);
+	char tag_num_name[MAX_TAG_NAME_LEN];
+	itoa(offset, tag_num_name, 10);
+	strcat(tag_name, tag_num_name);
+	return strdup(tag_name);
+}
+/******************** deal with global var end ************************/
+
+
+/******************** deal with tag begin *****************************/
+static inline int check_is_dest(int exprnum)//need check every expr before translate
 {
 	struct var_info * expr_info = get_info_of_temp(exprnum);
 	if(expr_info != NULL && expr_info -> tag_num == -2)//means this is a dest
 	{
 		expr_info -> tag_num = total_tag_num ++;
 		insert_tag_code(expr_info -> tag_num); 
+		return 1;
 	}
+	return 0;
 }
 
-static inline char * ref_jump_dest(int expr_id)//get the tag for jump dest
+static inline int ref_jump_dest(int expr_id)//get the tag for jump dest
 {
 	struct var_info * id_info = get_info_of_temp_for_tag(expr_id);
-	return gen_new_tag(id_info -> tagnum);
+	return id_info -> tagnum;
 }
 
 static inline char * gen_new_tag(int tag_num)
@@ -128,78 +237,64 @@ static inline char * gen_new_tag(int tag_num)
 	strcat(tag_name, tag_num_name);
 	return strdup(tag_name);//but need to free later
 }
+/************************** deal with tag end *************************/
 
-static inline struct mach_code_list * new_push_node();//push to stack and mark the varinfo
-static inline load_global_var();
-static inline gen_tempreg();//general an temp reg for the var should be in memory
-static inline restore_tempreg();
-struct mach_code//mach means machine
+/***************************** gen push *******************************/
+static inline int push_temp_var(int var_index);//push to stack and mark the varinfo
 {
-	enum mach_op_type op_type;
-	
-	union
+	if(!isglobal(var_index))
 	{
-		enum dp_op_type dp_op;
-		enum mem_op_type mem_op;
-		enum brach_op_type branch_op;
-	};
 
-	int dest;//only reg
-	
-	union
-	{
-		struct mach_arg arg1;
-		enum condition_type cond;					/* used in condition-jump */
-	};
-		
-	struct mach_arg arg2, arg3;
-	
-	union
-	{
-		uint8_t sign;								/* 1 change sign, 0 not *//* used in dp */
-		uint8_t link;								/* 1 jump and link, 0 not *//* used in branch */
-		uint8_t offet;								/* 1 is +, and 0 is no, -1 is - *//* used in mem */
-	};	
-
-	union
-	{
-		enum shift_type shift;					/* used in data-processing and memory-access*/
-		enum special_width width;
-	};
-
-	enum indexed_type indexed;					/* used in mem */
-	
-	int tag_num;								/* -1 is no */
-};
-
-//static inline struct mach_code * new_dp_code(enum dp_op_type dp_op, int dest)   
-static inline void insert_code_store()
-{
-
-static inline insert_mem_code(enum mem_op_type mem_op, int dest, struct mach_arg arg1, struct mach_arg arg2, struct mach_arg arg3, int offset, enum shift_type shift, enum indexed_type indexed, int tag_num)
-{
-	struct mach_code new_code;
-	new_code.op_type = MEM;
-	new_code.mem_op = mem_op;
-	new_code.dest = dest;
-	new_code.arg1 = arg1;
-	new_code.arg2 = arg2;
-	new_code.arg3 = arg3;
-	new_code.offset = offset;
-	new_code.offset = shift;
-		insert_code(struct mach_code newcode);	
+		return 1;
+	}
+	return 0;
 }
+static inline void pop_temp_var();
+{
+}
+
+static inline void load_global_var();
+static inline void store_global_var();
+/************************** get temp reg begin ***********************/
+static inline int gen_tempreg(int except);//general an temp reg for the var should be in memory
+{
+	int index;
+	for(index = 0; index < max_reg_num; index ++)//look for empty
+	{
+		if(reg_dpt[index].content == -1 && index != except)
+			return index;
+	}
+	for(index = 0; index < max_reg_num; index ++)//look for tmp and not dirty
+	{
+		if(!isglobal(reg_dpt[index].content) && reg_dpt[index].dirty == 0 && index != except)
+			return index;
+	}
+	for(index = 0; index < max_reg_num; index ++)//look for tmp
+	{
+		if(!isglobal(reg_dpt[index].content) && reg && index != except)
+		{
+			/* push reg */
+			insert_mem_code(STR, reg_num);
+		}
+}//mark**********************************************************
+
+static inline void restore_tempreg(int temp_reg);
+/*************************** get temp reg end ************************/
 
 
 static inline void check_reg(int ref_index)//must deal with dirty and has_refed before
 {
-	int tmp_g_var_id = reg_dpt[reg_num];
-	if(is_global(tmp_g_var_id) && g_var_dpt[tmp_g_var_id] -> has_refed && g_var_dpt[tmp_g_var_id] -> dirty)
+	int tmp_g_var_id = reg_dpt[reg_num].content;
+	if(is_global(tmp_g_var_id) && g_var_dpt[tmp_g_var_id] -> has_refed && reg_dpt[reg_num].dirty)
 	{
-		/*store*/
-		
+		struct value_info * tmp_info = get_valueinfo_byno(simb_table, tmp_g_var_id);
+		if(tmp_info -> type -> type == Char)
+		{
+			gen_tempreg();//need gen_tempreg
+			insert_mem_code(STRB, reg_num);
+		}
 	}
-}
+}//mark************************************************************
 
 static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struct var_info * arg_info, int arg_type)/* arg_type : 0=>dest, 1=>normal */
 {
@@ -212,6 +307,8 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 		{
 			arg_info -> reg_addr = alloc_reg.result[arg_index];
 			check_reg(arg_info -> reg_addr);
+			reg_dpt[arg_info -> reg_addr].content = arg_index;
+			reg_dpt[arg_info -> reg_addr].dirty = 0;
 		}
 		if(arg_type == 1)
 		{

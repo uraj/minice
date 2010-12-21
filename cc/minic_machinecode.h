@@ -77,7 +77,8 @@ enum branch_op_type
 
 enum condition_type
 {
-	EQ = 0,	/*equal*/
+	NO = 0, /* no cond */
+	EQ,	/*equal*/
 	NE, /*not equal*/
 	N,  /*negtive*/
 	NN, /*not negtive*/
@@ -115,14 +116,18 @@ struct mach_code//mach means machine
 	
 	union
 	{
-		int tag_num;
+		char * tag_name;
 		enum dp_op_type dp_op;
 		enum mem_op_type mem_op;
-		enum brach_op_type branch_op;
+		enum branch_op_type branch_op;
 	};
 
-	int dest;//only reg
-	
+	union
+	{
+		int dest;//only reg
+		char * dest_tag_name;//for cond jump
+	};
+
 	union
 	{
 		struct mach_arg arg1;
@@ -133,15 +138,15 @@ struct mach_code//mach means machine
 	
 	union
 	{
-		uint8_t sign;								/* 1 change sign, 0 not *//* used in dp */
-		uint8_t link;								/* 1 jump and link, 0 not *//* used in branch */
-		uint8_t offet;								/* 1 is +, and 0 is no, -1 is - *//* used in mem */
+		char sign;								/* 1 change sign, 0 not *//* used in dp */
+		char link;								/* 1 jump and link, 0 not *//* used in branch */
+		char offet;								/* 1 is +, and 0 is no, -1 is - *//* used in mem */
 	};	
 
 	union
 	{
 		enum shift_type shift;					/* used in data-processing and memory-access*/
-		enum special_width width;
+		enum special_width width;				/* used in l/d hw and l/d signed */
 	};
 
 	enum indexed_type indexed;					/* used in mem */	
