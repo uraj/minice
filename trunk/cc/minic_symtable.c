@@ -381,3 +381,27 @@ void syms_clear(struct symbol_stack *stack)
 		free(temp);
 	}
 }
+
+int get_localvar_num(struct symbol_table *table)//获得该符号表（函数）的局部变量个数，前提是已经完成了语法分析
+{
+     if(table == NULL)
+          return -1;
+     return table->id_num;
+}
+
+int get_globalvar_num()//获得该程序的全局变量个数，前提是已经完成了语法分析
+{
+     return get_localvar_num(simb_table);
+}
+
+int get_localstr_num(struct symbol_table *table)//获得该符号表（函数）的常量字符串个数，前提是已经完成了语法分析
+{
+     if(table == NULL)
+          return -1;
+     return table->str_num;
+}
+
+int get_globalstr_num()//获得该程序的常量字符串个数，前提是已经完成了语法分析
+{
+     return get_localstr_num(simb_table);
+}

@@ -102,5 +102,9 @@ extern void syms_clear(struct symbol_stack *stack);
 
 /*other*/
 extern int ELFhash(char *str);
+extern int get_localvar_num(struct symbol_table *table);//获得该符号表（函数）的局部变量个数，前提是已经完成了语法分析
+extern int get_globalvar_num();//获得该程序的全局变量个数，前提是已经完成了语法分析
+extern int get_localstr_num(struct symbol_table *table);//获得该符号表（函数）的常量字符串个数，前提是已经完成了语法分析
+extern int get_globalstr_num();//获得该程序的常量字符串个数，前提是已经完成了语法分析
 
 #endif
