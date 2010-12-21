@@ -33,6 +33,7 @@ enum operator /* do NOT change the order of the list */
     Minusminus,                 /* -- */
     Ref,                        /* &  */
     Deref,                      /* *  */
+    BigImm,
 
     /* Special */
     Arglist,
