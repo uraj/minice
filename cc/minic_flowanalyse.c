@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 #define SHOWACTVAR 1
-#define SHOW_FLOW_DEBUG 1
+//#define SHOW_FLOW_DEBUG 1
 
 enum change_type
 {
