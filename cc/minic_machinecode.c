@@ -252,6 +252,17 @@ static inline void pop_temp_var();
 {
 }
 
+static inline void load_var(struct var_info * v_info, int reg_num)
+{
+}
+static inline void load_temp_var(struct var_info * t_v_info, int reg_num)
+{
+}
+
+static inline void store_temp_var(struct var_info * t_v_info, int reg_num)
+{
+}
+
 static inline void load_global_var(struct var_info * g_v_info, int reg_num)
 {
 	struct value_info * tmp_info = get_valueinfo_byno(cur_func_info -> func_symt, g_v_info -> index); 
@@ -831,6 +842,9 @@ static void gen_per_code(struct triargexpr * expr)
 
 		case UncondJump:
 			{
+				int label_num = ref_jump_dest(expr -> index);
+				char * dest_label_name = gen_new_label(label_num);
+				insert_buncond_code(dest_label_name, 0);
 				break;
 			}
 
