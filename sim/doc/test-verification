@@ -1,9 +1,13 @@
 instuction passed
 stw
+stb
 ldw
+ldb
+
 mov
 add
 sub
+not
 mul
 jump
 b
