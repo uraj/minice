@@ -237,9 +237,6 @@ static inline int ref_jump_dest(int expr_id)//get the label for jump dest
 /************************** deal with label end *************************/
 
 
-
-
-
 /**************************** gen load var beg *****************************/
 static inline int push_temp_var(int var_index);//push to stack and mark the varinfo
 {
@@ -254,13 +251,34 @@ static inline void pop_temp_var();
 
 static inline void load_var(struct var_info * v_info, int reg_num)
 {
+	if(isglobal(v_info -> index))
+		load_global_var(v_info, reg_num);
+	else
+		load_temp_var(v_info, reg_num);
 }
+
+static inline void store_var(struct var_info * v_info, int reg_num)
+{
+	if(isglobal(v_info -> index))
+		store_global_var(v_info, reg_num);
+	else
+		store_temp_var(v_info, reg_num);
+}
+
 static inline void load_temp_var(struct var_info * t_v_info, int reg_num)
 {
+	struct mach_arg tmp_fp, tmp_offset;
+	tmp_fp.type = Mach_Reg;
+	tmp_fp.reg = FP;//need width later
+	tmp_offset.type = Mach_Imm;
+	tmp_offset.imme = arg1_info -> mem_addr;
+	insert_mem_code(LDW, tempreg1, tmp_fp, tmp_offset, null, 1, NO);
 }
 
 static inline void store_temp_var(struct var_info * t_v_info, int reg_num)
 {
+	struct mach_arg tmp_fp, tmp_offset;
+
 }
 
 static inline void load_global_var(struct var_info * g_v_info, int reg_num)
@@ -606,22 +624,9 @@ static void gen_per_code(struct triargexpr * expr)
 					mark2 = 1;
 					except[ex_size++] = tempreg2;
 				}
-
-				struct mach_arg tmp_fp, tmp_offset;
-				
+	
 				if(arg1_flag == Arg_Mem)
-				{
-					if(isglobal(arg1_index))
-						load_global_var(arg1_info, tempreg1);
-					else
-					{
-						tmp_fp.type = Mach_Reg;
-						tmp_fp.reg = FP;//need width later
-						tmp_offset.type = Mach_Imm;
-						tmp_offset.imme = arg1_info -> mem_addr;
-						insert_mem_code(LDW, tempreg1, tmp_fp, tmp_offset, null, 1, NO);
-					}
-				}
+					load_var(arg1_info, tempreg1);	
 				else if(arg1_flag == Arg_Imm)//Only one Imm
 				{
 					tmp_arg1.type = Mach_Imm;
@@ -630,18 +635,7 @@ static void gen_per_code(struct triargexpr * expr)
 				}
 			
 				if(arg2_flag == Arg_Mem)
-				{
-					if(isglobal(arg2_index))
-						load_global_var(arg2_info, tempreg2);
-					else
-					{
-						tmp_fp.type = Mach_Reg;
-						tmp_fp.reg = FP;
-						tmp_offset.type = Mach_Imm;
-						tmp_offset.imme = arg2_info -> mem_addr;
-						insert_mem_code(LDW, tempreg2, tmp_fp, tmp_offset, null, 1, NO);
-					}
-				}
+					load_var(arg2_info, tempreg2);
 				else if(arg2_flag == Arg_Imm)//Only one Imm
 				{
 					tmp_arg2.type = Mach_Imm;
@@ -677,11 +671,7 @@ static void gen_per_code(struct triargexpr * expr)
 						tempdest = tempreg2;
 					else tempdest = gen_tempreg(except, ex_size);
 					insert_dp_code(op_type, tempdest, tempreg1, tempreg2, 0, NO);	
-					tmp_fp.type = Mach_Reg;
-					tmp_fp.reg = FP;//need width later
-					tmp_offset.type = Mach_Imm;
-					tmp_offset.imme = dest_info -> mem_addr;
-					insert_mem_code(STW, tempdest, tmp_arg1, tmp_offset, null, 1, NO);   
+					store_var(dest_info, tempdest);
 					if(!mark1 && !mark2)
 						restore_tempreg(tempdest);
 				}
