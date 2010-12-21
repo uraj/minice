@@ -35,7 +35,7 @@ enum dp_op_type
 
 	MVN,//may be useful
 	MOV,/* no arg1 */
-	MOVCOND//may be useful
+	MOVCOND,//may be useful
 
 	MUL,
 	//MLA,//may be useful
