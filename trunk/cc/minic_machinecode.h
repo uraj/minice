@@ -4,7 +4,7 @@
 
 /*I'm not sure whether it is good to divide the op into three types*/
 
-enum mach_arg_type { Unused = 0, Mach_Reg, Mach_Imm, Mach_ID};
+enum mach_arg_type { Unused = 0, Mach_Reg, Mach_Imm, Mach_Label};
 
 struct mach_arg
 {
@@ -13,7 +13,7 @@ struct mach_arg
     {
         uint8_t reg;
 		uint32_t imme;
-		char * idname;
+		char * label;
     };
 };
 
@@ -112,7 +112,7 @@ struct mach_code//mach means machine
 	union
 	{
 		char link;								/* 1 jump and link, 0 not *//* used in branch */
-		char offet;								/* 1 is +, and 0 is no*//* used in mem */
+		char offet;								/* 1 is +, -1 is - and 0 is no*//* used in mem */
 	};
 
 	enum shift_type shift;					/* used in data-processing and memory-access*/

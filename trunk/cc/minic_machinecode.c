@@ -185,7 +185,7 @@ static inline int ref_global_var(int g_var_index)//get the global var offset
 	struct var_info * tmp_info = get_info_from_index(g_var_index);
 	if(tmp_info -> mem_addr == INITIAL_MEM_ADDR)//var_id = var_index for global var
 	{
-		tmp_info -> mem_addr = ref_g_var_num;
+		tmp_info -> mem_addr = 4 * ref_g_var_num;
 		global_var_label_offset[ref_g_var_num ++] = g_var_index;
 	}
 	return tmp_info -> mem_addr; 
@@ -196,7 +196,7 @@ static inline char * gen_new_var_offset(int offset)//need free later
 	char label_name[MAX_LABEL_NAME_LEN];
 	strcpy(label_name, global_var_label);
 	char label_num_name[MAX_LABEL_NAME_LEN];
-	itoa(offset * 4, label_num_name, 10);//offset * 4
+	itoa(offset, label_num_name, 10);
 	strcat(label_name, label_num_name);
 	return strdup(label_name);
 }
@@ -259,7 +259,10 @@ static inline int gen_tempreg(int except);//general an temp reg for the var shou
 	for(index = 0; index < max_reg_num; index ++)//look for empty
 	{
 		if(reg_dpt[index].content == -1 && index != except)
+		{
+			reg_dpt[index].content = -2;//-2 means tmp_reg
 			return index;
+		}
 	}
 	for(index = 0; index < max_reg_num; index ++)//look for tmp and not dirty
 	{
@@ -276,21 +279,29 @@ static inline int gen_tempreg(int except);//general an temp reg for the var shou
 	}
 }//mark****************************************************************
 
-static inline void restore_tempreg(int temp_reg);
+static inline void restore_tempreg(int temp_reg)
+{
+}
 /*************************** get temp reg end ************************/
 
 
-static inline void check_reg(int ref_index)//must deal with dirty and has_refed before
+static inline void check_reg(int reg_num)//must deal with dirty and has_refed before
 {
-	int tmp_g_var_id = reg_dpt[reg_num].content;
-	if(is_global(tmp_g_var_id) && g_var_dpt[tmp_g_var_id] -> has_refed && reg_dpt[reg_num].dirty)
+	int var_index = reg_dpt[reg_num].content;
+	if(is_global(var_index) && reg_dpt[reg_num].dirty)//the reg with string cann't be dirty, so the index here can only be g_var
 	{
-		struct value_info * tmp_info = get_valueinfo_byno(simb_table, tmp_g_var_id);
+		struct value_info * tmp_info = get_valueinfo_byno(simb_table, var_index);//index = id for global var
+		int offset = ref_global_var(var_index);
+		int tmp_reg_num = gen_tempreg(reg_num);
+		struct mach_arg address, null;
+		address.type = Mach_Label;
+		address.label = gen_new_var_offset(offset);
+		null.type = Unused;
+		insert_mem_code(LDW, tmp_reg_num, address, null, null, 0, NO);
 		if(tmp_info -> type -> type == Char)
-		{
-			gen_tempreg();//need gen_tempreg
-			insert_mem_code(STRB, reg_num);
-		}
+			insert_mem_code(STB, reg_num, tmp_reg_num, null, null, 0, NO);
+		else insert_mem_code(STW, reg_num, tmp_reg_num, null, null, 0, NO);
+		restore_tempreg(tmp_reg_num);
 	}
 }//mark************************************************************
 
@@ -330,9 +341,13 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 	return flag;
 }
 
+/************************************* gen code beg ******************************/
+
 static void gen_per_code(struct triargexpr * expr)
 {
-    int dest_index, arg1_index, arg2_index;
+	check_is_dest(expr -> index);
+
+	struct int dest_index, arg1_index, arg2_index;
 	struct var_info * dest_info, * arg1_info, * arg2_info; 
 	enum arg_flag dest_flag, arg1_flag, arg2_flag;
 
