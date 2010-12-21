@@ -35,8 +35,12 @@ new:
 25.error when pointer = array head
 26.const calculate	//Done
 27.isglobal
-28.global_var_last_ref
-29.global var def when step into one function
-30.total string num
-31.deal with dirty and has_refed for global_var
-32.deal with return in basic_block
+28.global var def when step into one function
+29.total string num//DONE
+
+30.deal with dirty and has_refed for global_var
+31.deal with return in basic_block
+
+
+
+1.global_var_last_ref//uncertainty
