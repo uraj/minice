@@ -3,7 +3,7 @@
 #include "minic_regalloc.h"
 #include <stdio.h>
 #define INITIAL_MACH_CODE_SIZE 100
-#define MAX_TAG_NAME_LEN 20
+#define MAX_LABEL_NAME_LEN 20
 
 enum Arg_Flag
 {
@@ -14,6 +14,7 @@ enum Arg_Flag
 
 struct global_var_dpt
 {
+	int label_offset;	
 	int last_ref;
 	char has_refed;
 };
@@ -27,12 +28,12 @@ struct reg_dpt
 static struct ralloc_info alloc_reg;
 static int reg_dpt[32];//register discription
 static int cur_sp;
-static int total_tag_num;//set zero in new_code_table_list 
+static int total_label_num;//set zero in new_code_table_list 
 
 static struct global_var_dpt * g_var_dpt;
-static int * global_var_tag_offset;
+static int * global_var_label_offset;
 static int ref_g_var_num;
-static char * global_var_tag;
+static char * global_var_label;
 
 static struct triargtable * cur_table;
 static int value_info * cur_func_info;
@@ -49,6 +50,7 @@ static int cur_code_bound;
 /****************************** initial begin ***************************/
 static inline void set_cur_function(int func_index)
 {
+	int index;
 	cur_table = table_list[func_index];
 	cur_func_info = symt_search(simb_table ,table_list[func_index] -> funcname);//the 
 	cur_var_id_num = table_list[func_index] -> var_id_num;
@@ -57,16 +59,21 @@ static inline void set_cur_function(int func_index)
 	
 	int string_num;//get string num from the symtable
 	g_var_dpt = calloc(g_global_id_num, sizeof(struct global_var_dpt));//need get last ref from active var analyse
-	global_var_tag_offset = calloc(g_global_id_num + string_num, sizeof(int));//need free
+	for(index = 0; index < g_global_id_num; index++)
+	{
+		g_var_dpt[index].label_offset = -1;
+		g_var_dpt[index].has_refed = 0;
+		/* g_var_dpt[index].last_ref = */;
+	}
+	global_var_label_offset = calloc(g_global_id_num + string_num, sizeof(int));//need free
 	ref_g_var_num = 0;
-	global_var_tag = gen_new_tag(total_tag_num ++);//as the head element of the global var
+	global_var_label = gen_new_label(total_label_num ++);//as the head element of the global var
 	cur_sp = 0;//just point to bp
 
 	cur_code_index = 0;
 	cur_code_bound = INITIAL_MACH_CODE_SIZE; 
 	code_table_list[func_index].table = calloc(cur_code_bound, sizeof(struct mach_code));  
 	code_table_list[func_index].code_num = 0;
-	int index;
 	for(index = 0; index < 31; index ++)
 	{
 		reg_dpt[index].content = -1;
@@ -76,9 +83,9 @@ static inline void set_cur_function(int func_index)
 
 static inline void leave_cur_function()
 {
-	free(global_var_tag_offset);
+	free(global_var_label_offset);
 	free(g_var_dpt);
-	free(global_var_tag);
+	free(global_var_label);
 }
 /*************************** initial end *******************************/
 
@@ -97,15 +104,15 @@ static inline void insert_code(struct mach_code newcode)
 	code_table_list[cur_func_index].table[cur_code_index++] = newcode;
 }
 
-static inline void insert_tag_code(char * tag_name)
+static inline void insert_label_code(char * label_name)
 {
 	struct mach_code new_code;
-	new_code.op_type = TAG;
-	new_code.tag_name = tag_name;
+	new_code.op_type = LABEL;
+	new_code.label_name = label_name;
 	insert_code(new_code);
 }
 
-static inline void insert_dp_code(enum dp_op_type dp_op, int dest, struct mach_arg arg1, struct mach_arg arg2, struct mach_arg arg3, int sign, enum shift_type shift)
+static inline void insert_dp_code(enum dp_op_type dp_op, int dest, struct mach_arg arg1, struct mach_arg arg2, unsigned int arg3, enum shift_type shift)
 {
 	struct mach_code new_code;
 	new_code.op_type = DP;
@@ -114,12 +121,11 @@ static inline void insert_dp_code(enum dp_op_type dp_op, int dest, struct mach_a
 	new_code.arg1 = arg1;
 	new_code.arg2 = arg2;
 	new_code.arg3 = arg3;
-	new_code.sign = sign;
 	new_code.shift = shift;
-	insert_code(newcode);
+	insert_code(new_code);
 }
 
-static inline void insert_cond_dp_code(enum dp_op_type dp_op, int dest, enum condition_type cond, struct mach_arg arg2, struct mach_arg arg3, int sign, enum shift_type shift)
+static inline void insert_cond_dp_code(enum dp_op_type dp_op, int dest, enum condition_type cond, struct mach_arg arg2, unsigned int arg3, int sign, enum shift_type shift)//may not be used
 {
 	struct mach_code new_code;
 	new_code.op_type = DP;
@@ -128,12 +134,11 @@ static inline void insert_cond_dp_code(enum dp_op_type dp_op, int dest, enum con
 	new_code.cond = cond;
 	new_code.arg2 = arg2;
 	new_code.arg3 = arg3;
-	new_code.sign = sign;
 	new_code.shift = shift;
-	insert_code(newcode);
+	insert_code(new_code);
 }
 
-static inline void insert_mem_code(enum mem_op_type mem_op, int dest, struct mach_arg arg1, struct mach_arg arg2, struct mach_arg arg3, int offset, enum shift_type shift, enum indexed_type indexed)
+static inline void insert_mem_code(enum mem_op_type mem_op, int dest, struct mach_arg arg1, struct mach_arg arg2, unsigned int arg3, int offset, enum shift_type shift)
 {
 	struct mach_code new_code;
 	new_code.op_type = MEM;
@@ -144,100 +149,102 @@ static inline void insert_mem_code(enum mem_op_type mem_op, int dest, struct mac
 	new_code.arg3 = arg3;
 	new_code.offset = offset;
 	new_code.shift = shift;
-	new_code.indexed = indexed;
-	insert_code(newcode);	
+	insert_code(new_code);	
 }
 
-static inline void insert_special_mem_code(enum mem_op_type mem_op, int dest, struct mach_arg arg1, struct mach_arg arg2, struct mach_arg arg3, int offset, enum special_width width, enum indexed_type indexed)
+static inline void insert_cmp_code(char * dest_label, struct mach_arg arg1, struct mach_arg arg2)
 {
 	struct mach_code new_code;
-	new_code.op_type = MEM;
-	new_code.mem_op = mem_op;
-	new_code.dest = dest;
+	new_code.op_type = CMP;
+	new_code.cmp_op = CMPSUB.A;
+	new_code.dest_label = dest_label;
 	new_code.arg1 = arg1;
 	new_code.arg2 = arg2;
-	new_code.arg3 = arg3;
-	new_code.offset = offset;
-	new_code.width = width;
-	new_code.indexed = indexed;
-	insert_code(newcode);	
+	insert_code(new_code);
 }
 
-static inline void insert_branch_imm_code(enum branch_op_type branch_op, char * dest_tag_name, enum condition_type cond, char link)
+static inline void insert_jump_code(int dest)
 {
 	struct mach_code new_code;
 	new_code.op_type = BRANCH;
-	new_code.branch_op = branch_op;
-	new_code.dest_tag_name = dest_tag_name;
-	new_code.cond = cond;
-	new_code.link = link;
-	insert_code(newcode);
-}
-
-static inline void insert_branch_reg_code(enum branch_op_type branch_op, int dest, char link)
-{
-	struct mach_code new_code;
-	new_code.op_type = BRANCH;
-	new_code.branch_op = branch_op;
+	new_code.branch_op = JUMP;
 	new_code.dest = dest;
-	new_code.link = link;
-	insert_code(newcode);
+	insert_code(new_code);
 }
+
+static inline void insert_bcond_code(char * dest_label, enum condition_type cond)
+{
+	struct mach_code new_code;
+	new_code.op_type = BRANCH;
+	new_code.branch_op = BCOND;
+	new_code.dest_label = dest_label;
+	new_code.cond = cond;
+	insert_code(new_code);
+}
+
+static inline void insert_buncond_code(char * dest_label, char link)
+{
+	struct mach_code new_code;
+	new_code.op_type = BRANCH;
+	new_code.branch_op = B;
+	new_code.dest_label = dest_label;
+	insert_code(new_code);
+}
+
 /*************************** insert code over *************************/
 
 
 /****************** deal with global var begin ************************/
 static inline int ref_global_var(int var_id)//get the global var offset
 {
-	struct var_info * id_info = get_info_of_id(var_id);
-	if(id_info -> tag_offset == -1)
+	if(g_var_dpt[var_id] -> label_offset == -1)//var_id = var_index for global var
 	{
-		id_info -> tag_offset = ref_g_var_num;
-		global_var_tag_offset[ref_g_var_num ++] = var_id;
+		id_info -> label_offset = ref_g_var_num;
+		global_var_label_offset[ref_g_var_num ++] = var_id;
 	}
-	return id_info -> tag_offset; 
+	return id_info -> label_offset; 
 }
 
 static inline char * gen_new_var_offset(int offset)//need free later
 {
-	char tag_name[MAX_TAG_NAME_LEN];
-	strcpy(tag_name, global_var_tag);
-	char tag_num_name[MAX_TAG_NAME_LEN];
-	itoa(offset, tag_num_name, 10);
-	strcat(tag_name, tag_num_name);
-	return strdup(tag_name);
+	char label_name[MAX_LABEL_NAME_LEN];
+	strcpy(label_name, global_var_label);
+	char label_num_name[MAX_LABEL_NAME_LEN];
+	itoa(offset, label_num_name, 10);
+	strcat(label_name, label_num_name);
+	return strdup(label_name);
 }
 /******************** deal with global var end ************************/
 
 
-/******************** deal with tag begin *****************************/
+/******************** deal with label begin *****************************/
 static inline int check_is_dest(int exprnum)//need check every expr before translate
 {
 	struct var_info * expr_info = get_info_of_temp(exprnum);
-	if(expr_info != NULL && expr_info -> tag_num == -2)//means this is a dest
+	if(expr_info != NULL && expr_info -> label_num == -2)//means this is a dest
 	{
-		expr_info -> tag_num = total_tag_num ++;
-		insert_tag_code(expr_info -> tag_num); 
+		expr_info -> label_num = total_label_num ++;
+		insert_label_code(expr_info -> label_num); 
 		return 1;
 	}
 	return 0;
 }
 
-static inline int ref_jump_dest(int expr_id)//get the tag for jump dest
+static inline int ref_jump_dest(int expr_id)//get the label for jump dest
 {
-	struct var_info * id_info = get_info_of_temp_for_tag(expr_id);
-	return id_info -> tagnum;
+	struct var_info * id_info = get_info_of_temp_for_label(expr_id);
+	return id_info -> labelnum;
 }
 
-static inline char * gen_new_tag(int tag_num)
+static inline char * gen_new_label(int label_num)
 {
-	char tag_name[MAX_TAG_NAME_LEN] = ".L";
-	char tag_num_name[MAX_TAG_NAME_LEN];
-	itoa(tag_num, tag_num_name, 10);
-	strcat(tag_name, tag_num_name);
-	return strdup(tag_name);//but need to free later
+	char label_name[MAX_LABEL_NAME_LEN] = ".L";
+	char label_num_name[MAX_LABEL_NAME_LEN];
+	itoa(label_num, label_num_name, 10);
+	strcat(label_name, label_num_name);
+	return strdup(label_name);//but need to free later
 }
-/************************** deal with tag end *************************/
+/************************** deal with label end *************************/
 
 /***************************** gen push *******************************/
 static inline int push_temp_var(int var_index);//push to stack and mark the varinfo
@@ -581,7 +588,7 @@ static void gen_per_code(struct triargexpr * expr)
 				if(arg1_index == -1)
 				{
 					/*gen condition*/;//should return jump cond
-					/* cond jump to .L+(varmap->tag or total_tag_num) */;//we need a jump table in varmap and total_tag_num
+					/* cond jump to .L+(varmap->label or total_label_num) */;//we need a jump table in varmap and total_label_num
 				}
 				else
 				{
@@ -947,7 +954,7 @@ static void gen_per_code(struct triargexpr * expr)
 void new_code_table_list()
 {
 	code_table_list = calloc(g_table_list_size, sizeof(struct mach_code_table)); 
-	total_tag_num = 0;
+	total_label_num = 0;
 }
 
 void free_code_table_list()
