@@ -53,6 +53,7 @@ static inline struct var_info *  new_var_info()
 	new_info -> is_use = -1;
 	new_info -> reg_addr = -1;
 	new_info -> mem_addr = -1;
+	new_info -> tag_offset = -1;
 	new_info -> tag_num = -1; 
 	new_info -> ref_point = NULL;
 	return new_info;
@@ -140,6 +141,22 @@ struct var_info * get_info_from_index(int index)
 		return var_info_table[index];
 	else
 		return var_info_table[map_bridge[index - cur_var_id_num]];
+}
+
+struct void set_expr_tag_mark(int exprnum)//only for tag
+{
+	struct var_info * tmp_info = get_info_of_temp(exprnum);
+	if(tmp_info == NULL)
+	{
+		var_info_table[exprnum + cur_var_id_num] = new_var_info();
+		var_info_table[exprnum + cur_var_id_num] -> tag_num = -2;//-2 means is a jump dest
+	}
+	else tmp_info -> tag_num = -2;
+}
+
+struct var_info * get_info_of_temp_for_tag(int exprnum)//only for tag
+{
+	return var_info_table[exprnum + cur_var_id_num];	
 }
 
 int is_global(int index)/* new and used, just mark */
