@@ -651,13 +651,22 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
 #ifdef SHOW_FLOW_DEBUG
           printf("block:%d\n" , i);
 #endif
-          if(i == 0)//第一个块要把函数参数放入def[0]当中
+          if(i == 0)//第一个块要把函数参数和全局变量放入def[0]当中
           {
                int start = cur_func_sym_table->arg_no_min;
                int end = cur_func_sym_table->arg_no_max;
+               int global_var_num = get_globalvar_num();
                int j;
-               for(j = start ; j < end ; j++)
+               for(j = 0 ; j < global_var_num ; j++)
+               {
+                    def_size[0] ++;
                     var_list_append(def , j);
+               }
+               for(j = start ; j < end ; j++)
+               {
+                    def_size[0] ++;
+                    var_list_append(def , j);
+               }
           }
           temp = DFS_array[i]->head;
           while(temp != NULL)
@@ -709,7 +718,9 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                     analyse_expr_index(temp->entity->index , DEFINE , i);
                     break;
                }
+#ifdef SHOW_FLOW_DEBUG
                print_triargexpr(*(temp->entity));printf("\n");//**************************************
+#endif
                temp = temp->next;
           }
           var_list_sort(def + i , def_size[i]);//when DEFs and USEs are made

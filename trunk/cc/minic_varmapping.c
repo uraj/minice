@@ -162,6 +162,7 @@ struct var_info * get_info_of_temp_for_tag(int exprnum)//only for tag
 int is_global(int index)/* new and used, just mark */
 {
 	/* need this later */
+     return (index < (get_globalvar_num())) && (index >= 0);
 }
 
 int get_ref_var_num()/* new and used, just mark */
