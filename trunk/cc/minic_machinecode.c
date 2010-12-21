@@ -293,7 +293,7 @@ static inline int gen_tempreg(int * except, int size);//general an temp reg for 
 	{
 		for(ex = 0; ex < size; ex ++)
 		{
-			if(index == except)
+			if(index == except[ex])
 				break;
 		}
 		if(reg_dpt[index].content == -1 && ex == size)
@@ -831,7 +831,6 @@ static void gen_per_code(struct triargexpr * expr)
 
 		case UncondJump:
 			{
-				/* brx to .L+..*/;
 				break;
 			}
 
