@@ -148,6 +148,7 @@ void set_expr_label_mark(int exprnum)//only for label
 	if(tmp_info == NULL)
 	{
 		var_info_table[exprnum + cur_var_id_num] = new_var_info();
+		var_info_table[exprnum + cur_var_id_num] -> index = -1;
 		var_info_table[exprnum + cur_var_id_num] -> label_num = -2;//-2 means is a jump dest
 	}
 	else tmp_info -> label_num = -2;
@@ -160,8 +161,7 @@ struct var_info * get_info_of_temp_for_label(int exprnum)//only for label
 
 int is_global(int index)/* new and used, just mark */
 {
-	/* need this later */
-     return (index < (get_globalvar_num())) && (index >= 0);
+	eturn (index < (get_globalvar_num())) && (index >= 0);
 }
 
 int get_ref_var_num()/* new and used, just mark */

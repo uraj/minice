@@ -197,9 +197,9 @@ static inline void insert_buncond_code(char * dest_label, char link)
 /****************** deal with global var begin ************************/
 static inline int ref_global_var(int var_id)//get the global var offset
 {
-	if(g_var_dpt[var_id] -> label_offset == -1)//var_id = var_index for global var
+	if(g_var_dpt[var_id].label_offset == -1)//var_id = var_index for global var
 	{
-		id_info -> label_offset = ref_g_var_num;
+		g_var_dpt[var_id].label_offset = ref_g_var_num;
 		global_var_label_offset[ref_g_var_num ++] = var_id;
 	}
 	return id_info -> label_offset; 
@@ -210,7 +210,7 @@ static inline char * gen_new_var_offset(int offset)//need free later
 	char label_name[MAX_LABEL_NAME_LEN];
 	strcpy(label_name, global_var_label);
 	char label_num_name[MAX_LABEL_NAME_LEN];
-	itoa(offset, label_num_name, 10);
+	itoa(offset * 4, label_num_name, 10);//offset * 4
 	strcat(label_name, label_num_name);
 	return strdup(label_name);
 }
@@ -233,7 +233,7 @@ static inline int check_is_dest(int exprnum)//need check every expr before trans
 static inline int ref_jump_dest(int expr_id)//get the label for jump dest
 {
 	struct var_info * id_info = get_info_of_temp_for_label(expr_id);
-	return id_info -> labelnum;
+	return id_info -> label_num;
 }
 
 static inline char * gen_new_label(int label_num)
@@ -246,16 +246,18 @@ static inline char * gen_new_label(int label_num)
 }
 /************************** deal with label end *************************/
 
+
 /***************************** gen push *******************************/
 static inline int push_temp_var(int var_index);//push to stack and mark the varinfo
 {
 	if(!isglobal(var_index))
 	{
-
+		push_
 		return 1;
 	}
 	return 0;
 }
+
 static inline void pop_temp_var();
 {
 }
@@ -283,7 +285,8 @@ static inline int gen_tempreg(int except);//general an temp reg for the var shou
 			/* push reg */
 			insert_mem_code(STR, reg_num);
 		}
-}//mark**********************************************************
+	}
+}//mark****************************************************************
 
 static inline void restore_tempreg(int temp_reg);
 /*************************** get temp reg end ************************/
@@ -341,14 +344,14 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 
 static void gen_per_code(struct triargexpr * expr)
 {
+	struct int dest_index, arg1_index, arg2_index;
+	struct var_info * dest_info, * arg1_info, * arg2_info; 
+	enum arg_flag dest_flag, arg1_flag, arg2_flag;
+
 	switch(expr -> op)
 	{
-		case Assign:                     /* =  */
+		case Assgin:
 			{
-				struct int dest_index, arg1_index, arg2_index;
-				struct var_info * dest_info, * arg1_info, * arg2_info; 
-				enum arg_flag dest_flag, arg1_flag, arg2_flag;
-
 				if(expr -> arg1.type == IdArg)
 				{
 					arg1_index = get_index_of_id(expr -> arg1.idname);
@@ -369,7 +372,7 @@ static void gen_per_code(struct triargexpr * expr)
 						arg2_index = get_index_of_id(expr -> arg2.idname);
 						arg2_info = get_info_from_index(arg2_index);
 					}
-					else
+					else//need to look forward one step
 					{
 						arg2_index = get_index_of_temp(expr -> arg2.expr);
 						arg2_info = get_info_from_index(arg2_index);
@@ -385,7 +388,99 @@ static void gen_per_code(struct triargexpr * expr)
 					dest_info = get_info_from_index(dest_index);	
 					dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
 				}
+				break;
+			}
+		case Plus:                       /* +  */
+		case Minus:                      /* -  */	
+		case Mul:                        /* *  */
+		case Plusplus:                   /* ++ */
+		case Minusminus:                 /* -- */
+		case Uplus:                      /* +  */
+		case Uminus:                     /* -  */
+		case Ref:						 /* &  */
+		case Deref:						 /* *  */
+		case Subscript:					 /* [] */
+			{
+				dest_index = get_index_of_temp(expr -> index);
+				if(dest_index == -1)
+					return;
+				dest_info = get_info_from_index(dest_index);
 
+				dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
+
+				//ImmArg op ImmArg should be optimized before
+				if(expr -> arg1.type == ExprArg && expr -> arg1.expr == -1)
+					;
+				else
+				{
+					if(expr -> arg1.type != ImmArg)
+					{
+						if(expr -> arg1.type == IdArg)
+						{
+							arg1_index = get_index_of_id(expr -> arg1.idname);
+							arg1_info = get_info_from_index(arg1_index);
+						}
+						else
+						{
+							arg1_index = get_index_of_temp(expr -> arg1.expr);
+							arg1_info = get_info_from_index(arg1_index);
+						}
+						arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
+					}
+					else
+						arg1_flag = Arg_Imm;
+				}
+
+				if(expr -> arg1.type == ExprArg && expr -> arg1.expr == -1)
+					;
+				else
+				{
+					if(expr -> arg2.type != ImmArg)
+					{
+						if(expr -> arg2.type == IdArg)
+						{
+							arg2_index = get_index_of_id(expr -> arg2.idname);
+							arg2_info = get_info_from_index(arg2_index);
+						}
+						else
+						{
+							arg2_index = get_index_of_temp(expr -> arg2.expr);
+							arg2_info = get_info_from_index(arg2_index);
+						}
+
+						arg2_flag = mach_prepare_arg(arg2_index, arg2_info, 1);
+					}
+					else
+						arg2_flag = Arg_Imm;
+				}
+				break;
+			}
+		case Arglist:
+		case Return:
+			{
+				if(expr -> arg1.type == IdArg)
+				{
+					arg1_index = get_index_of_id(expr -> arg1.idname);
+					arg1_info = get_info_from_index(arg1_index);
+				}
+				else//can't be immed
+				{
+					arg1_index = get_index_of_temp(expr -> arg1.expr);
+					arg1_info = get_info_from_index(arg1_index);
+				}
+
+				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
+				break;
+			}
+		default:
+			break;
+	}
+
+
+	switch(expr -> op)
+	{
+		case Assign:                     /* =  */
+			{	
 				if(arg1_flag == Arg_Reg)
 				{
 					if(arg2_flag == Arg_Reg)
@@ -445,55 +540,6 @@ static void gen_per_code(struct triargexpr * expr)
 		case Minus:                      /* -  */	
 		case Mul:                        /* *  */
 			{
-				struct int dest_index, arg1_index, arg2_index;
-				struct var_info * dest_info, * arg1_info, * arg2_info; 
-				enum arg_flag dest_flag, arg1_flag, arg2_flag;
-
-				dest_index = get_index_of_temp(expr -> index);
-				if(dest_index == -1)
-					break;
-				dest_info = get_info_from_index(dest_index);
-
-				dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
-
-				//ImmArg op ImmArg should be optimized before
-				if(expr -> arg1.type != ImmArg)
-				{
-					if(expr -> arg1.type == IdArg)
-					{
-						arg1_index = get_index_of_id(expr -> arg1.idname);
-						arg1_info = get_info_from_index(arg1_index);
-					}
-					else//can't be immed
-					{
-						arg1_index = get_index_of_temp(expr -> arg1.expr);
-						arg1_info = get_info_from_index(arg1_index);
-					}
-
-					arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
-				}
-				else
-					arg1_flag = Arg_Imm;
-
-
-				if(expr -> arg2.type != ImmArg)
-				{
-					if(expr -> arg2.type == IdArg)
-					{
-						arg2_index = get_index_of_id(expr -> arg2.idname);
-						arg2_info = get_info_from_index(arg2_index);
-					}
-					else
-					{
-						arg2_index = get_index_of_temp(expr -> arg2.expr);
-						arg2_info = get_info_from_index(arg2_index);
-					}
-
-					arg2_flag = mach_prepare_arg(arg2_index, arg2_info, 1);
-				}
-				else
-					arg2_flag = Arg_Imm;
-
 				if(arg1_flag == Arg_Mem)
 					/* lod tempreg */;
 				else if(arg1_flag == Arg_Imm)//Only one Imm
@@ -520,31 +566,6 @@ static void gen_per_code(struct triargexpr * expr)
 		case Plusplus:                   /* ++ */
 		case Minusminus:                 /* -- */
 			{
-				struct int dest_index, arg1_index;
-				struct var_info * dest_info, * arg1_info; 
-				enum arg_flag dest_flag, arg1_flag;
-
-				dest_index = get_index_of_temp(expr -> index);
-				if(dest_index == -1)
-					break;
-				dest_info = get_info_from_index(dest_index);
-
-				dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
-
-				//ImmArg op ImmArg should be optimized before
-				if(expr -> arg1.type == IdArg)
-				{
-					arg1_index = get_index_of_id(expr -> arg1.idname);
-					arg1_info = get_info_from_index(arg1_index);
-				}
-				else//can't be immed
-				{
-					arg1_index = get_index_of_temp(expr -> arg1.expr);
-					arg1_info = get_info_from_index(arg1_index);
-				}
-
-				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);/* when must be 1, not be 0 */
-
 				if(arg1_flag == Arg_Mem)//can't be immd
 					/* lod tempreg */;
 
@@ -568,10 +589,6 @@ static void gen_per_code(struct triargexpr * expr)
 		case TrueJump:
 		case FalseJump://immed cond has been optimized before, so the cond can only be expr or id
 			{
-				struct int arg1_index;
-				struct var_info * arg1_info; 
-				enum arg_flag arg1_flag;
-
 				//ImmArg op ImmArg should be optimized before
 				if(expr -> arg1.type == IdArg)
 				{
@@ -613,37 +630,7 @@ static void gen_per_code(struct triargexpr * expr)
 
 		case Uplus:                      /* +  */
 		case Uminus:                     /* -  */
-			{
-				struct int dest_index, arg1_index;
-				struct var_info * dest_info, * arg1_info; 
-				enum arg_flag dest_flag, arg1_flag;
-
-				dest_index = get_index_of_temp(expr -> index);
-				if(dest_index == -1)
-					break;
-				dest_info = get_info_from_index(dest_index);
-
-				dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
-
-				//ImmArg op ImmArg should be optimized before
-				if(expr -> arg1.type != ImmArg)
-				{
-					if(expr -> arg1.type == IdArg)
-					{
-						arg1_index = get_index_of_id(expr -> arg1.idname);
-						arg1_info = get_info_from_index(arg1_index);
-					}
-					else//can't be immed
-					{
-						arg1_index = get_index_of_temp(expr -> arg1.expr);
-						arg1_info = get_info_from_index(arg1_index);
-					}
-
-					arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
-				}
-				else
-					arg1_flag = Arg_Imm;	
-
+			{	
 				if(dest_flag == Arg_Reg)
 				{
 					if(arg1_flag == Arg_Mem)
@@ -685,40 +672,7 @@ static void gen_per_code(struct triargexpr * expr)
 			}
 
 		case Subscript:                  /* [] */
-			{
-				struct int dest_index, arg1_index;
-				struct var_info * dest_info, * arg1_info; 
-				enum arg_flag dest_flag, arg1_flag;
-
-				dest_index = get_index_of_temp(expr -> index);
-				if(dest_index == -1)
-					break;
-				dest_info = get_info_from_index(dest_index);
-
-				dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
-
-				//ImmArg op ImmArg should be optimized before
-				arg1_index = get_index_of_id(expr -> arg1.idname);//can only be id
-				arg1_info = get_info_from_index(arg1_index);
-				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
-
-				if(expr -> arg2.type != ImmArg)
-				{
-					if(expr -> arg2.type == IdArg)
-					{
-						arg2_index = get_index_of_id(expr -> arg2.idname);
-						arg2_info = get_info_from_index(arg2_index);
-					}
-					else
-					{
-						arg2_index = get_index_of_temp(expr -> arg2.expr);
-						arg2_info = get_info_from_index(arg2_index);
-					}
-					arg2_flag = mach_prepare_arg(arg2_index, arg2_info, 1);
-				}
-				else
-					arg2_flag = Arg_Imm;	
-					
+			{					
 				if(arg1_flag == Arg_Mem)
 					/* lod arg1_flag, tempreg1 */;
 
@@ -766,31 +720,6 @@ static void gen_per_code(struct triargexpr * expr)
 
 		case Ref:                        /* &  */
 			{
-				struct int dest_index, arg1_index;
-				struct var_info * dest_info, * arg1_info; 
-				enum arg_flag dest_flag, arg1_flag;
-
-				dest_index = get_index_of_temp(expr -> index);
-				if(dest_index == -1)
-					break;
-				dest_info = get_info_from_index(dest_index);
-
-				dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
-
-				//ImmArg op ImmArg should be optimized before
-				if(expr -> arg1.type == IdArg)
-				{
-					arg1_index = get_index_of_id(expr -> arg1.idname);
-					arg1_info = get_info_from_index(arg1_index);
-				}
-				else//can't be immed
-				{
-					arg1_index = get_index_of_temp(expr -> arg1.expr);
-					arg1_info = get_info_from_index(arg1_index);
-				}
-
-				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
-
 				if(arg1_info -> mem_addr == -1)
 				{
 					/* push arg1 */;
@@ -817,38 +746,12 @@ static void gen_per_code(struct triargexpr * expr)
 					/* str tempreg, dest */;
 					/* str tempreg, dest */
 					/* restore tempreg */;
-
 				}
 				break;
 			}
 
 		case Deref:                      /* '*' */
-			{
-				struct int dest_index, arg1_index;
-				struct var_info * dest_info, * arg1_info; 
-				enum arg_flag dest_flag, arg1_flag;
-
-				dest_index = get_index_of_temp(expr -> index);
-				if(dest_index == -1)
-					break;
-				dest_info = get_info_from_index(dest_index);
-
-				dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
-
-				//ImmArg op ImmArg should be optimized before
-				if(expr -> arg1.type == IdArg)
-				{
-					arg1_index = get_index_of_id(expr -> arg1.idname);
-					arg1_info = get_info_from_index(arg1_index);
-				}
-				else//can't be immed
-				{
-					arg1_index = get_index_of_temp(expr -> arg1.expr);
-					arg1_info = get_info_from_index(arg1_index);
-				}
-
-				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
-
+			{	
 				if(dest_flag == Arg_Reg)
 				{
 					if(arg1_flag == Arg_Reg)
@@ -887,24 +790,7 @@ static void gen_per_code(struct triargexpr * expr)
 			}
 
 		case Arglist:
-			{
-				struct int arg1_index;
-				struct var_info * arg1_info; 
-				enum arg_flag arg1_flag;
-
-				if(expr -> arg1.type == IdArg)
-				{
-					arg1_index = get_index_of_id(expr -> arg1.idname);
-					arg1_info = get_info_from_index(arg1_index);
-				}
-				else//can't be immed
-				{
-					arg1_index = get_index_of_temp(expr -> arg1.expr);
-					arg1_info = get_info_from_index(arg1_index);
-				}
-
-				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
-
+			{	
 				if(arg1_flag == Arg_Reg)
 					/* push arg1 */;
 				else
@@ -918,23 +804,6 @@ static void gen_per_code(struct triargexpr * expr)
 
 		case Return:
 			{
-				struct int arg1_index;
-				struct var_info * arg1_info; 
-				enum arg_flag arg1_flag;
-
-				if(expr -> arg1.type == IdArg)
-				{
-					arg1_index = get_index_of_id(expr -> arg1.idname);
-					arg1_info = get_info_from_index(arg1_index);
-				}
-				else//can't be immed
-				{
-					arg1_index = get_index_of_temp(expr -> arg1.expr);
-					arg1_info = get_info_from_index(arg1_index);
-				}
-
-				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
-
 				if(arg1_flag == Arg_Reg)
 				{
 					/* if arg1 in r0 can be optimized */;
