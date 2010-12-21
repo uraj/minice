@@ -11,8 +11,8 @@ struct mach_arg
     enum mach_arg_type type;//when not used, use -1
     union
     {
-        uint8_t reg;
-		uint32_t imme;
+        int reg;
+		int imme;
 		char * label;
     };
 };
