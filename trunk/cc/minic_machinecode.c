@@ -12,13 +12,6 @@ enum Arg_Flag
 	Arg_Mem
 };
 
-struct global_var_dpt
-{
-	int label_offset;	
-	int last_ref;
-	char has_refed;
-};
-
 struct reg_dpt
 {
 	int content;
@@ -30,7 +23,6 @@ static int reg_dpt[32];//register discription
 static int cur_sp;
 static int total_label_num;//set zero in new_code_table_list 
 
-static struct global_var_dpt * g_var_dpt;
 static int * global_var_label_offset;
 static int ref_g_var_num;
 static char * global_var_label;
@@ -58,13 +50,6 @@ static inline void set_cur_function(int func_index)
 	cur_func_index = func_index;
 	
 	int string_num;//get string num from the symtable
-	g_var_dpt = calloc(g_global_id_num, sizeof(struct global_var_dpt));//need get last ref from active var analyse
-	for(index = 0; index < g_global_id_num; index++)
-	{
-		g_var_dpt[index].label_offset = -1;
-		g_var_dpt[index].has_refed = 0;
-		/* g_var_dpt[index].last_ref = */;
-	}
 	global_var_label_offset = calloc(g_global_id_num + string_num, sizeof(int));//need free
 	ref_g_var_num = 0;
 	global_var_label = gen_new_label(total_label_num ++);//as the head element of the global var
@@ -195,14 +180,15 @@ static inline void insert_buncond_code(char * dest_label, char link)
 
 
 /****************** deal with global var begin ************************/
-static inline int ref_global_var(int var_id)//get the global var offset
+static inline int ref_global_var(int g_var_index)//get the global var offset
 {
-	if(g_var_dpt[var_id].label_offset == -1)//var_id = var_index for global var
+	struct var_info * tmp_info = get_info_from_index(g_var_index);
+	if(tmp_info -> mem_addr == INITIAL_MEM_ADDR)//var_id = var_index for global var
 	{
-		g_var_dpt[var_id].label_offset = ref_g_var_num;
-		global_var_label_offset[ref_g_var_num ++] = var_id;
+		tmp_info -> mem_addr = ref_g_var_num;
+		global_var_label_offset[ref_g_var_num ++] = g_var_index;
 	}
-	return id_info -> label_offset; 
+	return tmp_info -> mem_addr; 
 }
 
 static inline char * gen_new_var_offset(int offset)//need free later
@@ -224,16 +210,10 @@ static inline int check_is_dest(int exprnum)//need check every expr before trans
 	if(expr_info != NULL && expr_info -> label_num == -2)//means this is a dest
 	{
 		expr_info -> label_num = total_label_num ++;
-		insert_label_code(expr_info -> label_num); 
+		insert_label_code(gen_new_label(expr_info -> label_num)); 
 		return 1;
 	}
 	return 0;
-}
-
-static inline int ref_jump_dest(int expr_id)//get the label for jump dest
-{
-	struct var_info * id_info = get_info_of_temp_for_label(expr_id);
-	return id_info -> label_num;
 }
 
 static inline char * gen_new_label(int label_num)
@@ -244,10 +224,16 @@ static inline char * gen_new_label(int label_num)
 	strcat(label_name, label_num_name);
 	return strdup(label_name);//but need to free later
 }
+
+static inline int ref_jump_dest(int expr_id)//get the label for jump dest
+{
+	struct var_info * id_info = get_info_of_temp_for_label(expr_id);
+	return id_info -> label_num;
+}
 /************************** deal with label end *************************/
 
 
-/***************************** gen push *******************************/
+/**************************** gen load var beg *****************************/
 static inline int push_temp_var(int var_index);//push to stack and mark the varinfo
 {
 	if(!isglobal(var_index))
@@ -264,6 +250,8 @@ static inline void pop_temp_var();
 
 static inline void load_global_var();
 static inline void store_global_var();
+/**************************** gen load var end *****************************/
+
 /************************** get temp reg begin ***********************/
 static inline int gen_tempreg(int except);//general an temp reg for the var should be in memory
 {
@@ -531,7 +519,6 @@ static void gen_per_code(struct triargexpr * expr)
 						}
 					}
 				}
-
 			}
 			break;				
 			/* cond op translated when translating condjump */

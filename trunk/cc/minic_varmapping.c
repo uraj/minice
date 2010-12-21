@@ -52,7 +52,7 @@ static inline struct var_info *  new_var_info()
 	new_info -> is_define = -1;
 	new_info -> is_use = -1;
 	new_info -> reg_addr = -1;
-	new_info -> mem_addr = -1;
+	new_info -> mem_addr = INITIAL_MEM_ADDR;
 	new_info -> label_num = -1; 
 	new_info -> ref_point = NULL;
 	return new_info;
@@ -159,9 +159,9 @@ struct var_info * get_info_of_temp_for_label(int exprnum)//only for label
 	return var_info_table[exprnum + cur_var_id_num];	
 }
 
-int is_global(int index)/* new and used, just mark */
+int is_global(int index)/* global or const str */
 {
-	eturn (index < (get_globalvar_num())) && (index >= 0);
+	return is_conststr_byno(index) || ((index < (get_globalvar_num())) && (index >= 0));
 }
 
 int get_ref_var_num()/* new and used, just mark */
