@@ -236,12 +236,9 @@ static inline int ref_jump_dest(int expr_id)//get the label for jump dest
 /**************************** gen load var beg *****************************/
 static inline int push_temp_var(int var_index);//push to stack and mark the varinfo
 {
-	if(!isglobal(var_index))
-	{
-		push_
-		return 1;
-	}
-	return 0;
+	cur_sp -= 4;	
+	insert_dp_code(SUB, sp, )
+	insert(var_index);
 }
 
 static inline void pop_temp_var();
@@ -253,27 +250,33 @@ static inline void store_global_var();
 /**************************** gen load var end *****************************/
 
 /************************** get temp reg begin ***********************/
-static inline int gen_tempreg(int except);//general an temp reg for the var should be in memory
+static inline int gen_tempreg(int * except, int size);//general an temp reg for the var should be in memory
 {
-	int index;
-	for(index = 0; index < max_reg_num; index ++)//look for empty
+	int index, ex;
+	for(index = max_reg_num - 1; index >= 0; index --)//look for empty
 	{
-		if(reg_dpt[index].content == -1 && index != except)
+		for(ex = 0; ex < size; ex ++)
+		{
+			if(index == except)
+				break;
+		}
+		if(reg_dpt[index].content == -1 && ex == size)
 		{
 			reg_dpt[index].content = -2;//-2 means tmp_reg
 			return index;
 		}
 	}
-	for(index = 0; index < max_reg_num; index ++)//look for tmp and not dirty
+	for(index = max_reg_num - 1; index >= 0; index --)//look for tmp and not dirty
 	{
 		if(!isglobal(reg_dpt[index].content) && reg_dpt[index].dirty == 0 && index != except)
 			return index;
 	}
-	for(index = 0; index < max_reg_num; index ++)//look for tmp
+	for(index = max_reg_num - 1; index >= 0; index --)//look for tmp
 	{
-		if(!isglobal(reg_dpt[index].content) && reg && index != except)
+		if(!isglobal(reg_dpt[index].content) && index != except)
 		{
-			/* push reg */
+			/* push reg */	
+			insert_mem_code(STR, reg_num);
 			insert_mem_code(STR, reg_num);
 		}
 	}
@@ -542,18 +545,45 @@ static void gen_per_code(struct triargexpr * expr)
 		case Minus:                      /* -  */	
 		case Mul:                        /* *  */
 			{
-				if(arg1_flag == Arg_Mem)
-					/* lod tempreg */;
-				else if(arg1_flag == Arg_Imm)//Only one Imm
-					/* mov immd tempreg  */;
+				int tempreg1, tmpreg2;
+				int except[2];
+				int ex_size = 0;
+				if(dest_flag == Arg_Reg)
+				{
+					if(arg1_flag != Arg_Reg)
+					{
+						except[ex_size++] = dest_info -> reg_addr;
+						dest_info -> reg_addr = gen_tempreg(except, ex_size);
+						if(arg1_flag == Arg_Mem)
+						{
+							if(isglobal(arg1_index))
+							{
+								struct mach_arg tmp_arg1, null;
+								tmp_arg1.type = Mach_Label;
+								tmp_arg1.label = gen_new_var_offset(arg1_info -> mem_addr);
+								insert(LDW, dest_info -> reg_addr, tmp_arg1, null, null, 0, NO);
+							}
+							else if(arg1_flag == Arg_Imm)//Only one Imm
+							{
+								struct mach_arg tmp_arg1, null;
+								tmp_arg1.type = Mach_Imm;
+								tmp_arg1.imme = expr -> arg1.imme;
+								insert(MOV, dest_info -> reg_addr, null, tmp_arg1.imme, 0, NO);
+							}
+						}
+					}
 
-				if(arg2_flag == Arg_Imm)
-					/* lod tempreg */;
-				else if(arg2_flag == Arg_IMm)
+					if(arg2_flag == Arg_Imm)
+					{
+						except[ex_size++] = 
+						/* lod tempreg */;
+					else if(arg2_flag == Arg_IMm)
 					/* mov immd tempreg */;
 
-				if(dest_flag == Arg_Reg)
 					/* add or sub or mul */;
+				
+					
+				}
 				else
 				{
 					/* add or sub to tempreg */;
