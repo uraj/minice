@@ -5,6 +5,7 @@
 #include "minic_triargexpr.h"
 #include "minic_flowanalyse.h"
 
+#define INITIAL_MEM_ADDR 0xFFFFFFFF
 /* this is for mapping the operands of triargexpr to a integer, which */
 /* will be useful during data flow analyze and register allocation */
 /* [char * idname, int exprindex] <=> var_info_index <=> index */
@@ -16,7 +17,8 @@ struct var_info//the struct to contain var's flags
 	int is_use;
 	
 	int reg_addr;
-	int mem_addr;/* can be union with is_define and is use */
+	int mem_addr;/* for local var => offset from fp
+					for global var => offset from label */
 
 	struct var_list * ref_point;//only for array
 	
