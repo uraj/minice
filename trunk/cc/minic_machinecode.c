@@ -3,6 +3,7 @@
 #include "minic_regalloc.h"
 #include <stdio.h>
 #define INITIAL_MACH_CODE_SIZE 100
+#define MAX_TAG_NAME_LEN 20
 
 enum Arg_Flag
 {
@@ -11,24 +12,32 @@ enum Arg_Flag
 	Arg_Mem
 };
 
+struct global_var_dpt
+{
+	int dirty;
+	int last_ref;
+	char has_refed;
+};
+
 static struct ralloc_info alloc_reg;
 static int reg_dpt[32];//register discription
 static int cur_sp;
 static int total_tag_num;//set zero in new_code_table_list 
 
+static struct global_var_dpt * g_var_dpt;
+static int * global_var_tag_offset;
+static int ref_g_var_num;
+static int global_var_tag;
 
 static struct triargtable * cur_table;
 static int value_info * cur_func_info;
-
 static int cur_var_id_num;
 static int cur_ref_var_num;
 static int cur_func_index;
-
 static var_list * active_var_array; 
 
 /* may only use bp sp lr and pc, so there is 29 registers can be used*/
 static const int max_reg_num = 27;
-
 static int cur_code_index;
 static int cur_code_bound;
 static inline void set_cur_function(int func_index)
@@ -38,44 +47,161 @@ static inline void set_cur_function(int func_index)
 	cur_var_id_num = table_list[func_index] -> var_id_num;
 	cur_ref_var_num = get_ref_var_num();//the varmapping is always right during this file
 	cur_func_index = func_index;
+	
+	int string_num;//get string num from the symtable
+	g_var_dpt = calloc(g_global_id_num, sizeof(struct global_var_dpt));//need get last ref from active var analyse
+	global_var_tag_offset = calloc(g_global_id_num + string_num, sizeof(int));//need free
+	ref_g_var_num = 0;
+	global_var_tag = total_tag_num ++;//as the head element of the global var
 
 	cur_sp = 0;//just point to bp
 
 	cur_code_index = 0;
 	cur_code_bound = INITIAL_MACH_CODE_SIZE; 
-	code_table[func_index].table = calloc(cur_code_bound, sizeof(struct mach_code));  
-	code_table[func_index].code_num = 0;
+	code_table_list[func_index].table = calloc(cur_code_bound, sizeof(struct mach_code));  
+	code_table_list[func_index].code_num = 0;
+	int index;
+	for(index = 0; index < 31; index ++)
+		reg_dpt[index] = -1;
 }
 
-static void insert_code(struct mach_code code)
+static inline void leave_cur_function()
+{
+	free(global_var_tag_offset);
+	free(g_var_dpt);
+}
+
+static inline void insert_code(struct mach_code newcode)
 {
     if(cur_code_index >= cur_code_bound)
     {
-        struct mach_code * tmp_code_table = calloc(2 * cur_code_bound, sizeof(struct mach_code));
-        memcpy(tmp_code_table, code_table[cur_func_index].table, sizeof(struct mach_code) * cur_table_bound); 
-        table_list_bound *= 2;
-        free(table_list);
-        table_list = tmp_table_list;
+        struct mach_code * tmp_table_list = calloc(2 * cur_code_bound, sizeof(struct mach_code));
+        memcpy(tmp_table_list, code_table_list[cur_func_index].table, sizeof(struct mach_code) * cur_code_bound); 
+        cur_code_bound *= 2;
+        free(code_table_list[cur_func_index].table);
+		code_table_list[cur_func_index].table = tmp_table_list;
     }
-    table_list[table_list_index++] = newtable;
+	code_table_list[cur_func_index].code_num ++;
+	code_table_list[cur_func_index].table[cur_code_index++] = newcode;
 }
 
-static inline void insert_code(struct mach_code code)
+static inline void insert_tag_code(int tag_num)
 {
-	code_table[cur_func_index].table[]
+	struct mach_code new_code;
+	new_code.op_type = TAG;
+	new_code.tag_num = tag_num;
+	insert_code(new_code);
 }
 
-static inline struct mach_code_list * new_push_node()
+static inline int ref_global_var(int var_id)//get the global var offset
 {
+	struct var_info * id_info = get_info_of_id(var_id);
+	if(id_info -> tag_offset == -1)
+	{
+		id_info -> tag_offset = ref_g_var_num;
+		global_var_tag_offset[ref_g_var_num ++] = var_id;
+	}
+	return id_info -> tag_offset; 
 }
 
-static inline struct mach_code_list * new_pop_node()
+static inline char * check_is_dest(int exprnum)
 {
+	struct var_info * expr_info = get_info_of_temp(exprnum);
+	if(expr_info != NULL && expr_info -> tag_num == -2)//means this is a dest
+	{
+		expr_info -> tag_num = total_tag_num ++;
+		insert_tag_code(expr_info -> tag_num); 
+	}
 }
 
-//static inline void deal_with_args(int dest)
+static inline char * ref_jump_dest(int expr_id)//get the tag for jump dest
+{
+	struct var_info * id_info = get_info_of_temp_for_tag(expr_id);
+	return gen_new_tag(id_info -> tagnum);
+}
 
-static inline enum arg_flag mach_prepare_arg(int arg_index, struct var_info * arg_info, int arg_type)/* arg_type : 0=>dest, 1=>normal */
+static inline char * gen_new_tag(int tag_num)
+{
+	char tag_name[MAX_TAG_NAME_LEN] = ".L";
+	char tag_num_name[MAX_TAG_NAME_LEN];
+	itoa(tag_num, tag_num_name, 10);
+	strcat(tag_name, tag_num_name);
+	return strdup(tag_name);//but need to free later
+}
+
+static inline struct mach_code_list * new_push_node();//push to stack and mark the varinfo
+static inline load_global_var();
+static inline gen_tempreg();//general an temp reg for the var should be in memory
+static inline restore_tempreg();
+struct mach_code//mach means machine
+{
+	enum mach_op_type op_type;
+	
+	union
+	{
+		enum dp_op_type dp_op;
+		enum mem_op_type mem_op;
+		enum brach_op_type branch_op;
+	};
+
+	int dest;//only reg
+	
+	union
+	{
+		struct mach_arg arg1;
+		enum condition_type cond;					/* used in condition-jump */
+	};
+		
+	struct mach_arg arg2, arg3;
+	
+	union
+	{
+		uint8_t sign;								/* 1 change sign, 0 not *//* used in dp */
+		uint8_t link;								/* 1 jump and link, 0 not *//* used in branch */
+		uint8_t offet;								/* 1 is +, and 0 is no, -1 is - *//* used in mem */
+	};	
+
+	union
+	{
+		enum shift_type shift;					/* used in data-processing and memory-access*/
+		enum special_width width;
+	};
+
+	enum indexed_type indexed;					/* used in mem */
+	
+	int tag_num;								/* -1 is no */
+};
+
+//static inline struct mach_code * new_dp_code(enum dp_op_type dp_op, int dest)   
+static inline void insert_code_store()
+{
+
+static inline insert_mem_code(enum mem_op_type mem_op, int dest, struct mach_arg arg1, struct mach_arg arg2, struct mach_arg arg3, int offset, enum shift_type shift, enum indexed_type indexed, int tag_num)
+{
+	struct mach_code new_code;
+	new_code.op_type = MEM;
+	new_code.mem_op = mem_op;
+	new_code.dest = dest;
+	new_code.arg1 = arg1;
+	new_code.arg2 = arg2;
+	new_code.arg3 = arg3;
+	new_code.offset = offset;
+	new_code.offset = shift;
+		insert_code(struct mach_code newcode);	
+}
+
+
+static inline void check_reg(int ref_index)//must deal with dirty and has_refed before
+{
+	int tmp_g_var_id = reg_dpt[reg_num];
+	if(is_global(tmp_g_var_id) && g_var_dpt[tmp_g_var_id] -> has_refed && g_var_dpt[tmp_g_var_id] -> dirty)
+	{
+		/*store*/
+		
+	}
+}
+
+static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struct var_info * arg_info, int arg_type)/* arg_type : 0=>dest, 1=>normal */
 {
 	enum Arg_Flag flag;
 	
@@ -85,7 +211,7 @@ static inline enum arg_flag mach_prepare_arg(int arg_index, struct var_info * ar
 		if(arg_info -> reg_addr == -1)
 		{
 			arg_info -> reg_addr = alloc_reg.result[arg_index];
-			/* if new_arg != old_arg swap */
+			check_reg(arg_info -> reg_addr);
 		}
 		if(arg_type == 1)
 		{
@@ -130,7 +256,7 @@ static void gen_per_code(struct triargexpr * expr)
 					arg1_info = get_info_from_index(arg1_index);
 				}
 
-				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 0);
+				arg1_flag = mach_prepare_arg(expr -> index, arg1_index, arg1_info, 0);
 
 				if(expr -> arg2.type != ImmArg)
 				{
@@ -729,6 +855,12 @@ void new_code_table_list()
 
 void free_code_table_list()
 {
+	int index;
+	for(index = 0; index < g_table_list_size; index ++)
+	{
+		if(code_table_list[index].table != NULL)
+			free(code_table_list[index].table);
+	}
 	free(code_table_list);
 }
 

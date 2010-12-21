@@ -33,4 +33,9 @@ new:
 23.--pointer, segmentation fault
 24.segmentation fault when testing test.c in minic_flowanalyse.c//Done
 25.error when pointer = array head
-26.const calculate
+26.const calculate	//Done
+27.isglobal
+28.global_var_last_ref
+29.global var def when step into one function
+30.total string num
+31.deal with dirty and has_refed for global_var

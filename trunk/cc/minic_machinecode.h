@@ -21,7 +21,8 @@ enum mach_op_type
 {
 	DP = 0,		/* data processing */
 	MEM,		/* memory access */
-	BRANCH		/* branch */
+	BRANCH,		/* branch */
+	TAG			/* tag */
 };
 
 enum dp_op_type
@@ -114,6 +115,7 @@ struct mach_code//mach means machine
 	
 	union
 	{
+		int tag_num;
 		enum dp_op_type dp_op;
 		enum mem_op_type mem_op;
 		enum brach_op_type branch_op;
@@ -142,7 +144,7 @@ struct mach_code//mach means machine
 		enum special_width width;
 	};
 
-	enum indexed_type indexed;					/* used in mem */
+	enum indexed_type indexed;					/* used in mem */	
 };
 
 struct mach_code_table

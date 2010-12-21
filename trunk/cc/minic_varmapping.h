@@ -19,7 +19,8 @@ struct var_info//the struct to contain var's flags
 	int mem_addr;/* can be union with is_define and is use */
 
 	struct var_list * ref_point;//only for array
-
+	
+	int tag_offset;// only for the global var and string
 	int tag_num;// the expr jump to which tag /* can be union */
 
 	int index;
@@ -40,9 +41,12 @@ extern int get_ref_var_num();/*return total number of vars which have been refer
 
 extern int is_global(int index);
 
+
 extern int new_var_map(int func_index);
 extern void free_var_map();
 
 extern int insert_tempvar(int exprindex);
 
+extern struct void set_expr_tag_mark(int exprnum);
+extern struct var_info * get_info_of_temp_for_tag(int exprnum);
 #endif
