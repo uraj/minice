@@ -122,7 +122,7 @@ struct subexpr_info triargexpr_gen(struct ast* root)
                 ret.subexpr_arg.imme = root -> val -> ival;
                 break;
             case Sconstleaf:
-                exit(1);       
+                exit(1);
         }
         ret.arithtype = 1;
         ret.truelist = ret.falselist = NULL;
@@ -133,13 +133,19 @@ struct subexpr_info triargexpr_gen(struct ast* root)
             expr.index = insert_triargexpr(expr);
             ret.end = gtriargexpr_table_index - 1;
         }
+        else if((uint32_t)(root->val->ival) > 0x000001ff)
+        {
+            expr.op = BigImm;
+            expr.arg1 = ret.subexpr_arg;
+            expr.index = insert_triargexpr(expr);
+            ret.end = gtriargexpr_table_index - 1;
+        }
         else
         {
             ret.end = gtriargexpr_table_index;
         }
         return ret;
     }
-    
 
     struct subexpr_info lsub, rsub;
     int larith_index, rarith_index;

@@ -199,6 +199,9 @@ void op_printer(enum operator op, FILE* output_buff)
         case Ref:
             fprintf(output_buff, "unary &");
             break;
+        case BigImm:
+            fprintf(output_buff, "BigImm");
+            break;
         case Minusminus:
             fprintf(output_buff, "--");
             break;
