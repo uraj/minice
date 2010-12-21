@@ -691,28 +691,7 @@ static void gen_per_code(struct triargexpr * expr)
                 {
 					/* load tempreg */;
                      arg1_reg_index = gen_tempreg(NULL , 0);//申请临时寄存器
-                     if(is_globalvar_byno(arg1_info->index) == 1)//全局变量
-                          load_global_var(arg1_info , dest);
-                     else
-                     {
-                          /*将数据从内存中load到临时寄存器当中*/
-                          /*LDB/LDW arg1_reg , [fp-] , arg1_addr*/
-                          int wide;//byte OR word
-                          enum mem_op_type mem_op;
-                          struct mach_arg arg1 , arg2 , arg3;
-                          int offset = -1;
-                          enum shift_type shift = NO;
-                          if(wide == 1)
-                               mem_op = LDB;
-                          else
-                               mem_op = LDW;
-                          arg1.type = Mach_Reg;
-                          arg1.reg = FP;
-                          arg2.type = Mach_Imm;
-                          arg2.imme = arg1_info->mem_addr;
-                          arg3.type = Unused;
-                          insert_mem_code(mem_op, arg1_reg_index , arg1, arg2, arg3, offset, shift);
-                     }
+                     load_var(arg1_info, arg1_reg_index);
                 }
                 else if(arg1_flag == Arg_Reg)
                 {
@@ -773,7 +752,8 @@ static void gen_per_code(struct triargexpr * expr)
                          insert_dp_code(dp_op , dest_reg_index  , arg1 , arg2, i_arg3 , shift);
                          
                          /*STB/STW dest_reg , [fp-] , dest_addr*/
-                         if(wide == 1)
+                         
+						 if(wide == 1)
                               mem_op = STB;
                          else
                               mem_op = STW;
