@@ -87,6 +87,7 @@ extern struct value_info * symbol_search(struct symbol_table *whole , struct sym
 
 extern void start_arglist();//参数开始计数
 extern void end_arglist();
+extern void get_arg_interval(struct symbol_table *table , int *start , int *end);//获得该符号表的参数开始结束标号
 extern struct value_info *get_valueinfo_byno(struct symbol_table *cur_table , int no);//get value_info by No.
 
 /*value_type*/
@@ -105,6 +106,7 @@ extern int ELFhash(char *str);
 extern int is_arglist_byno(struct symbol_table *table , int no);//根据变量编号，判断是不是该函数的参数
 extern int is_globalvar_byno(int no);//根据变量编号，判断是不是全局变量
 extern int is_conststr_byno(struct symbol_table *table , int no);//
+
 extern int get_localvar_num(struct symbol_table *table);//获得该符号表（函数）的局部变量个数，前提是已经完成了语法分析
 extern int get_globalvar_num();//获得该程序的全局变量个数，前提是已经完成了语法分析
 extern int get_localstr_num(struct symbol_table *table);//获得该符号表（函数）的常量字符串个数，前提是已经完成了语法分析

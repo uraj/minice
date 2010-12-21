@@ -1,6 +1,6 @@
 int g_a1 , g_a2;
 
-int a1(int i)
+int a1(int i , int m)
 {
      int j,k;
      j=0;
@@ -12,7 +12,7 @@ int a1(int i)
      return 0;
 }
 
-void a2()
+void a2(int c1 , int c2)
 {
      int i,j,k, *p, *m;
      int a[10];

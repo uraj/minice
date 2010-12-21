@@ -336,6 +336,15 @@ void end_arglist()//参数计数结束
      curr_table->arg_no_max = g_var_id_num;
 }
 
+void get_arg_interval(struct symbol_table *table , int *start , int *end)//获得该符号表的参数开始结束标号
+{
+     assert((start != NULL) && (end != NULL));
+     if(table == NULL)
+          return;
+     (*start) = table->arg_no_min;
+     (*end) = table->arg_no_max - 1;
+}
+
 struct symbol_stack * syms_new()
 {
     struct symbol_stack * stack = (struct symbol_stack *)malloc(sizeof(struct symbol_stack));
