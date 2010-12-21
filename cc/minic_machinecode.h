@@ -20,6 +20,7 @@ struct mach_arg
 enum mach_op_type
 {
 	DP = 0,		/* data processing */
+	CMP,
 	MEM,		/* memory access */
 	BRANCH,		/* branch */
 	TAG			/* tag */
@@ -28,46 +29,31 @@ enum mach_op_type
 enum dp_op_type
 {
 	AND = 0,
-	XOR,
 	SUB,
-	RSB,
 	ADD,
-	ADC,
-	ABC,
-	RSC,
-	ORR,
-	CLB,
-	
-	MVN,
+	OR,
+
+	MVN,//may be useful
 	MOV,/* no arg1 */
-	MVNCOND,
-	MOVCOND
+	MOVCOND//may be useful
 
 	MUL,
-	MLA,
-
-	CAND,
-	CXOR,
-	CSUB,
-	CADD/* no dest, no sign */
+	MLA,//may be useful
+	MULSL
 };
+
+enum cmp_op_type
+{
+	CMPSUB.A
+}; 
 
 enum mem_op_type//width? the fields for memory are already to many..
 {
-	LODW = 0,
-	STRW,
-	LODB,
-	STRB,
-	LOD,
-	STR		/* if these two, need the S and H */ 
+	LDW = 0,
+	STW,
+	LDB,
+	STB
 };/* no arg3 for half word and signed data */
-
-enum special_width
-{
-	H,
-	SH,
-	SB
-};
 
 enum branch_op_type
 {

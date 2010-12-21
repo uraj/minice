@@ -143,7 +143,7 @@ struct var_info * get_info_from_index(int index)
 		return var_info_table[map_bridge[index - cur_var_id_num]];
 }
 
-struct void set_expr_tag_mark(int exprnum)//only for tag
+void set_expr_tag_mark(int exprnum)//only for tag
 {
 	struct var_info * tmp_info = get_info_of_temp(exprnum);
 	if(tmp_info == NULL)

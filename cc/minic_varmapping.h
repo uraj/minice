@@ -47,6 +47,6 @@ extern void free_var_map();
 
 extern int insert_tempvar(int exprindex);
 
-extern struct void set_expr_tag_mark(int exprnum);
+extern void set_expr_tag_mark(int exprnum);
 extern struct var_info * get_info_of_temp_for_tag(int exprnum);
 #endif
