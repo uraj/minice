@@ -1,7 +1,10 @@
-int a1()
+int g_a1 , g_a2;
+
+int a1(int i)
 {
-     int i,j,k;
+     int j,k;
      j=0;
+     g_a2 = 10;
      for(i<j ; i=j ; (i=i+j)&&(i>j))
      {
           k = i + j;

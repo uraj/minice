@@ -69,6 +69,9 @@ struct symbol_table * symt_new()
     t->str_num = 0;
     t->cur_strarray_size = 4;
     t->const_str = new_conststr_array(t->cur_strarray_size);
+
+    g_const_str_num = get_globalstr_num();
+    g_var_id_num = get_globalvar_num();
     
 	return t;
 }
