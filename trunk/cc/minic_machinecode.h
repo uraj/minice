@@ -23,7 +23,7 @@ enum mach_op_type
 	CMP,
 	MEM,		/* memory access */
 	BRANCH,		/* branch */
-	TAG			/* tag */
+	LABEL		/* label */
 };
 
 enum dp_op_type
@@ -38,7 +38,7 @@ enum dp_op_type
 	MOVCOND//may be useful
 
 	MUL,
-	MLA,//may be useful
+	//MLA,//may be useful
 	MULSL
 };
 
@@ -57,28 +57,20 @@ enum mem_op_type//width? the fields for memory are already to many..
 
 enum branch_op_type
 {
-	BRX = 0,/* no cond */
+	JUMP = 0,/* reg dest */
+	B,		/* label dest */
 	BCOND
 };
 
 enum condition_type
 {
-	NO = 0, /* no cond */
 	EQ,	/*equal*/
 	NE, /*not equal*/
-	N,  /*negtive*/
-	NN, /*not negtive*/
-	OV, /*overflow*/
-	NV, /*not overflow*/
-	ULT,/*unsigned less than*/
-	UGT,/*unsigned greater than*/
-	ULE,/*unsigned less equal*/
-	UGE,/*unsigned greater equal*/
-	SLT,/*signed less than*/
-	SGT,/*signed greater than*/
-	SLE,/*signed less equal*/
-	SGE,/*signed greater equal*/
-}
+	SL,/*signed less than*/
+	SG,/*signed greater than*/
+	EL,/*signed less equal*/
+	EG/*signed greater equal*/
+};
 
 enum shift_type
 {
@@ -89,21 +81,15 @@ enum shift_type
 	RR		/* roll right */
 };
 
-enum indexed_type
-{
-	PRENW = 0,/* pre indexed and not write base register */
-	PREW, /* pre indexed and write base register */
-	POST /* post indexed and write base register */
-}
-
 struct mach_code//mach means machine
 {
 	enum mach_op_type op_type;
 	
 	union
 	{
-		char * tag_name;
+		char * label;
 		enum dp_op_type dp_op;
+		enum cmp_op_type cmp_op;
 		enum mem_op_type mem_op;
 		enum branch_op_type branch_op;
 	};
@@ -111,7 +97,7 @@ struct mach_code//mach means machine
 	union
 	{
 		int dest;//only reg
-		char * dest_tag_name;//for cond jump
+		char * dest_label;//for cond jump
 	};
 
 	union
@@ -120,22 +106,16 @@ struct mach_code//mach means machine
 		enum condition_type cond;					/* used in condition-jump */
 	};
 		
-	struct mach_arg arg2, arg3;
+	struct mach_arg arg2;
+	uint32_t arg3;
 	
 	union
 	{
-		char sign;								/* 1 change sign, 0 not *//* used in dp */
 		char link;								/* 1 jump and link, 0 not *//* used in branch */
-		char offet;								/* 1 is +, and 0 is no, -1 is - *//* used in mem */
-	};	
-
-	union
-	{
-		enum shift_type shift;					/* used in data-processing and memory-access*/
-		enum special_width width;				/* used in l/d hw and l/d signed */
+		char offet;								/* 1 is +, and 0 is no*//* used in mem */
 	};
 
-	enum indexed_type indexed;					/* used in mem */	
+	enum shift_type shift;					/* used in data-processing and memory-access*/
 };
 
 struct mach_code_table

@@ -39,3 +39,4 @@ new:
 29.global var def when step into one function
 30.total string num
 31.deal with dirty and has_refed for global_var
+32.deal with return in basic_block
