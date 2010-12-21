@@ -653,8 +653,8 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
 #endif
           if(i == 0)//第一个块要把函数参数和全局变量放入def[0]当中
           {
-               int start = cur_func_sym_table->arg_no_min;
-               int end = cur_func_sym_table->arg_no_max;
+               //int start = cur_func_sym_table->arg_no_min;
+               //int end = cur_func_sym_table->arg_no_max;
                int global_var_num = get_globalvar_num();
                int j;
                for(j = 0 ; j < global_var_num ; j++)
@@ -662,11 +662,11 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                     def_size[0] ++;
                     var_list_append(def , j);
                }
-               for(j = start ; j < end ; j++)
-               {
-                    def_size[0] ++;
-                    var_list_append(def , j);
-               }
+               //for(j = start ; j < end ; j++)
+               //{
+               //     def_size[0] ++;
+               //     var_list_append(def , j);
+               //}
           }
           temp = DFS_array[i]->head;
           while(temp != NULL)

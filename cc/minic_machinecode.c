@@ -22,6 +22,8 @@ struct Reg_Dpt
 
 static struct ralloc_info alloc_reg;
 static struct Reg_Dpt reg_dpt[32];//register discription
+static int map_to_reg[32];//将分配的寄存器编号映射成真实寄存器号
+static int cur_var_id_num;
 static int cur_sp;
 static int total_label_num;//set zero in new_code_table_list 
 
@@ -250,14 +252,6 @@ static inline void pop_temp_var();
 {
 }
 
-static inline void load_temp_var(struct )
-{
-}
-
-static inline void store_temp_var(struct )
-{
-}
-
 static inline void load_global_var(struct var_info * g_v_info, int reg_num)
 {
 	struct value_info * tmp_info = get_valueinfo_byno(cur_func_info -> func_symt, g_v_info -> index); 
@@ -299,7 +293,7 @@ static inline int gen_tempreg(int * except, int size);//general an temp reg for 
 	{
 		for(ex = 0; ex < size; ex ++)
 		{
-			if(index == except[ex])
+			if(index == except)
 				break;
 		}
 		if(reg_dpt[index].content == -1 && ex == size)
@@ -687,26 +681,116 @@ static void gen_per_code(struct triargexpr * expr)
 				break;
 			}
 
-		case Plusplus:                   /* ++ */
-		case Minusminus:                 /* -- */
+    case Plusplus:                   /* ++ */
+    case Minusminus:                 /* -- *//*优先级高于二元或赋值操作*/
 			{
+                 /*如果操作数在内存之中，先申请一个临时寄存器，将数据load进去，然后操作，在回写到内存之中*/
+                 int arg1_reg_index;
 				if(arg1_flag == Arg_Mem)//can't be immd
-					/* lod tempreg */;
-
+                {
+					/* load tempreg */;
+                     arg1_reg_index = gen_tempreg(NULL , 0);//申请临时寄存器
+                     if(is_globalvar_byno(arg1_info->index) == 1)//全局变量
+                          load_global_var(arg1_info , dest);
+                     else
+                     {
+                          /*将数据从内存中load到临时寄存器当中*/
+                          /*LDB/LDW arg1_reg , [fp-] , arg1_addr*/
+                          int wide;//byte OR word
+                          enum mem_op_type mem_op;
+                          struct mach_arg arg1 , arg2 , arg3;
+                          int offset = -1;
+                          enum shift_type shift = NO;
+                          if(wide == 1)
+                               mem_op = LDB;
+                          else
+                               mem_op = LDW;
+                          arg1.type = Mach_Reg;
+                          arg1.reg = FP;
+                          arg2.type = Mach_Imm;
+                          arg2.imme = arg1_info->mem_addr;
+                          arg3.type = Unused;
+                          insert_mem_code(mem_op, arg1_reg_index , arg1, arg2, arg3, offset, shift);
+                     }
+                }
+                else if(arg1_flag == Arg_Reg)
+                {
+                     arg1_reg_index = arg1_info->reg_addr;
+                     reg_dpt[arg1_reg_index].dirty = 1;
+                }
+                /*操作数据*/
+                /*ADD/SUB arg1_reg , arg1_reg , #1*/
+                enum dp_op_type dp_op;
+                struct mach_arg arg1 , arg2;
+                enum shift_type shift = NO;
+                if(expr->op == Plusplus)
+                     dp_op = ADD;
+                else
+                     dp_op = SUB;
+                arg1.type = Mach_Reg;
+                arg1.reg = arg1_reg_index;
+                arg2.type = Mach_Imm;
+                arg2.imme = 1;
+                int i_arg3 = 0;
+                insert_dp_code(dp_op, arg1_reg_index , arg1, arg2, i_arg3, shift);
+                
 				/* add or sub tempreg, tempreg, 1 */;
-
 				if(dest_index != -1)/*be used later*//******************** can be optimized *******************/
 				{
 					if(dest_flag == Arg_Reg)
+                    {
 						/* mov tempreg => dest reg*/;
+                         /*MOV dest_reg , arg1_reg*/
+                         enum dp_op_type dp_op;
+                         struct mach_arg arg1 , arg2;
+                         enum shift_type shift = NO;
+                         int dest_reg_index = (get_info_from_index(dest_index))->reg_addr;
+                         reg_dpt[dest_reg_index].dirty = 1;
+                         arg1.type = Mach_Reg;
+                         arg1.reg = arg1_reg_index;
+                         arg2.type = Unused;
+                         int i_arg3 = 0;
+                         insert_dp_code(dp_op, dest_reg_index  , arg1, arg2, i_arg3, shift);
+                    }
 					else
 					{
 						/* str */;
+                         int except[1];
+                         int wide;//byte OR word
+                         enum mem_op_type mem_op;
+                         struct mach_arg arg1 , arg2 , arg3;
+                         int offset = -1;
+                         enum shift_type shift = NO;
+                         except[0] = arg1_reg_index;
+                         dest_reg_index = gen_tempreg(except , 1);//申请一个临时寄存器
+                         
+                         /*MOV dest_reg , arg1_reg*/
+                         arg1.type = Mach_Reg;
+                         arg1.reg = arg1_reg_index;
+                         arg2.type = Unused;
+                         int i_arg3 = 0;
+                         insert_dp_code(dp_op , dest_reg_index  , arg1 , arg2, i_arg3 , shift);
+                         
+                         /*STB/STW dest_reg , [fp-] , dest_addr*/
+                         if(wide == 1)
+                              mem_op = STB;
+                         else
+                              mem_op = STW;
+                         arg1.type = Mach_Reg;
+                         arg1.reg = FP;
+                         arg2.type = Mach_Imm;
+                         arg2.imme = (get_info_from_index(dest_index))->mem_addr;
+                         arg3.type = Unused;
+                         insert_mem_code(mem_op , dest_reg_index , arg1 , arg2 , arg3 , offset , shift);
+
+                         restore_tempreg(dest_reg_index);
 					}
 				}
 
 				/* restore for arg1 */;
-
+                if(arg1_flag == Arg_Mem)
+                     restore_tempreg(arg1_reg_index);
+                
 				break;
 			}
 
@@ -747,9 +831,7 @@ static void gen_per_code(struct triargexpr * expr)
 
 		case UncondJump:
 			{
-				int label_num = ref_jump_dest(expr -> index);
-				char * dest_label_name = gen_new_label(label_num);	
-				insert_buncond_code(dest_label_name, 0);
+				/* brx to .L+..*/;
 				break;
 			}
 
@@ -946,6 +1028,31 @@ static void gen_per_code(struct triargexpr * expr)
 	}
 }
 
+static void init_reg_map(struct ralloc_info *alloc_reg)//
+{//可用的寄存器：R4－R15，R17－R26，R28
+     int i;
+     for(i = 0 ; i < 32 ; i ++)
+     {
+          if(i <= 0)
+               map_to_reg[i] = -1;
+          else if(i <= 12)
+               map_to_reg[i] = i + 3;
+          else if(i <= 22)
+               map_to_reg[i] = i + 4;
+          else if(i == 23)
+               map_to_reg[i] = 28;
+          else
+               map_to_reg[i] = -1;
+     }
+}
+
+static int get_reg_map(int alloc_index)
+{
+     if(alloc_index >= 32 && alloc_index < 0)
+          return -1;
+     return map_to_reg[alloc_index];
+}
+
 void new_code_table_list()
 {
 	code_table_list = calloc(g_table_list_size, sizeof(struct mach_code_table)); 
@@ -968,6 +1075,7 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 	set_cur_function(func_index);
 	new_active_var_array();
 	alloc_reg = reg_alloc(active_var_array, cur_table -> exprnum, cur_ref_var_num, max_reg_num);//current now
+    init_reg_map(&alloc_reg);//初始化map数组，用作将分配的寄存器编号映射成真实寄存器
 	struct triargexpr_list * tmp_node = cur_table -> head;
 	while(tmp_node != NULL)//make tail's next to be NULL
 	{
