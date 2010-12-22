@@ -21,7 +21,7 @@ int loop()
 		{
 			while(a > c)
 			{
-				;
+				return 0;
 			}
 		}
 	}
@@ -29,7 +29,7 @@ int loop()
 	{
 		if(a < c)
 		{
-			a = c;
+			return 1;
 		}
 	}
 }

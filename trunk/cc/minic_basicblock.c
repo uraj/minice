@@ -337,10 +337,11 @@ static struct basic_block * make_block(struct triargexpr_list * entrance)//gener
 				newblock -> tail -> next = NULL;
 				g_block_num ++;
 				return newblock;//need a func
-			/*case Return:
+			case Return:
 				DFS_list = basic_block_list_append(DFS_list, newblock);
 				newblock -> tail -> next = NULL;
-				g_block_num ++;*/
+				g_block_num ++;
+				return newblock;
 			//	newblock
 			default: break;
 		}

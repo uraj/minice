@@ -18,9 +18,9 @@ void a2(int c1 , int c2)
      int a[10];
      
      if(i == 0)
-          p = &i;
-     else
-          p = &j;
+		return 0;
+	 else
+		return 1;
      k = *p;
      (*p) = 11;
      m = p;
