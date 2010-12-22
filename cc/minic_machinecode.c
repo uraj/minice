@@ -33,7 +33,7 @@ static int cur_sp;
 static int total_label_num;//set zero in new_code_table_list 
 
 static struct Reg_Dpt shadow_reg_dpt[32];//use to deal with temp reg
-
+static int shadow_sp_offset[32];//use to deal with temp reg
 static int * global_var_label_offset;
 static int ref_g_var_num;
 static char * global_var_label;
@@ -222,10 +222,10 @@ static inline int prepare_temp_var_inmem()//gen addr at first
 	int index, mem_tmp_var_num = 0;
 	struct var_info * tmp_v_info;
 	struct mach_arg tmp_sp, tmp_offet;
-	tmp_sp.type = ArgReg;
+	tmp_sp.type = Mach_Reg;
 	tmp_sp.reg = SP;
-	tmp_offset.type = ArgImm;
-	tmp_offset.reg = 0;//will be filled back later
+	tmp_offset.type = Mach_Imm;
+	tmp_offset.imme = 0;//will be filled back later
 	int code_index = insert_dp_code(SUB, SP, tmp_sp, tmp_offset, -1, NO);
 	
 	int offset_from_fp = 0;//cur_sp should sp - fp
@@ -236,12 +236,13 @@ static inline int prepare_temp_var_inmem()//gen addr at first
 			if(!isglobal(index))
 			{
 				tmp_v_info = get_info_from_index(index);
-				if(get_width_from_index(index) == 1)
+				if(get_width_from_index(index) == BYTE)
 					offset_from_sp ++;
 				else
 				{
-					offset_from_sp += 4;
-					offset_from_sp = offset_from_sp - offset_from_sp % 4;
+					offset_from_sp += WORD;
+					if(offset_from_sp % WORD != 0)
+						offset_from_sp = offset_from_sp - offset_from_sp %WORD + WORD;
 				}
 				tmp_v_info -> mem_addr = cur_sp + offset_from_sp;
 			}
@@ -364,46 +365,128 @@ static inline void store_global_var(struct var_info * g_v_info, int reg_num)
 /************************** get temp reg begin ***********************/
 static inline int gen_tempreg(int * except, int size)//general an temp reg for the var should be in memory
 {
-	int index, ex;
-	for(index = max_reg_num - 1; index >= 0; index --)//look for empty
+	int outlop, index, ex;
+	for(outlop = 0; outlop < 5; outlop ++)
 	{
-		for(ex = 0; ex < size; ex ++)
+		for(index = max_reg_num - 1; index >= 0; index --)//look for empty
 		{
-			if(index == except[ex])
-				break;
-		}
-		if(reg_dpt[index].content == REG_UNUSED && ex == size)
-		{
-			reg_dpt[index].content = REG_TEMP;//-2 means tmp_reg
-			return index;
+			for(ex = 0; ex < size; ex ++)
+			{
+				if(index == except[ex])
+					break;
+			}
+			switch(outlop)
+			{
+				case 0:
+					if(reg_dpt[index].content == REG_UNUSED && ex == size)
+					{
+						reg_dpt[index].content = REG_TEMP;//-2 means tmp_reg
+						return index;
+					}
+					break;
+				case 1:
+					if(!isglobal(reg_dpt[index].content) && !reg_dpt[index].dirty && ex == size)
+					{
+						shadow_reg_dpt[index] = reg_dpt[index];
+						reg_dpt[index].content = REG_TEMP;
+						return index;
+					}
+					break;
+				case 2:
+					if(!isglobal(reg_dpt[index].content) && index != except)
+					{
+						int width = get_width_from_index(reg_dpt[index].content);
+
+						if(width == BYTE)
+						{
+							shadow_sp_offset[index] = 1;
+							cur_sp += BYTE;
+						}
+						else
+						{
+							shadow_sp_offset[index] = cur_sp;
+							cur_sp += WORD;
+							if(cur_sp % WORD != 0)
+								cur_sp = cur_sp + WORD - cur_sp % WORD;
+							shadow_sp_offset[index] = cur_sp - shadow_sp_offset[index];
+						}
+
+						struct mach_arg tmp_sp, tmp_offet;
+						tmp_sp.type = Mach_Reg;
+						tmp_sp.reg = SP;
+						tmp_offset.type = Mach_Imm;			
+						tmp_offset.imme = shadow_sp_offset[index];	
+						insert_dp_code(SUB, SP, tmp_sp, tmp_offset, 0, NO);
+						if(width == BYTE)
+							insert_mem_code(STB, index, SP, null, 0, NO);
+						else insert_mem_code(STW, index, SP, null, 0, NO);
+
+						shadow_reg_dpt[index] = reg_dpt[index];
+						reg_dpt[index].content = REG_TEMP;
+						return index;
+					}
+					break;
+				case 4:
+					if(index != except && !reg_dpt[index].dirty)
+					{
+						shadow_reg_dpt[index] = reg_dpt[index];
+						reg_dpt[index].content = REG_TEMP;
+						return index;
+					}
+					break;
+				case 5:
+					if(index != except)
+					{
+						store_global_var(get_info_from_index(reg_dpt[index].content), index);
+						shadow_reg_dpt[index] = reg_dpt[index];
+						reg_dpt[index].content = REG_TEMP;
+						return index;
+					}
+					break;
+				default:
+					exit(1);
+			}
 		}
 	}
-	for(index = max_reg_num - 1; index >= 0; index --)//look for tmp and not dirty
-	{
-		for(ex = 0; ex < size; ex ++)
-		{
-			if(index == except[ex])
-				break;
-		}
-		if(!isglobal(reg_dpt[index].content) && !reg_dpt[index].dirty && ex == size)
-		{
-			reg_dpt[index].content = REG_TEMP;
-			return index;
-		}
-	}
-	for(index = max_reg_num - 1; index >= 0; index --)//look for tmp
-	{
-		if(!isglobal(reg_dpt[index].content) && index != except)
-		{
-			/* push reg */	
-			insert_mem_code(STR, reg_num);
-			insert_mem_code(STR, reg_num);
-		}
-	}
-}//mark****************************************************************
+}
 
 static inline void restore_tempreg(int temp_reg)
 {
+	if(shadow_reg_dpt[temp_reg].content == REG_UNUSED)
+		;
+	else if(!isglobal(shadow_reg_dpt[temp_reg].content) && !shadow_reg_dpt[temp_reg].dirty)
+		;
+	else if(!isglobal(shadow_reg_dpt[index].content))
+	{
+		width = get_width_from_index(shadow_reg_dpt[index].content);
+		struct mach_arg tmp_sp, tmp_offet;
+		tmp_sp.type = Mach_Reg;
+		tmp_sp.reg = SP;
+		tmp_offset.type = Mach_Imm;	
+		tmp_offset.imme = shadow_sp_offset[index];	
+		if(width == BYTE)
+			insert_mem_code(LDB, index, SP, null, 0, NO);
+		else insert_mem_code(LDW, index, SP, null, 0, NO);
+		insert_dp_code(ADD, SP, tmp_sp, tmp_offset, 0, NO);
+	}
+	else
+	{
+		load_global_var(get_info_from_index(shadow_reg_dpt[temp_reg].content), temp_reg);
+		if(index != except)
+		{
+			store_global_var(get_info_from_index(reg_dpt[index].content), index);
+			shadow_reg_dpt[index] = reg_dpt[index];
+			reg_dpt[index].content = REG_TEMP;
+			return index;
+		}
+		break;
+		default:
+		exit(1);
+	}
+	reg_dpt[temp_reg] = shadow_reg_dpt[temp_reg];
+	shadow_reg_dpt[temp_reg].content = -1;
+	shadow_reg_dpt[temp_reg].dirty = 0;
+	shadow_sp_offset[temp_reg] = 0;
 }
 /*************************** get temp reg end ************************/
 
@@ -723,10 +806,10 @@ static void gen_per_code(struct triargexpr * expr)
 					if(!mark1 && !mark2)
 						restore_tempreg(tempdest);
 				}
-				if(mark1)
-					restore_tempreg(tempreg1);
 				if(mark2)
 					restore_tempreg(tempreg2);
+				if(mark1)
+					restore_tempreg(tempreg1);
 				break;
 			}
 
