@@ -209,7 +209,7 @@ static inline char * gen_new_var_offset(int offset)//need free later
 /******************** deal with global var end ************************/
 
 /******************** deal with temp var begin ************************/
-static inline int prepare_temp_var_inmem();//gen addr at first
+static inline void prepare_temp_var_inmem()//gen addr at first
 {
 	int index, mem_tmp_var_num = 0;
 	struct var_info * tmp_v_info;
@@ -218,9 +218,9 @@ static inline int prepare_temp_var_inmem();//gen addr at first
 	tmp_sp.reg = SP;
 	tmp_offset.type = ArgImm;
 	tmp_offset.reg = 0;//will be filled back later
-	int code_index = insert_dp_code(SUB, SP, tmp_sp, tmp_offset, 0, NO);
+	int code_index = insert_dp_code(SUB, SP, tmp_sp, tmp_offset, -1, NO);
 	
-	int offset_from_fp = 0;
+	int offset_from_fp = 0;//cur_sp should sp - fp
 	for(index = 0; index < cur_ref_var_num; index ++)
 	{
 		if(alloc_reg.result[index] == -1)
@@ -239,11 +239,8 @@ static inline int prepare_temp_var_inmem();//gen addr at first
 			}
 		}
 	}
-	struct var_info * tmp_info = get_info_from_index(g_var_index);
-	if()
-	cur_sp -= 4;	
-	insert_dp_code(SUB, sp, )
-	insert(var_index);
+	cur_sp += offset_from_sp;
+	code_table_list[func_index].table[code_index].arg3 = offset_from_sp;
 }
 /******************** deal with temp var end **************************/
 
@@ -1110,10 +1107,12 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 	set_cur_function(func_index);
 	new_active_var_array();
 	alloc_reg = reg_alloc(active_var_array, cur_table -> exprnum, cur_ref_var_num, max_reg_num);//current now
-    init_reg_map(&alloc_reg);//初始化map数组，用作将分配的寄存器编号映射成真实寄存器
+	init_reg_map(&alloc_reg);//初始化map数组，用作将分配的寄存器编号映射成真实寄存器	
+	prepare_temp_var_inmem();//alloc mem for temp var in stack	
 	struct triargexpr_list * tmp_node = cur_table -> head;
 	while(tmp_node != NULL)//make tail's next to be NULL
 	{
 		struct triargexpr * expr = tmp_node -> entity; 
 	}
 }
+
