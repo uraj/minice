@@ -1024,7 +1024,7 @@ static void gen_per_code(struct triargexpr * expr)
 					}
 				}
 				break;
-			}
+			}	
 		
 		case Funcall:                    /* () */
 			{
