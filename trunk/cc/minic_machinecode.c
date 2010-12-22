@@ -226,15 +226,34 @@ static inline int prepare_temp_var_inmem()//gen addr at first
 	tmp_sp.reg = SP;
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = 0;//will be filled back later
+
 	int code_index = insert_dp_code(SUB, SP, tmp_sp, tmp_offset, -1, NO);
-	
+
 	int offset_from_fp = 0;//cur_sp should sp - fp
 	for(index = 0; index < cur_ref_var_num; index ++)
 	{
-		if(alloc_reg.result[index] == -1)
+		if(index < cur_var_id_num || alloc_reg.result[index] == -1)
 		{
 			if(!isglobal(index))
 			{
+				if(index < cur_var_id_num)
+				{
+					struct value_info * id_info = get_valueinfo_byno(index);
+					if(id_info -> type -> type == Array)
+					{
+						int size = id_info -> size;
+						if(id_info -> type -> base_type == Char)
+							offset_from_sp += (BYTE * size);
+						else
+						{
+							offset_from_sp += (WORD - 1);
+							offset_from_sp -= (offset_from_sp % WORD);
+							offset_from_sp += (WORD * size);
+						}
+						tmp_v_info -> mem_addr = cur_sp + offset_from_sp;			
+						continue;
+					}
+				}
 				tmp_v_info = get_info_from_index(index);
 				if(get_width_from_index(index) == BYTE)
 					offset_from_sp ++;
@@ -481,7 +500,7 @@ static inline void restore_tempreg(int temp_reg)
 }
 /*************************** get temp reg end ************************/
 
-
+/*************************** prepare arg beg *****************************/
 static inline void check_reg(int reg_num)//must deal with dirty and has_refed before
 {
 	int var_index = reg_dpt[reg_num].content;
@@ -517,6 +536,30 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 		flag = Arg_Mem;
 	return flag;
 }
+/************************ prepare arg end ********************************/
+
+
+/******************** flush pointer entity beg ***************************/
+static void flush_pointer_entity(struct var_list * entity_list)
+{
+	if(entity_list == NULL)
+		return;
+	else if(entity -> head == NULL)
+	{
+		int index;
+		for(index = 0; index < max_reg_num; index ++)
+		{
+		;  
+		}
+	}
+	if(entity_list == NULL)
+	if(entity_list == NULL)
+	if(entity_list)
+	{
+	}
+}
+/******************** flush pointer entity end ***************************/
+
 
 /************************************* gen code beg ******************************/
 
@@ -580,6 +623,7 @@ static void gen_per_code(struct triargexpr * expr)
 		case Ref:						 /* &  */
 		case Deref:						 /* *  */
 		case Subscript:					 /* [] */
+		case BigImm:
 			{
 				dest_index = get_index_of_temp(expr -> index);
 				if(dest_index == -1)
