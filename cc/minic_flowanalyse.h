@@ -6,6 +6,8 @@
 
 #define DEFINE 0
 #define USE 1
+//#define SHOWACTVAR
+//#define SHOW_FLOW_DEBUG
 
 struct var_list
 {
