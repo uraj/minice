@@ -457,4 +457,8 @@ struct basic_block * make_fd(int function_index)
 	return head;
 }
 
+void recover_triargexpr(struct basic_block * block_head)
+{
+
+}
 
