@@ -272,7 +272,8 @@ function_body : internal_decls statement_list {
                                                    #ifdef SHOWLOCALCODE//#ifdef SHOWCODE
 												        print_list_header($2);
 												    #endif
-                                                    struct taexpr_list_header * final_list = $2;
+													struct taexpr_list_header * final_list = stmt_list_merge($2, return_list_append(NULL));
+                                                    
 													ghead = final_list -> head;
                                                     gtail = final_list -> tail;
                                                     free_taexprlist(final_list);
@@ -627,10 +628,11 @@ int main(int argc, char* argv[])
 		printf("%s\n", table_list[i] -> funcname);
 		cur_func_info = symt_search(simb_table ,table_list[i] -> funcname);
 		curr_table = cur_func_info->func_symt;
-		make_fd(i);
+		struct basic_block * b_head = make_fd(i);
 		pointer_analyse(i);	
 		curfun_actvar_lists = analyse_actvar(&curfun_expr_num , i);
-        /*here is the register allotting and the assemble codes generating*/
+        recover_triargexpr(b_head);
+		/*here is the register allotting and the assemble codes generating*/
 
 	    /*
 		int map_id_num = get_ref_var_num();

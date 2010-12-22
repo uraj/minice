@@ -15,9 +15,10 @@ int loop()
 			b();
 		}
 	}
+
 	if(a)
 	{
-		for(a = c; a < c; a ++)
+		for(a; a; a ++)
 		{
 			while(a > c)
 			{

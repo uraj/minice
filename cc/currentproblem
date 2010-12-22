@@ -5,7 +5,7 @@
 5.put some of table's func to expr so as to avoid conflicts//No conflicts
 6.immed number's problem, 1[0*] => 1, don't know why // fixed
 
-7.deal with String constant?
+7.deal with String constant?//Done
 
 new:
 8.about return statment.//Done
@@ -34,13 +34,13 @@ new:
 24.segmentation fault when testing test.c in minic_flowanalyse.c//Done
 25.error when pointer = array head
 26.const calculate	//Done
-27.isglobal
-28.global var def when step into one function
-29.total string num//DONE
+27.isglobal //Done
+28.global var def when step into one function //Done
+29.total string num //Done
 
-30.deal with dirty and has_refed for global_var
-31.deal with return in basic_block
-32.deal with width
+30.deal with dirty and has_refed for global_var//Done
+31.deal with return in basic_block//Done
+32.deal with width//Done
 33.生成三元式的时候，需要生成一条返回语句，让所有原来跳转到-1的三元式跳转到它
 34.+1和-1需要改成立即数
 

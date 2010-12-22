@@ -13,6 +13,14 @@ static struct basic_block ** entry_index_to_block;//waste some space, but is mor
 static int cur_func_index;
 static struct basic_block_list * DFS_list = NULL;
 
+struct search_res
+{
+	int expr_index;
+	char reached_before;
+};
+static struct basic_block ** linear_block_seq;
+static int cur_linear_block_index;
+
 static inline void new_temp_list(int size)//called first
 {
 	flag_list = malloc(sizeof(char) * size);
@@ -413,6 +421,7 @@ static void trans_to_array()//DFS_array should be free later
 	}
 }
 
+#ifdef SHOWBASICBLOCK
 static void print_fd()
 {
 	printf("Block num:%d\n\n", g_block_num);/**/
@@ -445,6 +454,50 @@ static void print_fd()
 		printf("\n\n");
 	}
 }
+#endif
+
+static struct search_res search_block(struct basic_block * block)
+{
+	struct search_res res;
+	res.expr_index = block -> head -> entity -> index;	
+	if(DFS_array[block -> index] == NULL)
+	{
+		res.reached_before = 1;
+		return res;
+	}
+	res.reached_before = 0;
+	DFS_array[block -> index] = NULL;
+	linear_block_seq[cur_linear_block_index++] = block;
+	struct triargexpr * expr = block -> tail -> entity;
+	struct search_res tmp_res;
+	switch(expr -> op)
+	{
+		case TrueJump:
+		case FalseJump:
+			search_block(block -> next -> entity);
+			tmp_res = search_block(block -> next -> next -> entity);
+			set_expr_label_mark(tmp_res.expr_index);
+			expr -> arg2.expr = tmp_res.expr_index;
+			break;
+		case UncondJump:
+			tmp_res = search_block(block -> next -> entity);//the UncondJump can't be the only one expr in one block
+			if(tmp_res.reached_before == 1)
+			{
+				expr -> arg1.expr = tmp_res.expr_index;
+				set_expr_label_mark(tmp_res.expr_index);
+			}
+			else
+			{
+				block -> tail = block -> tail -> prev;//the prev list is still there, MARK	/*LIU LAN TAO*/
+				free(block -> tail -> next);
+				block -> tail -> next = NULL;
+			}
+			break;
+		default:
+			break;
+	}
+	return res;
+}
 
 struct basic_block * make_fd(int function_index)
 {
@@ -459,12 +512,28 @@ struct basic_block * make_fd(int function_index)
 	print_fd();
 #endif
 	free_temp_list();
-//	free_var_map();	
 	return head;
 }
 
 void recover_triargexpr(struct basic_block * block_head)
 {
-	;
+	linear_block_seq = calloc(g_block_num, sizeof(struct basic_block * ));
+	cur_linear_block_index = 0;
+	search_block(block_head);
+	int index;
+	struct triargexpr_list * head = block_head -> head;
+	struct triargexpr_list * tail = block_head -> tail;
+	free(block_head);
+	for(index = 1; index < g_block_num; index ++)
+	{
+		tail -> next = linear_block_seq[index] -> head;
+		tail = linear_block_seq[index] -> tail;
+		free(linear_block_seq[index]);
+	}
+	tail -> next = NULL;
+	table_list[cur_func_index] -> head = head;
+	table_list[cur_func_index] -> tail = tail;
+	free(linear_block_seq);
+	free(DFS_array);
 }
 

@@ -531,9 +531,9 @@ after_loop:
 struct taexpr_list_header * stmt_list_merge(struct taexpr_list_header * pre, struct taexpr_list_header * sub)
 {
      if(pre == NULL)
-          return sub;
+		 return sub;
      if(sub == NULL)
-          return pre;
+		 return pre;
      patch_list_backpatch( pre->nextlist , sub->head->entity->index );
      pre->tail->next = sub->head;
      sub->head->prev = pre->tail;
