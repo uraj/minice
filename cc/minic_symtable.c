@@ -119,7 +119,7 @@ static void var_no_update(struct symbol_table *t , struct value_info *value)//wh
      }
      t->myid[t->id_num] = value;
      value->no = g_var_id_num;
-     printf("%s->%d\n" , t->myid[t->id_num]->name , value->no);
+//     printf("%s->%d\n" , t->myid[t->id_num]->name , value->no);
      t->id_num ++;
      g_var_id_num ++;
 }
@@ -210,7 +210,7 @@ struct token_info symt_insert_conststr(struct symbol_table *t ,char *str)//inser
      t->const_str[t->str_num].string = strdup(str);
      t->str_num ++;
      g_const_str_num++;
-     printf("%s->%s\n" , id_name , t->const_str[t->str_num - 1].string);
+//     printf("%s->%s\n" , id_name , t->const_str[t->str_num - 1].string);
      
      return tk;
 }
