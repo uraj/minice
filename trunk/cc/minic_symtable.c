@@ -408,7 +408,7 @@ int is_globalvar_byno(int no)//根据变量编号，判断是不是全局变量
      return (no >= 0) && (no < simb_table->str_num);
 }
 
-int is_conststr_byno(struct symbol_table *table , int no);//根据变量编号，判断是不是常量字符串
+int is_conststr_byno(struct symbol_table *table , int no)//根据变量编号，判断是不是常量字符串
 {
      struct value_info *temp_info = get_valueinfo_byno(table , no);
      if(temp_info == NULL)

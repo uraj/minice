@@ -9,7 +9,7 @@
 static struct value_info * cur_func_info;//used only in varmap
 static int cur_expr_num;//should not be changed later, because the exprnum of table may be changed
 static int cur_var_id_num;
-static int cur_fun_index;
+static int cur_func_index;
 
 static int * map_bridge;//connect index with var_info_index, the indexs are sequential. The length of the array is not sure.
 static int map_bridge_bound;
@@ -144,7 +144,7 @@ struct var_info * get_info_from_index(int index)
 		return var_info_table[map_bridge[index - cur_var_id_num]];
 }
 
-struct int get_width_from_index(int index)
+int get_width_from_index(int index)
 {
 	if(index < 0 || index >= (map_bridge_cur_index + cur_var_id_num))
 		return -1;
