@@ -212,7 +212,7 @@ static inline char * gen_new_var_offset(int offset)//need free later
 /******************** deal with global var end ************************/
 
 /******************** deal with temp var begin ************************/
-static inline void prepare_temp_var_inmem()//gen addr at first
+static inline int prepare_temp_var_inmem()//gen addr at first
 {
 	int index, mem_tmp_var_num = 0;
 	struct var_info * tmp_v_info;
@@ -357,7 +357,7 @@ static inline void store_global_var(struct var_info * g_v_info, int reg_num)
 
 
 /************************** get temp reg begin ***********************/
-static inline int gen_tempreg(int * except, int size);//general an temp reg for the var should be in memory
+static inline int gen_tempreg(int * except, int size)//general an temp reg for the var should be in memory
 {
 	int index, ex;
 	for(index = max_reg_num - 1; index >= 0; index --)//look for empty
@@ -1046,10 +1046,18 @@ static void gen_per_code(struct triargexpr * expr)
 			{
 				if(arg1_flag == Arg_Reg)
 				{
+                    
+                    struct mach_arg dest, arg1;
+                    dest.type = Mach_Reg;
+                    dest.reg = 0;
+                    arg1.type = Mach_Reg;
+                    insert_dp_code(MOV, 0, null,  NO);
+                    
 					/* if arg1 in r0 can be optimized */;
 					/* mov arg1, r0 */;
 				}
-				else
+				else if
+                    
 					/* lod r0, arg1 */;
 				break;
 			}
