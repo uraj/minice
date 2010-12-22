@@ -1024,7 +1024,7 @@ static void gen_per_code(struct triargexpr * expr)
 					/* lod tempreg, arg1 */;
 					/* push tempreg */;
 					/* restore tempreg */;
-				}
+				}//can also be imme arg, I forgot to write that
 				break;
 			}
 
@@ -1053,9 +1053,8 @@ static void gen_per_code(struct triargexpr * expr)
                         insert_mem_code(LDB, 0, null, mach_base, arg1_info->mem_addr, NO);
                     else
                         exit(1);
-
                 }
-                else
+                else//can also be imme arg, I forgot to write that
                     exit(1);
 				break;
 			}
