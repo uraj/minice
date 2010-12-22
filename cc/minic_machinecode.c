@@ -1117,21 +1117,23 @@ static void gen_per_code(struct triargexpr * expr)
 
 		case Return:
 			{
-				if((arg1_flag == Arg_Reg) && (arg1_info->reg_addr != 0))
+				if(arg1_flag == Arg_Reg)
                 {
-                    /* if arg1 in r0 can be optimized */;
-					/* mov arg1, r0 */;
-                    struct mach_arg mach_src;
-                    mach_src.type = Mach_Reg;
-                    mach_src.reg = arg1_info->reg_addr;
-                    insert_dp_code(MOV, 0, null, mach_src, 0, NO);
+                    if(arg1_info->reg_addr != 0)
+                    {
+                        
+                        /* if arg1 in r0 can be optimized */;
+                        /* mov arg1, r0 */;
+                        struct mach_arg mach_src;
+                        mach_src.type = Mach_Reg;
+                        mach_src.reg = arg1_info->reg_addr;
+                        insert_dp_code(MOV, 0, null, mach_src, 0, NO);
+                    }
                 }
 				else if(arg1_flag == Arg_Mem)
                 {
                     /* lod r0, arg1 */;
-                    struct mach_arg mach_dest, mach_base;
-                    mach_dest.type = Mach_Reg;
-                    mach_dest.reg = 0;
+                    struct mach_arg  mach_base;
                     mach_base.type = Mach_Reg;
                     mach_base.reg = FP;
                     if(expr->width == 4)
@@ -1141,11 +1143,10 @@ static void gen_per_code(struct triargexpr * expr)
                     else
                         exit(1);
                 }
-                else//can also be imme arg, I forgot to write that
-                    exit(1);
+                else            /* arg1_flag == Arg_Imm */
+                    insert_mem_code(MOV, 0, null, null, expr->arg1.imme, NO);
 				break;
 			}
-
 		case Nullop:
 			break;
 
