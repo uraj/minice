@@ -44,6 +44,8 @@ static const int max_reg_num = 27;
 static int cur_code_index;
 static int cur_code_bound;
 
+static struct mach_arg null;
+
 /****************************** initial begin ***************************/
 static inline void set_cur_function(int func_index)
 {
@@ -69,6 +71,7 @@ static inline void set_cur_function(int func_index)
 		reg_dpt[index].content = -1;
 		reg_dpt[index].dirty = 0;
 	}
+	null.type = Unused;//used for unused arg 
 }
 
 static inline void leave_cur_function()
@@ -326,10 +329,9 @@ static inline void load_global_var(struct var_info * g_v_info, int reg_num)
 {
 	struct value_info * tmp_info = get_valueinfo_byno(cur_func_info -> func_symt, g_v_info -> index); 
 	int offset = g_v_info -> mem_addr;
-	struct mach_arg address, null;
+	struct mach_arg address;
 	address.type = Mach_Label;
 	address.label = gen_new_var_offset(offset);
-	null.type = Unused;
 	insert_mem_code(LDW, reg_num, address, null, null, 0, NO);
 	if(tmp_info -> type -> type == Char)
 		insert_mem_code(STB, reg_num, reg_num, null, null, 0, NO);
@@ -341,10 +343,9 @@ static inline void store_global_var(struct var_info * g_v_info, int reg_num)
 	struct value_info * tmp_info = get_valueinfo_byno(cur_func_info -> func_symt, g_v_info -> index); 
 	int offset = g_v_info -> mem_addr;
 	int tmp_reg_num = gen_tempreg(&reg_num, 1);
-	struct mach_arg address, null;
+	struct mach_arg address;
 	address.type = Mach_Label;
 	address.label = gen_new_var_offset(offset);
-	null.type = Unused;
 	insert_mem_code(LDW, tmp_reg_num, address, null, null, 0, NO);
 	if(tmp_info -> type -> type == Char)
 		insert_mem_code(STB, reg_num, tmp_reg_num, null, null, 0, NO);
@@ -397,11 +398,10 @@ static inline void restore_tempreg(int temp_reg)
 static inline void check_reg(int reg_num)//must deal with dirty and has_refed before
 {
 	int var_index = reg_dpt[reg_num].content;
+	struct var_info * tmp_info = get_info_from_index(var_index);
 	if(is_global(var_index) && reg_dpt[reg_num].dirty)//the reg with string cann't be dirty, so the index here can only be g_var
-	{
-		struct var_info * tmp_info = get_info_from_index(var_index); 
 		store_global_var(tmp_info, reg_num);
-	}
+	tmp_info -> reg_addr = -1;
 }//mark************************************************************
 
 static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struct var_info * arg_info, int arg_type)/* arg_type : 0=>dest, 1=>normal *///ref_global_var!!!
