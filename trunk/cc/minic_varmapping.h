@@ -43,7 +43,7 @@ extern int get_width_from_index(int index);
 extern int get_ref_var_num();/*return total number of vars which have been refered*/
 
 extern int is_global(int index);
-
+extern int is_pointer(int index);
 
 extern int new_var_map(int func_index);
 extern void free_var_map();
