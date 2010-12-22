@@ -8,6 +8,10 @@
 #define FP 27
 #define BYTE 1
 #define WORD 4
+
+#define REG_UNUSED
+#define REG_TEMP
+
 enum Arg_Flag
 {
 	Arg_Imm,
@@ -27,6 +31,8 @@ static int map_to_reg[32];//将分配的寄存器编号映射成真实寄存器�
 static int cur_var_id_num;
 static int cur_sp;
 static int total_label_num;//set zero in new_code_table_list 
+
+static struct Reg_Dpt shadow_reg_dpt[32];//use to deal with temp reg
 
 static int * global_var_label_offset;
 static int ref_g_var_num;
@@ -68,7 +74,7 @@ static inline void set_cur_function(int func_index)
 	code_table_list[func_index].code_num = 0;
 	for(index = 0; index < 31; index ++)
 	{
-		reg_dpt[index].content = -1;
+		reg_dpt[index].content = REG_UNUSED;
 		reg_dpt[index].dirty = 0;
 	}
 	null.type = Unused;//used for unused arg 
@@ -146,12 +152,11 @@ static inline void insert_mem_code(enum mem_op_type mem_op, int dest, struct mac
 	insert_code(new_code);	
 }
 
-static inline void insert_cmp_code(char * dest_label, struct mach_arg arg1, struct mach_arg arg2)
+static inline void insert_cmp_code(struct mach_arg arg1, struct mach_arg arg2)
 {
 	struct mach_code new_code;
 	new_code.op_type = CMP;
 	new_code.cmp_op = CMPSUB.A;
-	new_code.dest_label = dest_label;
 	new_code.arg1 = arg1;
 	new_code.arg2 = arg2;
 	insert_code(new_code);
@@ -367,16 +372,24 @@ static inline int gen_tempreg(int * except, int size)//general an temp reg for t
 			if(index == except[ex])
 				break;
 		}
-		if(reg_dpt[index].content == -1 && ex == size)
+		if(reg_dpt[index].content == REG_UNUSED && ex == size)
 		{
-			reg_dpt[index].content = -2;//-2 means tmp_reg
+			reg_dpt[index].content = REG_TEMP;//-2 means tmp_reg
 			return index;
 		}
 	}
 	for(index = max_reg_num - 1; index >= 0; index --)//look for tmp and not dirty
 	{
-		if(!isglobal(reg_dpt[index].content) && reg_dpt[index].dirty == 0 && index != except)
+		for(ex = 0; ex < size; ex ++)
+		{
+			if(index == except[ex])
+				break;
+		}
+		if(!isglobal(reg_dpt[index].content) && !reg_dpt[index].dirty && ex == size)
+		{
+			reg_dpt[index].content = REG_TEMP;
 			return index;
+		}
 	}
 	for(index = max_reg_num - 1; index >= 0; index --)//look for tmp
 	{
@@ -398,7 +411,7 @@ static inline void restore_tempreg(int temp_reg)
 static inline void check_reg(int reg_num)//must deal with dirty and has_refed before
 {
 	int var_index = reg_dpt[reg_num].content;
-	if(var_index != -1)
+	if(var_index != REG_UNUSED)
 	{
 		struct var_info * tmp_info = get_info_from_index(var_index);
 		if(is_global(var_index) && reg_dpt[reg_num].dirty)//the reg with string cann't be dirty, so the index here can only be g_var
@@ -1012,7 +1025,7 @@ static void gen_per_code(struct triargexpr * expr)
 		case Funcall:                    /* () */
 			{
 				/* b.l arg1.idname */;
-				/* caller save */; // callee save and sp ip fp deal at the head of each function */
+				/* caller save */; // deal with callee save and sp ip fp at the head of each function */
 			}
 
 		case Arglist:
