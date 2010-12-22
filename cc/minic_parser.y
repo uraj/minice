@@ -396,6 +396,7 @@ return_stmt : RETURN expression ";" {
                                         {
                                             //struct triargexpr ret_expr;
                                             //ret_expr.op = Return;
+                                            $2 = new_ast(Return, 0, $2, NULL);
                                             ast_type_check($2, simb_table, curr_table);
                                             struct subexpr_info ret_value = triargexpr_gen($2);
                                             $$ = return_list_append(&ret_value);
