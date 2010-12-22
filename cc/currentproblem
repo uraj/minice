@@ -45,3 +45,5 @@ new:
 34.+1和-1需要改成立即数
 
 1.global_var_last_ref//uncertainty
+2.mark whether the temp var is a pointer
+3.some wrong op type in triargexpr
