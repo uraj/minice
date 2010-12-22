@@ -9,6 +9,7 @@
 static struct value_info * cur_func_info;//used only in varmap
 static int cur_expr_num;//should not be changed later, because the exprnum of table may be changed
 static int cur_var_id_num;
+static int cur_fun_index;
 
 static int * map_bridge;//connect index with var_info_index, the indexs are sequential. The length of the array is not sure.
 static int map_bridge_bound;
@@ -22,6 +23,7 @@ static inline int set_cur_func(int func_index)
 		cur_func_info = symt_search(simb_table ,table_list[func_index] -> funcname);
 		cur_expr_num = table_list[func_index] -> expr_num;
 		cur_var_id_num = table_list[func_index] -> var_id_num;
+		cur_func_index = func_index;
 		return 1;
 	}
 	else 
@@ -140,6 +142,25 @@ struct var_info * get_info_from_index(int index)
 		return var_info_table[index];
 	else
 		return var_info_table[map_bridge[index - cur_var_id_num]];
+}
+
+struct int get_width_from_index(int index)
+{
+	if(index < 0 || index >= (map_bridge_cur_index + cur_var_id_num))
+		return -1;
+	if(index < cur_var_id_num)
+	{
+		struct value_info * g_value_info = get_valueinfo_byno(index);
+		if(g_value_info -> type -> type == Char)
+			return 1;
+		else return 4;
+	}
+	else
+	{
+		if(var_info_table[map_bridge[index - cur_var_id_num]] == NULL)
+			return -1;
+		return table_list[cur_func_index] -> table[map_bridge[index - cur_var_id_num]].width; 
+	}
 }
 
 void set_expr_label_mark(int exprnum)//only for label

@@ -6,7 +6,8 @@
 #define MAX_LABEL_NAME_LEN 20
 #define SP 29
 #define FP 27
-
+#define BYTE 1
+#define WORD 4
 enum Arg_Flag
 {
 	Arg_Imm,
@@ -211,8 +212,15 @@ static inline char * gen_new_var_offset(int offset)//need free later
 static inline int prepare_temp_var_inmem();//gen addr at first
 {
 	int index, mem_tmp_var_num = 0;
-	struct var_info * tmp_v_info;	
-	int code_index = insert_dp_code(SUB);
+	struct var_info * tmp_v_info;
+	struct mach_arg tmp_sp, tmp_offet;
+	tmp_sp.type = ArgReg;
+	tmp_sp.reg = SP;
+	tmp_offset.type = ArgImm;
+	tmp_offset.reg = 0;//will be filled back later
+	int code_index = insert_dp_code(SUB, SP, tmp_sp, tmp_offset, 0, NO);
+	
+	int offset_from_fp = 0;
 	for(index = 0; index < cur_ref_var_num; index ++)
 	{
 		if(alloc_reg.result[index] == -1)
@@ -220,7 +228,14 @@ static inline int prepare_temp_var_inmem();//gen addr at first
 			if(!isglobal(index))
 			{
 				tmp_v_info = get_info_from_index(index);
-				tmp_v_info -> mem_addr = ;
+				if(get_width_from_index(index) == 1)
+					offset_from_sp ++;
+				else
+				{
+					offset_from_sp += 4;
+					offset_from_sp = offset_from_sp - offset_from_sp % 4;
+				}
+				tmp_v_info -> mem_addr = cur_sp + offset_from_sp;
 			}
 		}
 	}
@@ -287,7 +302,12 @@ static inline void load_temp_var(struct var_info * t_v_info, int reg_num)
 	tmp_fp.reg = FP;//need width later
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = t_v_info -> mem_addr;
-	insert_mem_code(LDW, reg_num, tmp_fp, tmp_offset, null, -1, NO);
+	int width = get_width_from_index(t_v_info -> width);
+	enum mem_op_type tmp_mem_op;
+	if(width == BYTE)
+		tmp_mem_op = LDB;
+	else tmp_mem_op = LDW;
+	insert_mem_code(tmp_mem_op, reg_num, tmp_fp, tmp_offset, null, -1, NO);
 }
 
 static inline void store_temp_var(struct var_info * t_v_info, int reg_num)
@@ -297,7 +317,12 @@ static inline void store_temp_var(struct var_info * t_v_info, int reg_num)
 	tmp_fp.reg = FP;//need width later
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = t_v_info -> mem_addr;
-	insert_mem_code(LDW, reg_num, tmp_fp, tmp_offset, null, -1, NO);
+	int width = get_width_from_index(t_v_info -> width);
+	enum mem_op_type tmp_mem_op;
+	if(width == BYTE)
+		tmp_mem_op = STB;
+	else tmp_mem_op = STW;	
+	insert_mem_code(tmp_mem_op, reg_num, tmp_fp, tmp_offset, null, -1, NO);
 }
 
 static inline void load_global_var(struct var_info * g_v_info, int reg_num)
