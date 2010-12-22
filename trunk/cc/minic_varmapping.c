@@ -185,6 +185,13 @@ int is_global(int index)/* global or const str */
 	return is_conststr_byno(cur_func_info -> func_symt, index) || ((index < (get_globalvar_num())) && (index >= 0));
 }
 
+int is_id_var(index)
+{
+	if(index < cur_var_id_num)
+		return 1;
+	else return 0;
+}
+
 int get_ref_var_num()/* new and used, just mark */
 {
 	return map_bridge_cur_index + cur_var_id_num;

@@ -273,7 +273,7 @@ static inline int prepare_temp_var_inmem()//gen addr at first
 /******************** deal with temp var end **************************/
 
 /******************** deal with label begin *****************************/
-static inline int check_is_dest(int exprnum)//need check every expr before translate
+static inline int check_is_jump_dest(int exprnum)//need check every expr before translate
 {
 	struct var_info * expr_info = get_info_of_temp(exprnum);
 	if(expr_info != NULL && expr_info -> label_num == -2)//means this is a dest
@@ -542,20 +542,44 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 /******************** flush pointer entity beg ***************************/
 static void flush_pointer_entity(struct var_list * entity_list)
 {
+	struct var_info * v_info;
+	int index;	
 	if(entity_list == NULL)
 		return;
 	else if(entity -> head == NULL)
 	{
-		int index;
 		for(index = 0; index < max_reg_num; index ++)
 		{
-		;  
+			v_info = get_info_from_index(alloc_reg[index].content);
+			if(is_id_var(alloc_reg[index].content) && alloc_reg[index].dirty)
+			{
+				store(v_info, index);
+				load(v_info, index);
+				alloc_reg[index].dirty = 0;
+			}
 		}
 	}
-	if(entity_list == NULL)
-	if(entity_list == NULL)
-	if(entity_list)
+	else
 	{
+		struct var_list_node * tmp;
+		tmp = entity_list -> head;
+		while(tmp != entity_list -> tail -> next)
+		{
+			for(index = 0; index < max_reg_num; index ++)
+			{
+				if(alloc_reg[index].content = tmp -> var_map_index)
+				{
+					v_info = get_info_from_index(tmp -> var_map_index);
+					struct value_info * array_info = get_info_from_index(tmp -> var_map_index);
+					if(alloc_reg[index].dirty && array_info -> type -> type != Array)
+					{
+						store(v_info, index);
+						load(v_info, index);
+						alloc_reg[index].dirty = 0;
+					}
+				}
+			}
+		}
 	}
 }
 /******************** flush pointer entity end ***************************/
@@ -565,7 +589,7 @@ static void flush_pointer_entity(struct var_list * entity_list)
 
 static void gen_per_code(struct triargexpr * expr)
 {
-	check_is_dest(expr -> index);
+	check_is_jump_dest(expr -> index);
 
 	struct int dest_index, arg1_index, arg2_index;
 	struct var_info * dest_info, * arg1_info, * arg2_info; 
