@@ -398,17 +398,20 @@ static inline void restore_tempreg(int temp_reg)
 static inline void check_reg(int reg_num)//must deal with dirty and has_refed before
 {
 	int var_index = reg_dpt[reg_num].content;
-	struct var_info * tmp_info = get_info_from_index(var_index);
-	if(is_global(var_index) && reg_dpt[reg_num].dirty)//the reg with string cann't be dirty, so the index here can only be g_var
-		store_global_var(tmp_info, reg_num);
-	tmp_info -> reg_addr = -1;
-}//mark************************************************************
+	if(var_index != -1)
+	{
+		struct var_info * tmp_info = get_info_from_index(var_index);
+		if(is_global(var_index) && reg_dpt[reg_num].dirty)//the reg with string cann't be dirty, so the index here can only be g_var
+			store_global_var(tmp_info, reg_num);
+		tmp_info -> reg_addr = -1;
+	}
+}
 
 static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struct var_info * arg_info, int arg_type)/* arg_type : 0=>dest, 1=>normal *///ref_global_var!!!
 {
 	enum Arg_Flag flag;	
 	if(is_global(arg_index))
-		ref_global_var(ref_gloal_var);//global var prepared when first used
+		ref_global_var(arg_index);//global var prepared when first used
 
 	if(alloc_reg.result[arg_index] != -1)
 	{
@@ -416,35 +419,15 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 		if(arg_info -> reg_addr == -1)
 		{
 			arg_info -> reg_addr = alloc_reg.result[arg_index];
-			check_reg(arg_info -> reg_addr);
+			check_reg(arg_info -> reg_addr);//if global var in reg, should store to mem
 			reg_dpt[arg_info -> reg_addr].content = arg_index;
 			reg_dpt[arg_info -> reg_addr].dirty = 0;
-		}
-		if(arg_type == 1)
-		{
-			if(is_global(arg_index))
-			{
-				ref_global_var(arg_index);//in prepare arg, I must mark the mem addr first
-				struct var_info * g_v_info = get_info_from_index(g_v_index);  
-				load_var(g_v_info ,alloc_reg.result[arg_index]);
-			}
+			if(arg_type == 1 && is_global(arg_index))
+				load_var(get_info_from_index(arg_index) , alloc_reg.result[arg_index]);//if global var as arg, should load
 		}
 	}
 	else
-	{
 		flag = Arg_Mem;
-		if(arg_info -> mem_addr == INITIAL_MEM_ADDR)
-		{
-			if(!isglobal(arg_index))
-			{
-				/* push and mark */
-			}
-			else
-			{
-
-			}
-		}
-	}
 	return flag;
 }
 
@@ -535,7 +518,10 @@ static void gen_per_code(struct triargexpr * expr)
 							arg1_index = get_index_of_temp(expr -> arg1.expr);
 							arg1_info = get_info_from_index(arg1_index);
 						}
-						arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
+						if(expr -> op == Plusplus || expr -> op == Minusminus)
+							arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 0);
+						else
+							arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
 					}
 					else
 						arg1_flag = Arg_Imm;
@@ -680,7 +666,7 @@ static void gen_per_code(struct triargexpr * expr)
 				{
 					tmp_arg1.type = Mach_Imm;
 					tmp_arg1.imme = expr -> arg1.imme;
-					insert_dp_code(MOV, tempreg1, null, tmp_arg1.imme, 0, NO);
+					insert_dp_code(MOV, tempreg1, null, tmp_arg1, 0, NO);
 				}
 			
 				if(arg2_flag == Arg_Mem)
@@ -689,7 +675,7 @@ static void gen_per_code(struct triargexpr * expr)
 				{
 					tmp_arg2.type = Mach_Imm;
 					tmp_arg2.imme = expr -> arg1.imme;
-					insert_dp_code(MOV, tempreg2, null, tmp_arg2.imme, 0, NO);
+					insert_dp_code(MOV, tempreg2, null, tmp_arg2, 0, NO);
 				}	
 
 				enum mach_op_type op_type;
