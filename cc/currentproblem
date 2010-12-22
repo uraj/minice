@@ -41,6 +41,6 @@ new:
 30.deal with dirty and has_refed for global_var
 31.deal with return in basic_block
 32.deal with width
-
+33.生成三元式的时候，需要生成一条返回语句，让所有原来跳转到-1的三元式跳转到它
 
 1.global_var_last_ref//uncertainty

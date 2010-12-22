@@ -677,7 +677,7 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                s_expr_num ++;
 //               printf("      mapid:%d->expr:%d\n" , k , temp->entity->index);
                /**/
-               switch(temp->entity->op)//没考虑指针和函数调用时的参数部分
+               switch(temp->entity->op)
                {
                case Assign:
                     analyse_expr_index(temp->entity->index , DEFINE , i);
