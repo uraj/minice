@@ -42,5 +42,6 @@ new:
 31.deal with return in basic_block
 32.deal with width
 33.生成三元式的时候，需要生成一条返回语句，让所有原来跳转到-1的三元式跳转到它
+34.+1和-1需要改成立即数
 
 1.global_var_last_ref//uncertainty

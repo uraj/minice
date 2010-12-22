@@ -243,7 +243,7 @@ struct var_list_node *var_list_delete(struct var_list *list , struct var_list_no
           return NULL;
      if(list->head == NULL)//链表为空
      {
-          printf("Delete error!The list is EMPTY!\n");
+          fprintf(stderr , "Delete error!The list is EMPTY!\n");
           return NULL;
      }
 	if(del_node == NULL)
@@ -268,7 +268,7 @@ struct var_list_node *var_list_delete(struct var_list *list , struct var_list_no
     {
          if(former == NULL)
          {
-              printf("Delete node error!Can't find the former node.\n");
+              fprintf(stderr , "Delete node error!Can't find the former node.\n");
               return NULL;
          }
          list->tail = former;
@@ -280,7 +280,7 @@ struct var_list_node *var_list_delete(struct var_list *list , struct var_list_no
     {
          if(former == NULL)
          {
-              printf("Delete node error!Can't find the former node.\n");
+              fprintf(stderr , "Delete node error!Can't find the former node.\n");
               return NULL;
          }
          former->next = del_node->next;
@@ -481,7 +481,7 @@ static inline void analyse_map_index(int i , int type , int block_index)
      temp = get_info_from_index(i);
      if(temp == NULL)
      {
-          printf("Can't get var_info of map_id %d\n" , i);//*********************8
+//          printf("Can't get var_info of map_id %d\n" , i);//*********************8
           return;
      }
      if(type == DEFINE)
@@ -528,7 +528,7 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
           if(temp_expr->op == Deref)//*p
           {
                struct var_list *temp_point_list = temp_expr_node->pointer_entity;
-               printf("//************************(%d)" , temp_expr->index);
+//               printf("//************************(%d)" , temp_expr->index);
                var_list_print(temp_point_list);
                if(temp_point_list != NULL
                   && temp_point_list->head != NULL
@@ -607,10 +607,10 @@ static void initial_func_var(int func_index)//通过函数index获得当前函�
           temp_var_info = get_info_from_index(i);
           if(temp_var_info == NULL)
                continue;
-          printf("%s  " , get_valueinfo_byno(cur_func_sym_table , i)->name);
+//          printf("%s  " , get_valueinfo_byno(cur_func_sym_table , i)->name);
           if(temp_var_info->ref_point == NULL)
                continue;
-          printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+//          printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
           var_list_print(temp_var_info->ref_point);
           struct var_list_node *cur_node = temp_var_info->ref_point->head;
           struct var_list_node *former_node = NULL;
@@ -724,7 +724,9 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
           var_list_sort(use + i , use_size[i]);//sort them so that we can op
           var_list_del_repeate(def + i);
           var_list_del_repeate(use + i);
+#ifdef SHOW_FLOW_DEBUG
           printf("\n");
+#endif
      }
      free(def_size);
      free(use_size);
