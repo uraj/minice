@@ -426,7 +426,7 @@ static inline int gen_tempreg(int * except, int size)//general an temp reg for t
 						return index;
 					}
 					break;
-				case 4:
+				case 3:
 					if(index != except && !reg_dpt[index].dirty)
 					{
 						shadow_reg_dpt[index] = reg_dpt[index];
@@ -434,7 +434,7 @@ static inline int gen_tempreg(int * except, int size)//general an temp reg for t
 						return index;
 					}
 					break;
-				case 5:
+				case 4:
 					if(index != except)
 					{
 						store_global_var(get_info_from_index(reg_dpt[index].content), index);
@@ -472,16 +472,7 @@ static inline void restore_tempreg(int temp_reg)
 	else
 	{
 		load_global_var(get_info_from_index(shadow_reg_dpt[temp_reg].content), temp_reg);
-		if(index != except)
-		{
-			store_global_var(get_info_from_index(reg_dpt[index].content), index);
-			shadow_reg_dpt[index] = reg_dpt[index];
-			reg_dpt[index].content = REG_TEMP;
-			return index;
-		}
-		break;
-		default:
-		exit(1);
+		shadow_reg_dpt[temp_reg].dirty = 0;//has updated once
 	}
 	reg_dpt[temp_reg] = shadow_reg_dpt[temp_reg];
 	shadow_reg_dpt[temp_reg].content = -1;
@@ -519,7 +510,7 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 			reg_dpt[arg_info -> reg_addr].content = arg_index;
 			reg_dpt[arg_info -> reg_addr].dirty = 0;
 			if(arg_type == 1 && is_global(arg_index))
-				load_var(get_info_from_index(arg_index) , alloc_reg.result[arg_index]);//if global var as arg, should load
+				load_global_var(get_info_from_index(arg_index) , alloc_reg.result[arg_index]);//if global var as arg, should load
 		}
 	}
 	else
