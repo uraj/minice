@@ -983,7 +983,6 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                case Deref:       //*
                case Arglist:     //parameters
                case Return:      //return
-               case UncondJump:  //
                case FalseJump:   //if true jump
                case TrueJump:    //if false jump
                     add1 = -1;
