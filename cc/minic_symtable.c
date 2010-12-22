@@ -5,7 +5,7 @@
 #include<stdlib.h>
 #include<string.h>
 #include<malloc.h>
-
+#include<assert.h>
 #define TABLE_SIZE 31
 
 int ELFhash(char *str)
