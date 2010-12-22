@@ -79,7 +79,7 @@ static inline void leave_cur_function()
 /*************************** initial end *******************************/
 
 /*************************** insert code begin *************************/
-static inline void insert_code(struct mach_code newcode)
+static inline int insert_code(struct mach_code newcode)
 {
     if(cur_code_index >= cur_code_bound)
     {
@@ -91,6 +91,7 @@ static inline void insert_code(struct mach_code newcode)
     }
 	code_table_list[cur_func_index].code_num ++;
 	code_table_list[cur_func_index].table[cur_code_index++] = newcode;
+	return cur_code_index - 1;
 }
 
 static inline void insert_label_code(char * label_name)
@@ -101,7 +102,7 @@ static inline void insert_label_code(char * label_name)
 	insert_code(new_code);
 }
 
-static inline void insert_dp_code(enum dp_op_type dp_op, int dest, struct mach_arg arg1, struct mach_arg arg2, unsigned int arg3, enum shift_type shift)
+static inline int insert_dp_code(enum dp_op_type dp_op, int dest, struct mach_arg arg1, struct mach_arg arg2, unsigned int arg3, enum shift_type shift)
 {
 	struct mach_code new_code;
 	new_code.op_type = DP;
@@ -111,7 +112,7 @@ static inline void insert_dp_code(enum dp_op_type dp_op, int dest, struct mach_a
 	new_code.arg2 = arg2;
 	new_code.arg3 = arg3;
 	new_code.shift = shift;
-	insert_code(new_code);
+	return insert_code(new_code);
 }
 
 static inline void insert_cond_dp_code(enum dp_op_type dp_op, int dest, enum condition_type cond, struct mach_arg arg2, unsigned int arg3, int sign, enum shift_type shift)//may not be used
@@ -207,8 +208,22 @@ static inline char * gen_new_var_offset(int offset)//need free later
 /******************** deal with global var end ************************/
 
 /******************** deal with temp var begin ************************/
-static inline int prepare_temp_var(int var_index);//gen addr at first
+static inline int prepare_temp_var_inmem();//gen addr at first
 {
+	int index, mem_tmp_var_num = 0;
+	struct var_info * tmp_v_info;	
+	int code_index = insert_dp_code(SUB);
+	for(index = 0; index < cur_ref_var_num; index ++)
+	{
+		if(alloc_reg.result[index] == -1)
+		{
+			if(!isglobal(index))
+			{
+				tmp_v_info = get_info_from_index(index);
+				tmp_v_info -> mem_addr = ;
+			}
+		}
+	}
 	struct var_info * tmp_info = get_info_from_index(g_var_index);
 	if()
 	cur_sp -= 4;	
@@ -314,7 +329,7 @@ static inline void store_global_var(struct var_info * g_v_info, int reg_num)
 	else insert_mem_code(STW, reg_num, tmp_reg_num, null, null, 0, NO);
 	restore_tempreg(tmp_reg_num);
 }
-/**************************** gen load var end *****************************/
+/**************************** load store var end *****************************/
 
 
 
