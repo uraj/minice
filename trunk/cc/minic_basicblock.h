@@ -4,7 +4,6 @@
 #include "minic_triargexpr.h"
 #include "minic_triargtable.h"
 #include "minic_varmapping.h"
-#define SHOWBASICBLOCK	//show block
 
 struct var_list_node
 {

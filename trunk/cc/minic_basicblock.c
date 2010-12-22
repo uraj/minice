@@ -337,7 +337,8 @@ static struct basic_block * make_block(struct triargexpr_list * entrance)//gener
 				newblock -> tail -> next = NULL;
 				g_block_num ++;
 				return newblock;//need a func
-			//case Return:
+			case Return:
+				g_block_num ++;
 			//	newblock
 			default: break;
 		}

@@ -15,13 +15,14 @@
 #include "minic_basicblock.h"
 #include "minic_flowanalyse.h"
 #include "minic_aliasanalyse.h"
-     #include "minic_regalloc.h"
+#include "minic_regalloc.h"
 //#define DEBUG
 //#define SHOWBNF
 //#define SHOWLOCALCODE
 //#define SHOWCODE
+//#define SHOWBASICBLOCK
 
-const size_t MAXIDLEN = 31; /* 31 is the minimum length supported by compilers according to ANCI C standard */
+	const size_t MAXIDLEN = 31; /* 31 is the minimum length supported by compilers according to ANCI C standard */
 
 /* provided by the scanner */
 extern int yylineno;

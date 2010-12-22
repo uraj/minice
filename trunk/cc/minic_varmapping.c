@@ -150,7 +150,7 @@ int get_width_from_index(int index)
 		return -1;
 	if(index < cur_var_id_num)
 	{
-		struct value_info * g_value_info = get_valueinfo_byno(index);
+		struct value_info * g_value_info = get_valueinfo_byno(cur_func_info -> func_symt, index);
 		if(g_value_info -> type -> type == Char)
 			return 1;
 		else return 4;
@@ -182,7 +182,7 @@ struct var_info * get_info_of_temp_for_label(int exprnum)//only for label
 
 int is_global(int index)/* global or const str */
 {
-	return is_conststr_byno(index) || ((index < (get_globalvar_num())) && (index >= 0));
+	return is_conststr_byno(cur_func_info -> func_symt, index) || ((index < (get_globalvar_num())) && (index >= 0));
 }
 
 int get_ref_var_num()/* new and used, just mark */
