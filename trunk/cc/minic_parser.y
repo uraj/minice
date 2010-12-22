@@ -21,8 +21,10 @@
 //#define SHOWLOCALCODE
 //#define SHOWCODE
 //#define SHOWBASICBLOCK
+//#define SHOWACTVAR
+//#define SHOW_FLOW_DEBUG
 
-	const size_t MAXIDLEN = 31; /* 31 is the minimum length supported by compilers according to ANCI C standard */
+const size_t MAXIDLEN = 31; /* 31 is the minimum length supported by compilers according to ANCI C standard */
 
 /* provided by the scanner */
 extern int yylineno;
@@ -632,20 +634,22 @@ int main(int argc, char* argv[])
 		curfun_actvar_lists = analyse_actvar(&curfun_expr_num , i);
         /*here is the register allotting and the assemble codes generating*/
 
-        int map_id_num = get_ref_var_num();
+	    /*
+		int map_id_num = get_ref_var_num();
         struct ralloc_info alloc_reg = reg_alloc(curfun_actvar_lists , curfun_expr_num , map_id_num , 27);
         printf("\n");
         for(j = 0 ; j < map_id_num ; j++)
              printf("map_id%d is in regester%d\n" , j , alloc_reg.result[j]);
         printf("\ntotally consume %d regesters\n" , alloc_reg.consume);
         
-/*        printf("varlist:\n");
+        printf("varlist:\n");
         for(j = 0 ; j < curfun_expr_num ; j++)
         {
             var_list_print(curfun_actvar_lists + j);
             var_list_free_bynode(curfun_actvar_lists[j].head);
         }
-        printf("varlist ends.\n");*/
+        printf("varlist ends.\n");
+		*/
         free(curfun_actvar_lists);
 	}
     syms_delete(parm_stack);
