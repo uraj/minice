@@ -184,7 +184,7 @@ static inline void insert_buncond_code(char * dest_label, char link)
 
 
 /****************** deal with global var begin ************************/
-static inline int ref_global_var(int g_var_index)//get the global var offset
+static inline int ref_global_var(int g_var_index)//get the global var offset, gen addr when used
 {
 	struct var_info * tmp_info = get_info_from_index(g_var_index);
 	if(tmp_info -> mem_addr == INITIAL_MEM_ADDR)//var_id = var_index for global var
@@ -206,6 +206,16 @@ static inline char * gen_new_var_offset(int offset)//need free later
 }
 /******************** deal with global var end ************************/
 
+/******************** deal with temp var begin ************************/
+static inline int prepare_temp_var(int var_index);//gen addr at first
+{
+	struct var_info * tmp_info = get_info_from_index(g_var_index);
+	if()
+	cur_sp -= 4;	
+	insert_dp_code(SUB, sp, )
+	insert(var_index);
+}
+/******************** deal with temp var end **************************/
 
 /******************** deal with label begin *****************************/
 static inline int check_is_dest(int exprnum)//need check every expr before translate
@@ -237,17 +247,7 @@ static inline int ref_jump_dest(int expr_id)//get the label for jump dest
 /************************** deal with label end *************************/
 
 
-/**************************** gen load var beg *****************************/
-static inline int push_temp_var(int var_index);//push to stack and mark the varinfo
-{
-	cur_sp -= 4;	
-	insert_dp_code(SUB, sp, )
-	insert(var_index);
-}
-
-static inline void pop_temp_var();
-{
-}
+/**************************** load store var beg *****************************/
 
 static inline void load_var(struct var_info * v_info, int reg_num)
 {
@@ -271,14 +271,18 @@ static inline void load_temp_var(struct var_info * t_v_info, int reg_num)
 	tmp_fp.type = Mach_Reg;
 	tmp_fp.reg = FP;//need width later
 	tmp_offset.type = Mach_Imm;
-	tmp_offset.imme = arg1_info -> mem_addr;
-	insert_mem_code(LDW, tempreg1, tmp_fp, tmp_offset, null, 1, NO);
+	tmp_offset.imme = t_v_info -> mem_addr;
+	insert_mem_code(LDW, reg_num, tmp_fp, tmp_offset, null, -1, NO);
 }
 
 static inline void store_temp_var(struct var_info * t_v_info, int reg_num)
 {
 	struct mach_arg tmp_fp, tmp_offset;
-
+	tmp_fp.type = Mach_Reg;
+	tmp_fp.reg = FP;//need width later
+	tmp_offset.type = Mach_Imm;
+	tmp_offset.imme = t_v_info -> mem_addr;
+	insert_mem_code(LDW, reg_num, tmp_fp, tmp_offset, null, -1, NO);
 }
 
 static inline void load_global_var(struct var_info * g_v_info, int reg_num)
@@ -365,8 +369,10 @@ static inline void check_reg(int reg_num)//must deal with dirty and has_refed be
 
 static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struct var_info * arg_info, int arg_type)/* arg_type : 0=>dest, 1=>normal *///ref_global_var!!!
 {
-	enum Arg_Flag flag;
-	//ref_gloal_var	
+	enum Arg_Flag flag;	
+	if(is_global(arg_index))
+		ref_global_var(ref_gloal_var);//global var prepared when first used
+
 	if(alloc_reg.result[arg_index] != -1)
 	{
 		flag = Arg_Reg;
@@ -381,7 +387,9 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 		{
 			if(is_global(arg_index))
 			{
-				/* load global var */
+				ref_global_var(arg_index);//in prepare arg, I must mark the mem addr first
+				struct var_info * g_v_info = get_info_from_index(g_v_index);  
+				load_var(g_v_info ,alloc_reg.result[arg_index]);
 			}
 		}
 	}
@@ -393,6 +401,10 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 			if(!isglobal(arg_index))
 			{
 				/* push and mark */
+			}
+			else
+			{
+
 			}
 		}
 	}
