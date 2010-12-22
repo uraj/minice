@@ -605,7 +605,7 @@ static void gen_per_code(struct triargexpr * expr)
 							arg1_index = get_index_of_temp(expr -> arg1.expr);
 							arg1_info = get_info_from_index(arg1_index);
 						}
-						if(expr -> op == Plusplus || expr -> op == Minusminus)
+						if(expr -> op == Plusplus || expr -> op == Minusminus)//these two unary ops will write arg1
 							arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 0);
 						else
 							arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
@@ -641,18 +641,23 @@ static void gen_per_code(struct triargexpr * expr)
 		case Arglist:
 		case Return:
 			{
-				if(expr -> arg1.type == IdArg)
+				if(expr -> arg1.type != ImmArg)
 				{
-					arg1_index = get_index_of_id(expr -> arg1.idname);
-					arg1_info = get_info_from_index(arg1_index);
-				}
-				else//can't be immed
-				{
-					arg1_index = get_index_of_temp(expr -> arg1.expr);
-					arg1_info = get_info_from_index(arg1_index);
-				}
+					if(expr -> arg1.type == IdArg)
+					{
+						arg1_index = get_index_of_id(expr -> arg1.idname);
+						arg1_info = get_info_from_index(arg1_index);
+					}
+					else
+					{
+						arg1_index = get_index_of_temp(expr -> arg1.expr);
+						arg1_info = get_info_from_index(arg1_index);
+					}
 
-				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
+					arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
+				}
+				else
+					arg1_flag = Arg_Imm;
 				break;
 			}
 		default:
