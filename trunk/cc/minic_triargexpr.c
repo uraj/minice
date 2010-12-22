@@ -112,31 +112,32 @@ struct subexpr_info triargexpr_gen(struct ast* root)
         exit(1);
     if(root -> isleaf)
     {
+        ret.arithtype = 1;
         switch(root -> val -> ast_leaf_type)
         {
             case Idleaf:
                 ret.subexpr_arg.type = IdArg;
                 ret.subexpr_arg.idname = strdup(root -> val -> sval);
                 break;
-            case Iconstleaf:
+            case Iconstleaf:     
                 ret.subexpr_arg.type = ImmArg;
                 ret.subexpr_arg.imme = root -> val -> ival;
+                if((level != 0) && ((uint32_t)(root->val->ival) > 0x000001ff))
+                {
+                    expr.op = BigImm;
+                    expr.arg1 = ret.subexpr_arg;
+                    expr.index = insert_triargexpr(expr);
+                    ret.subexpr_arg.type = ExprArg;
+                    ret.subexpr_arg.expr = expr.index;
+                    ret.end = gtriargexpr_table_index - 1;
+                }
                 break;
             case Sconstleaf:
                 exit(1);
         }
-        ret.arithtype = 1;
-        ret.truelist = ret.falselist = NULL;
         if(level == 0)
         {
             expr.op = Nullop;
-            expr.arg1 = ret.subexpr_arg;
-            expr.index = insert_triargexpr(expr);
-            ret.end = gtriargexpr_table_index - 1;
-        }
-        else if((uint32_t)(root->val->ival) > 0x000001ff)
-        {
-            expr.op = BigImm;
             expr.arg1 = ret.subexpr_arg;
             expr.index = insert_triargexpr(expr);
             ret.end = gtriargexpr_table_index - 1;
