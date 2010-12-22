@@ -18,7 +18,6 @@ enum operator /* do NOT change the order of the list */
     Minus,                      /* -  */
     Mul,                        /* *  */
     Subscript,                  /* [] */
-    Funcall,                    /* () */
     
     /* For triargexpr only*/
     TrueJump,
@@ -27,6 +26,7 @@ enum operator /* do NOT change the order of the list */
     UncondJump,
     
     /* Unary op */
+    Funcall,                    /* () */
     Uplus,                      /* +  */
     Uminus,                     /* -  */
     Plusplus,                   /* ++ */

@@ -130,6 +130,7 @@ struct subexpr_info triargexpr_gen(struct ast* root)
                     ret.subexpr_arg.type = ExprArg;
                     ret.subexpr_arg.expr = expr.index;
                     ret.end = gtriargexpr_table_index - 1;
+                    return ret;
                 }
                 break;
             case Sconstleaf:
@@ -146,6 +147,7 @@ struct subexpr_info triargexpr_gen(struct ast* root)
         {
             ret.end = gtriargexpr_table_index;
         }
+
         return ret;
     }
 
@@ -324,12 +326,18 @@ struct subexpr_info triargexpr_gen(struct ast* root)
             break;
 
         case Uplus:
+            ++level;
+            lsub = triargexpr_gen(root -> left);
+            --level;
+            return lsub;
+            
         case Uminus:
         case Plusplus:
         case Minusminus:
         case Ref:
         case Deref:
         case Funcall:
+        case Return:
             expr.op = root -> op;
             expr.width = get_opresult_width(root -> ast_typetree);
             ++level;
@@ -358,9 +366,9 @@ struct subexpr_info triargexpr_gen(struct ast* root)
                 expr.arg1.type = ExprArg;
                 expr.arg1.expr = subexpr_arithval_gen(&lsub);
             }
-            
+            ++level;
             triargexpr_gen(root -> right);
-            
+            --level;
             expr.op = root -> op;
             expr.width = get_opresult_width(root -> ast_typetree);
 
@@ -369,7 +377,6 @@ struct subexpr_info triargexpr_gen(struct ast* root)
             ret.subexpr_arg.type = ExprArg;
             ret.arithtype = 1;
             break;
-            
         default:
             exit(1);
     }
