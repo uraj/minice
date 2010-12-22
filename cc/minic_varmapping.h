@@ -10,7 +10,7 @@
 /* will be useful during data flow analyze and register allocation */
 /* [char * idname, int exprindex] <=> var_info_index <=> index */
 /* At last, realize that we can find index with var info and var info with index */
-struct var_info//the struct to contain var's flags
+struct var_info                /* the struct to contain var's flags */
 {
 	/* some flags */
 	int is_define;
