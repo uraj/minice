@@ -1044,21 +1044,33 @@ static void gen_per_code(struct triargexpr * expr)
 
 		case Return:
 			{
-				if(arg1_flag == Arg_Reg)
-				{
-                    
-                    struct mach_arg dest, arg1;
-                    dest.type = Mach_Reg;
-                    dest.reg = 0;
-                    arg1.type = Mach_Reg;
-                    insert_dp_code(MOV, 0, null,  NO);
-                    
-					/* if arg1 in r0 can be optimized */;
+				if((arg1_flag == Arg_Reg) && (arg1_info->reg_addr != 0))
+                {
+                    /* if arg1 in r0 can be optimized */;
 					/* mov arg1, r0 */;
-				}
-				else if
-                    
-					/* lod r0, arg1 */;
+                    struct mach_arg mach_src;
+                    mach_src.type = Mach_Reg;
+                    mach_src.reg = arg1_info->reg_addr;
+                    insert_dp_code(MOV, 0, null, mach_src, 0, NO);
+                }
+				else if(arg1_flag == Arg_Mem)
+                {
+                    /* lod r0, arg1 */;
+                    struct mach_arg mach_dest, mach_base;
+                    mach_dest.type = Mach_Reg;
+                    mach_dest.reg = 0;
+                    mach_base.type = Mach_Reg;
+                    mach_base.reg = FP;
+                    if(expr->width == 4)
+                        insert_mem_code(LDW, 0, null, mach_base, arg1_info->mem_addr, NO);
+                    else if(expr->width == 1)
+                        insert_mem_code(LDB, 0, null, mach_base, arg1_info->mem_addr, NO);
+                    else
+                        exit(1);
+
+                }
+                else
+                    exit(1);
 				break;
 			}
 
