@@ -32,7 +32,8 @@ enum dp_op_type
 	SUB,
 	ADD,
 	OR,
-
+    XOR,
+    
 	MVN,//may be useful
 	MOV,/* no arg1 */
 	MOVCOND,//may be useful
