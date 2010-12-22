@@ -337,7 +337,6 @@ struct subexpr_info triargexpr_gen(struct ast* root)
         case Ref:
         case Deref:
         case Funcall:
-        case Return:
             expr.op = root -> op;
             expr.width = get_opresult_width(root -> ast_typetree);
             ++level;
@@ -353,7 +352,6 @@ struct subexpr_info triargexpr_gen(struct ast* root)
             ret.subexpr_arg.type = ExprArg;
             ret.arithtype = 1;
             break;
-            
         case Arglist: /* generate one arg expression, but right sub must be scanned */
             /* left subtree first <=> prepare arg form left to right */
             ++level;
@@ -377,6 +375,11 @@ struct subexpr_info triargexpr_gen(struct ast* root)
             ret.subexpr_arg.type = ExprArg;
             ret.arithtype = 1;
             break;
+        case Return:
+            ++level;
+            lsub = triargexpr_gen(root -> left);
+            --level;
+            return lsub;
         default:
             exit(1);
     }

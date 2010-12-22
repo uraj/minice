@@ -270,6 +270,9 @@ struct typetree* compat_typetree(enum operator op, struct ast* tree1, struct ast
                 ret = typet_typetree_dup(tree1 -> ast_typetree -> return_type);
             break;
             
+        case Return:            /* do nothing */
+            break;
+            
         default:
             fprintf(stderr, "Line %d: unexpected operator in ast.\n", yylineno);
             
