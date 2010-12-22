@@ -337,6 +337,8 @@ static struct basic_block * make_block(struct triargexpr_list * entrance)//gener
 				newblock -> tail -> next = NULL;
 				g_block_num ++;
 				return newblock;//need a func
+			//case Return:
+			//	newblock
 			default: break;
 		}
 		p_cur_expr = p_cur_expr -> next;
@@ -459,6 +461,6 @@ struct basic_block * make_fd(int function_index)
 
 void recover_triargexpr(struct basic_block * block_head)
 {
-
+	;
 }
 

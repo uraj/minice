@@ -632,7 +632,7 @@ int main(int argc, char* argv[])
         /*here is the register allotting and the assemble codes generating*/
 
         int map_id_num = get_ref_var_num();
-        struct ralloc_info alloc_reg = reg_alloc(curfun_actvar_lists , curfun_expr_num , map_id_num , 27);x
+        struct ralloc_info alloc_reg = reg_alloc(curfun_actvar_lists , curfun_expr_num , map_id_num , 27);
         printf("\n");
         for(j = 0 ; j < map_id_num ; j++)
              printf("map_id%d is in regester%d\n" , j , alloc_reg.result[j]);

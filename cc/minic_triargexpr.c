@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
 
 /* globals*/
 extern struct triargexpr_list *ghead, *gtail;
