@@ -38,6 +38,8 @@ extern struct var_info * get_info_of_temp(int expr);
 extern struct var_info * get_info_of_id(char * idname);
 
 extern struct var_info * get_info_from_index(int index);
+extern int get_width_from_index(int index);
+
 extern int get_ref_var_num();/*return total number of vars which have been refered*/
 
 extern int is_global(int index);
@@ -47,6 +49,7 @@ extern int new_var_map(int func_index);
 extern void free_var_map();
 
 extern int insert_tempvar(int exprindex);
+
 
 extern void set_expr_label_mark(int exprnum);
 extern struct var_info * get_info_of_temp_for_label(int exprnum);
