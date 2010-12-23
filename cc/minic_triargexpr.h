@@ -22,6 +22,7 @@ struct triargexpr
     int index;
     enum operator op;
     int width;
+    int stride;
     struct triarg arg1, arg2;
 };
 

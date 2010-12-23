@@ -68,10 +68,12 @@ int subexpr_arithval_gen(const struct subexpr_info* subexpr)
     /* gen (1) */
     expr.op = Temp;
     expr.width = 4;
+    expr.stride = 1;
     expr.index = insert_triargexpr(expr);
     
     /* gen (2) */
     expr.width = 4;
+    expr.stride = 1;
     expr.op = Assign;
     expr.arg1.type = ExprArg;
     expr.arg1.expr = ret;
@@ -153,7 +155,7 @@ struct subexpr_info triargexpr_gen(struct ast* root)
 
     struct subexpr_info lsub, rsub;
     int larith_index, rarith_index;
-    
+
     switch(root -> op)
     {
         case Land:
@@ -271,6 +273,7 @@ struct subexpr_info triargexpr_gen(struct ast* root)
             
             expr.op = root -> op;
             expr.width = 4;
+            expr.stride = 1;
             expr.arg1 = lsub.subexpr_arg;
             expr.arg2 = rsub.subexpr_arg;
             expr.index = insert_triargexpr(expr);
@@ -342,6 +345,15 @@ struct subexpr_info triargexpr_gen(struct ast* root)
             ++level;
             lsub = triargexpr_gen(root -> left);
             --level;
+            if(root->op == Ref)
+            {
+                if(root->left->ast_typetree->base_type == Char)
+                    expr.stride = 1;
+                else
+                    expr.stride = 4;
+            }
+            else
+                expr.strid = 1;
             if(lsub.arithtype)
                 expr.arg1 = lsub.subexpr_arg;
             else
@@ -369,7 +381,8 @@ struct subexpr_info triargexpr_gen(struct ast* root)
             --level;
             expr.op = root -> op;
             expr.width = get_opresult_width(root -> ast_typetree);
-
+            expr.stride = 1;
+            
             /* ret.truelist = ret.falselist = NULL */
             ret.subexpr_arg.expr = insert_triargexpr(expr);
             ret.subexpr_arg.type = ExprArg;
