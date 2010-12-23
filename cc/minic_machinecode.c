@@ -1199,7 +1199,7 @@ static void gen_per_code(struct triargexpr * expr)
 					if(mark1)
 						tempdest = tempreg1;
 					else if(mark2)
-						tempdest = tempreg2;
+                        tempdest = tempreg2;
 					else tempdest = gen_tempreg(except, ex_size);
 					insert_dp_code(op_type, tempdest, tempreg1, tempreg2, 0, NO);	
 					store_var(dest_info, tempdest);
