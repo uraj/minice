@@ -5,7 +5,7 @@
 
 #define BLOCKLEN 6
 #define SETLEN 6
-#define TABLEN 20
+#define TAGLEN 20
 
 //instrution cache and data cache??
 
@@ -176,8 +176,8 @@ void init_cache(enum CacheSwapStrategy swap, enum CacheWriteStrategy write)
 int cache_write(int id_sel, uint32_t addr)
 {
 	unsigned int tag = addr >> (BLOCKLEN + SETLEN);
-	unsigned int set = (addr << TABLEN) >> (TABLEN + BLOCKLEN);
-	unsigned int block = (addr << (TABLEN + SETLEN)) >> (TABLEN + SETLEN);
+	unsigned int set = (addr << TAGLEN) >> (TAGLEN + BLOCKLEN);
+	unsigned int block = (addr << (TAGLEN + SETLEN)) >> (TAGLEN + SETLEN);
     int line;
     
 	if(write_strategy == Write_through)//Write_through
@@ -195,8 +195,8 @@ int cache_write(int id_sel, uint32_t addr)
 int cache_read(int id_sel, uint32_t addr)
 {
 	unsigned int tag = addr >> (BLOCKLEN + SETLEN);
-	unsigned int set = (addr << TABLEN) >> (TABLEN + BLOCKLEN);
-	unsigned int block = (addr << (TABLEN + SETLEN)) >> (TABLEN + SETLEN);
+	unsigned int set = (addr << TAGLEN) >> (TAGLEN + BLOCKLEN);
+	unsigned int block = (addr << (TAGLEN + SETLEN)) >> (TAGLEN + SETLEN);
 	int line;
     
 	for(line = 0; line < LINENUM; line++)
