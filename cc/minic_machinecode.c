@@ -566,16 +566,7 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 		}
 	}
 	else
-	{
-		if(is_array(arg_index))
-		{
-			int reg_num = get_tempreg(NULL, 0);
-			load_pointer(arg_index, reg_num);
-			store_var(arg_info, reg_num);
-			restore_tempreg(reg_num);
-		}
 		flag = Arg_Mem;
-	}
 	return flag;
 }
 /************************ prepare arg end ********************************/
