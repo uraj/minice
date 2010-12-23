@@ -183,7 +183,7 @@ static inline void insert_bcond_code(char * dest_label, enum condition_type cond
 
 static inline void insert_buncond_code(char * dest_label, char link)
 {
-	struct mach_code new_code;
+    struct mach_code new_code;
 	new_code.op_type = BRANCH;
 	new_code.branch_op = B;
 	new_code.dest_label = dest_label;
@@ -1014,22 +1014,23 @@ static void gen_per_code(struct triargexpr * expr)
 			}
 
 
-		case Uplus:                      /* +  */
+		case Uplus:             /* +  */
+            break;
 		case Uminus:                     /* -  */
-			{	
+			{
+                int except[3];
+                int ex_size = 0;
 				if(dest_flag == Arg_Reg)
 				{
+                    except[ex_size++] = dest_info->reg_addr;
+                    
 					if(arg1_flag == Arg_Mem)
 					{
-						if(expr -> op == Uminus)
-						{
+                        
 							/* lod tempreg */;
 							/* mvn tempreg, dest */;
 							/* restore for arg1 */;
-						}
-						else
-							/* lod dest, arg1 */;
-					}
+                    }
 					else
 					{
 						if(expr -> op == Uminus)
@@ -1194,7 +1195,6 @@ static void gen_per_code(struct triargexpr * expr)
                 {
                     if(arg1_info->reg_addr != 0)
                     {
-                        
                         /* if arg1 in r0 can be optimized */;
                         /* mov arg1, r0 */;
                         struct mach_arg mach_src;
