@@ -492,7 +492,7 @@ static struct search_res search_block(struct basic_block * block)
 		case TrueJump:
 		case FalseJump:
 			tmp_res = search_block(block -> next -> entity);
-			if(res.reached_before)
+			if(tmp_res.reached_before)
 			{
 				struct triargexpr uncond_jump;
 				uncond_jump.op = UncondJump;
@@ -504,6 +504,7 @@ static struct search_res search_block(struct basic_block * block)
 				block -> tail -> next = uncond_node;
 				uncond_node -> prev = block -> tail;
 				block -> tail = uncond_node;
+				set_expr_label_mark(tmp_res.expr_index);	
 			}
 			tmp_res = search_block(block -> next -> next -> entity);
 			set_expr_label_mark(tmp_res.expr_index);
@@ -527,7 +528,7 @@ static struct search_res search_block(struct basic_block * block)
 			if(block -> next != NULL)
 			{
 				tmp_res = search_block(block -> next -> entity);
-				if(res.reached_before)
+				if(tmp_res.reached_before)
 				{
 					struct triargexpr uncond_jump;
 					uncond_jump.op = UncondJump;
@@ -539,6 +540,7 @@ static struct search_res search_block(struct basic_block * block)
 					block -> tail -> next = uncond_node;
 					uncond_node -> prev = block -> tail;
 					block -> tail = uncond_node;
+					set_expr_label_mark(tmp_res.expr_index);		
 				}
 			}
 			break;
@@ -546,40 +548,6 @@ static struct search_res search_block(struct basic_block * block)
 	return res;
 }
 
-static void print_recover()
-{
-	int index;
-	int num = 0;
-	for(index = 0; index < g_block_num; index++)
-	{
-		printf("Block No.%d\n", linear_block_seq[index] -> index);
-		struct triargexpr_list * expr = linear_block_seq[index] -> head; 
-		while(expr != NULL)
-		{
-			print_triargexpr(*(expr -> entity));
-			num ++;
-			expr = expr -> next;
-		}
-		struct basic_block_list * next_list_node = linear_block_seq[index] -> next;
-		printf("next blocks:");
-		while(next_list_node != NULL)
-		{
-			printf("%d ", next_list_node -> entity -> index);
-			next_list_node = next_list_node -> next;
-		}
-		printf("\n");
-
-		next_list_node = linear_block_seq[index] -> prev;
-		printf("prev blocks:");
-		while(next_list_node != NULL)
-		{
-			printf("%d ", next_list_node -> entity -> index);
-			next_list_node = next_list_node -> next;
-		}
-		printf("\n\n");
-	}
-	printf("%d\n", num);
-}
 
 struct basic_block * make_fd(int function_index)
 {
@@ -606,7 +574,6 @@ void recover_triargexpr(struct basic_block * block_head)
 	struct triargexpr_list * head = block_head -> head;
 	struct triargexpr_list * tail = block_head -> tail;
 	free(block_head);
-	print_recover();
 	for(index = 1; index < cur_linear_block_index; index ++)
 	{
 		tail -> next = linear_block_seq[index] -> head;
@@ -616,7 +583,19 @@ void recover_triargexpr(struct basic_block * block_head)
 	tail -> next = NULL;
 	table_list[cur_func_index] -> head = head;
 	table_list[cur_func_index] -> tail = tail;
-	print_table(table_list[cur_func_index]);	
+
+#ifdef SHOWNEWCODE
+	int num = 0;
+	struct triargexpr_list * expr = head; 
+	while(expr != NULL)
+	{
+		num ++;
+		expr = expr -> next;
+	}
+	printf("triargexpr num:%d\n", num);
+	print_table(table_list[cur_func_index]);
+#endif
+
 	free(linear_block_seq);
 	free(DFS_array);
 	DFS_array = NULL;
