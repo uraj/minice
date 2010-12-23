@@ -19,7 +19,7 @@ struct var_info                /* the struct to contain var's flags */
 	int reg_addr;
 	int mem_addr;/* for local var => offset from fp
 					for global var => offset from label */
-    struct var_list * ref_point;//only for array
+//    struct var_list * ref_point;//only for array
 	int label_num;// the expr jump to which label /* can be union */
 
 	int index;
