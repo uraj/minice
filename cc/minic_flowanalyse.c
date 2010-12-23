@@ -811,7 +811,7 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)/
                          /*if(temp_var_info->ref_point != NULL)//此指针为数组
                          {
                               var_list_free(temp_point_list);
-                              temp_expr_node->pointer_entity = temp_var_info->ref_point;//实体链指向数组的定点链
+                              //temp_expr_node->pointer_entity = temp_var_info->ref_point;//实体链指向数组的定点链
                               //     (*dest) = temp_var_info->ref_point;
                               return get_index_of_temp(arg->expr);
                          }*/
@@ -831,8 +831,8 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)/
                     /*if(temp_var_info->ref_point != NULL)//此指针为数组
                     {
                          var_list_free(temp_point_list);
-                         temp_expr_node->pointer_entity = temp_var_info->ref_point;//实体链指向数组的定点链
-                         (*dest) = temp_var_info->ref_point;//该数组中所有元素的三元式编号的map_id都需要从活跃变量中删除
+                         //temp_expr_node->pointer_entity = temp_var_info->ref_point;//实体链指向数组的定点链
+                         //(*dest) = temp_var_info->ref_point;//该数组中所有元素的三元式编号的map_id都需要从活跃变量中删除
                          return get_index_of_temp(arg->expr);
                     }*/
                     arg->type = IdArg;

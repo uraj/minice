@@ -587,6 +587,342 @@ static void flush_pointer_entity(struct var_list * entity_list)
 
 /************************************* gen code beg ******************************/
 
+/*返回arg的map_id。其中，没有map_id的返回-1，立即数返回-2，Return -1这种情况返回-3*/
+static inline int get_index_of_arg(struct triarg *arg)
+{
+     if(arg->type == IdArg)
+          return (get_index_of_id(arg->idname));
+     else if(arg->type == ExprArg)
+     {
+          if(arg->expr == -1)
+               return -3;
+          return (get_index_of_temp(arg->expr));
+     }
+     else
+          return -2;
+}
+
+/*MOV rd , rs*/
+static inline void gen_mov_rsrd_code(int rd , int rs)
+{
+     struct mach_arg src_arg;
+     src_arg.type = Mach_Reg;
+     src_arg.reg = rs;
+     reg_dpt[rd] = 1;
+     insert_dp_code(MOV , rd , src_arg , null , 0 , NO);
+}
+
+/*MOV rd , #imme*/
+static inline void gen_mov_rsim_code(int rd , int imme)
+{
+     struct mach_arg src_arg;
+     src_arg.type = Mach_Imm;
+     src_arg.imme = imme;
+     reg_dpt[rd] = 1;
+     insert_dp_code(MOV , rd , src_arg , null , 0 , NO);
+}
+
+/*RSUB rd , rs1 , #imme*/
+static inline void gen_rsub_rri_code(int rd , int rs1 , int imme)
+{
+     struct mach_arg arg1 , arg2;
+     arg1.type = Mach_Reg;
+     arg1.reg = rs1;
+     arg2.type = Mach_Imm;
+     arg2.imme = imme;
+     reg_dpt[rd] = 1;
+     insert_dp_code(RSUB , rd , arg1, arg2, 0 , NO);
+}
+
+/*LDB/LDW rd , [rs1(off)] , rs2*/
+static inline void gen_load_rrr_code(int rd , int rs1 , int rs2 , int off , int width)
+{
+     enum mem_op_type mem_op;
+     if(width == 1)
+          mem_op = LDB;
+     else
+          mem_op = LDW;
+     struct mach_arg arg1 , arg2;
+     arg2.type = arg1.type = Mach_Reg;
+     arg1.reg = rs1;
+     arg2.reg = rs2;
+     insert_mem_code(mem_op , rd , arg1 , arg2 , 0 , off , NO);
+}
+
+/*前一个比较数是立即数的话，将两个比较数互换，并且改变运算符。如果发现两个都是立即数，返回0；否则，返回1*/
+static inline int prtrtm_cond_expr(struct triargexpr *cond_expr)
+{
+     if(cond_expr->arg1.type == Imm_Arg)
+     {
+          struct triarg temp_arg;
+          memcpy(&temp_arg , &(cond_expr->arg1));//temp = arg1
+          memcpy((&cond_expr->arg1) , &(cond_expr->arg2));//arg1 = arg2
+          memcpy((&cond_expr->arg2) , &temp_arg);//arg2 = arg1
+          /*Eq<->Neq, Ge<->Nge, Le<->Nle*/
+          switch(cond_expr->op)
+          {
+          case Eq :cond_expr->op = Neq;break;
+          case Neq:cond_expr->op = Eq ;break;
+          case Ge :cond_expr->op = Nge;break;
+          case Nge:cond_expr->op = Ge ;break;
+          case Le :cond_expr->op = Nle;break;
+          case Nle:cond_expr->op = Le ;break;
+          default :break;
+          }
+     }
+     if(cond_expr->arg1.type == Imm_Arg)
+     {
+          fprinf(stderr , "Triarg Expression Error!\n    ");
+          print_triargexpr(*cond_expr);
+          return 0;
+     }
+     return 1;
+}
+
+/*生成CMPSUB.A指令，并将此过程中分配的临时寄存器的编号，从后往前放入数组restore_reg中*/
+static inline void gen_cmp_code(struct triargexpr *cond_expr , int *restore_reg)
+{
+     /*遇到条件跳转的时候才生成比较语句，生成的步骤是：
+       1、预处理条件三元式。调用prtrtm_cond_expr(cond_expr)，确保该条件三元式的立即数（如果有）是arg2；如果发现两个都是立即数，则报错；
+       2、生成比较语句两个操作数的寄存器（立即数是-1）；
+           <1>立即数则返回-1；
+           <2>map_id分配寄存器的话返回该寄存器编号；
+           <3>map_id在内存的话，调用gen_tempreg返回一个临时寄存器，并将此寄存器编号放入参数数组restore_reg中（注意是从后往前放的）。
+       3、生成代码；
+     */
+     
+     /*前一个比较数是立即数的话，将两个比较数互换，并且改变运算符*/
+     if(prtrtm_cond_expr(cond_expr) == 0)
+          return;
+
+     /*开始生成CMPSUB.A arg1 , arg2*/
+     int cond_arg_index[2] , i;
+     cond_arg_index[0] = get_index_of_arg(&cond_expr->arg1);//非负数代表map_id，-1代表该编号没有被引用过，-2代表是立即数
+     cond_arg_index[1] = get_index_of_arg(&cond_expr->arg2);
+     struct var_info *cond_arg_info[2];
+     for(i = 0 ; i < 2 ; i ++)
+          cond_arg_info[i] = get_info_from_index(cond_arg_index[i]);
+     int arg_reg_index[2];
+     restore_reg[0] = restore_reg[1] = -1;
+     int except[2] , j , restore_reg_index = 1;
+     for(i = 0 ; i < 2 ; i ++)
+     {
+          if(cond_arg_info[i] == NULL)//<1>立即数则返回-1；
+          {
+               arg_reg_index[i] = -1;
+               continue;
+          }
+          if(cond_arg_info[i]->reg_addr >= 0)//<2>map_id分配寄存器的话返回该寄存器编号；
+               arg_reg_index[i] = cond_arg_info[i]->reg_addr;
+          else//<3>map_id在内存的话，调用gen_tempreg返回一个临时寄存器。
+          {
+               for(j = 0 ; j < i ; j++)
+                    except[j] = arg_reg_index[j];
+               for(; j < 2 ; j++)
+               {
+                    if(cond_arg_info[j] == NULL)
+                         except[j] = -1;
+                    else
+                         except[j] = cond_arg_info[j]->reg_addr;
+               }
+               arg_reg_index[i] = gen_tempreg(except[2] , 2);
+               restore_reg[restore_reg_index--] = arg_reg_index[i];
+          }
+     }
+     struct mach_arg arg1 , arg2;
+     arg1.type = Mach_Reg;
+     arg1.reg = arg_reg_index[0];
+     if(cond_arg_index[1] == -2)//第二个是立即数
+     {
+          arg2.type = Mach_Imm;
+          arg2.imme = cond_expr->arg2.imme;
+     }
+     else
+     {
+          arg2.type = Mach_Reg;
+          arg2.reg = arg_reg_index[1];
+     }
+     insert_cmp_code(arg1 , arg2);
+}
+
+/*生成条件跳转的汇编代码*/
+static inline void gen_cj_expr(struct triargexpr *expr)
+{
+     /*
+       生成条件跳转的汇编代码。步骤如下：（默认条件为常数的已经优化过了）
+       1、如果条件操作数没有map_id，说明它是个逻辑表达式。此时则：
+           <1>获得该条件对应的三元式，调用gen_cmp_code生成条件指令、填充临时寄存器编号；
+           <2>生成label和跳转指令（默认arg2不是立即数和变量）；
+           <3>调用restore_tempreg恢复临时寄存器。
+       2、如果条件操作数有map_id，说明它是个变量抑或算数运算式。此时则：
+           <1>生成三元式（Neq expr->arg1 , 0），调用gen_cmp_code生成条件指令、填充临时寄存器编号；
+           <2>生成label和跳转指令（默认arg2不是立即数和变量）；
+           <3>调用restore_tempreg恢复临时寄存器。
+      */
+     int arg1_index = get_index_of_arg(&(expr->arg1));
+     if(arg1_index == -1)
+     {
+          /*先得到作为条件的三元式，生成它的代码。*/
+          struct triargexpr_list *cond_expr_node = cur_table->index_to_list[expr->index];
+          struct triargexpr *cond_expr = cond_expr_node->entity;
+          int restore_reg[2] , i;
+          gen_cmp_code(cond_expr , restore_reg);
+          
+          /*生成label，并且生成跳转代码*/
+          int label_num = ref_jump_dest(expr->arg2.expr);
+          char *dest_label_name = gen_new_label(label_num);
+          enum condition_type cond_type;
+          if(expr->op == TrueJump)
+          {
+               switch(cond_expr->op)
+               {
+               case Eq :cond_type = EQ;break;
+               case Neq:cond_type = NE;break;
+               case Ge :cond_type = SG;break;
+               case Nge:cond_type = EL;break;
+               case Le :cond_type = SL;break;
+               case Nle:cond_type = EG;break;
+               default :break;
+               }
+          }
+          else
+          {
+               switch(cond_expr->op)
+               {
+               case Eq :cond_type = NE;break;
+               case Neq:cond_type = EQ;break;
+               case Ge :cond_type = EL;break;
+               case Nge:cond_type = SG;break;
+               case Le :cond_type = EG;break;
+               case Nle:cond_type = SL;break;
+               default :break;
+               }
+          }
+          insert_bcond_code(dest_label_name , cond_type);
+          
+          for(i = 0 ; i < 2 ; i ++)/*恢复临时寄存器*/
+               restore_tempreg(restore_reg[i]);
+     }
+     else
+     {
+          struct var_info *arg1_info = get_info_from_index(arg1_index);
+          struct Arg_Flag arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);//*********************
+          /*生成CMPSUB.A expr->arg1 , #0。先生成临时三元式Neq expr->arg1 , #0*/
+          struct triargexpr cond_expr;
+          cond_expr.op = Neq;
+          memcpy(&(cond_expr.arg1) , &(expr->arg1));//cond_expr.arg1 = expr->arg1
+          cond_expr.arg2.type = Imm_Arg;
+          cond_expr.arg1.imme = 0;
+          int restore_reg[2] , i;
+          gen_cmp_code(&cond_expr , restore_reg);
+          
+          /*TrueJump则是BNE LABEL；FalseJump则是BEQ LABEL*/
+          int label_num = ref_jump_dest(expr->arg2.expr);
+          char *dest_label_name = gen_new_label(label_num);
+          enum condition_type cond_type;
+          if(expr->op == TrueJump)
+               cond_type = NE;
+          else
+               cond_type = EQ;
+          insert_bcond_code(dest_label_name , cond_type);
+          
+          for(i = 0 ; i < 2 ; i ++)/*恢复临时寄存器*/
+               restore_tempreg(restore_reg[i]);
+     }
+}
+
+/*
+  arg1 = arg2的翻译方式。
+  1、赋值。
+      <1>arg1和arg2是寄存器，或者arg1是寄存器而arg2是立即数，MOV；
+      <2>arg1是寄存器，arg2是内存，load；
+      <3>arg1是内存，arg2是寄存器，store；
+      <4>arg1是内存，arg2是立即数，申请临时寄存器，存入arg2，store；
+      <5>arg1和arg2都是内存，先将arg2导入临时寄存器，然后将临时寄存器的值存入内存。
+  2、指针相关操作。
+      <1>如果arg1是（*arg）的形式，需要把（*arg）对应的三元式的pointer_entity中所有map_id对应的寄存器都写入内存。
+ */
+/*生成代码过程中，要多次在变量间赋值，expr的作用是根据运算类型判断是否对临时寄存器做其他操作*/
+static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , struct triargexpr *expr)
+{
+     /*
+      <1>arg1和arg2是寄存器，或者arg1是寄存器而arg2是立即数，MOV；
+      <2>arg1是寄存器，arg2是内存，load；
+      <3>arg1是内存，arg2是寄存器，store；
+      <4>arg1是内存，arg2是立即数，申请临时寄存器，存入arg2，store；
+      <5>arg1和arg2都是内存，先将arg2导入临时寄存器，然后将临时寄存器的值存入内存。
+      */
+     if(arg1 == NULL || arg2 == NULL)
+          return;
+     int arg1_index = get_index_of_arg(arg1);
+     int arg2_index = get_index_of_arg(arg2);
+     if(arg1_index < 0)
+          return;
+     
+     struct var_info *arg1_info = get_info_from_index(arg1_index);
+     struct var_info *arg2_info = get_info_from_index(arg2_index);
+     
+     if(arg2->type == ImmArg)//arg2是立即数
+     {
+          int imme = arg2->imme;
+          if(expr != NULL && expr->op == Uminus)//一元减
+               imme = 0 - imme;
+          if(arg1_info->reg_addr >= 0)//arg1在寄存器
+               gen_mov_rsim_code(arg1_info->reg_addr , arg2->imme);
+          else
+          {
+               int imme_reg = gen_tempreg(NULL , 0);
+               gen_mov_rsim_code(imme_reg , arg2->imme);
+               store_var(arg1_info , imme_reg);
+               restore_reg(imme_reg);
+          }
+          return;
+     }
+     else if(arg1_info->reg_addr >= 0)//arg1是寄存器
+     {
+          if(arg2_info->reg_addr >= 0)//arg2是寄存器
+          {
+               if(expr != NULL && expr->op == Uminus)
+                    gen_rsub_rri_code(arg1_info->reg_addr , arg2_info->reg_addr , 0);
+               else
+                    gen_mov_rsrd_code(arg1_info->reg_addr , arg2_info->reg_addr);
+          }
+          else
+          {
+               store_var(arg2_info , arg1_info->reg_addr);
+               if(expr != NULL && expr->op == Uminus)
+                    gen_rsub_rri_code(arg1_info->reg_addr , arg1_info->reg_addr , 0);
+          }
+          return;
+     }
+     else
+     {
+          if(arg2_info->reg_addr >= 0)
+          {
+               int rd = arg2_info->reg_addr;
+               if(expr != NULL && expr->op == Uminus)
+               {
+                    int except[1];
+                    except[0] = rd;
+                    rd = gen_tempreg(except , 1);
+                    gen_rsub_rri_code(rd , rd , 0);
+               }
+               store_var(arg1_info , rd);
+               if(expr != NULL && expr->op == Uminus)
+                    restore_reg(rd);
+          }
+          else
+          {
+               int rd = gen_tempreg(NULL , 0);
+               load_var(arg2_info , rd);
+               if(expr != NULL && expr->op == Uminus)
+                    gen_rsub_rri_code(rd , rd , 0);
+               store_var(arg1_info , rd);
+               restore_reg(rd);
+          }
+     }
+}
+
 static void gen_per_code(struct triargexpr * expr)
 {
 	check_is_jump_dest(expr -> index);
@@ -969,40 +1305,11 @@ static void gen_per_code(struct triargexpr * expr)
                 
 				break;
 			}
-
-		case TrueJump:
-		case FalseJump://immed cond has been optimized before, so the cond can only be expr or id
+    case TrueJump:
+    case FalseJump://immed cond has been optimized before, so the cond can only be expr or id
 			{
-				//ImmArg op ImmArg should be optimized before
-				if(expr -> arg1.type == IdArg)
-				{
-					arg1_index = get_index_of_id(expr -> arg1.idname);
-					arg1_info = get_info_from_index(arg1_index);
-				}
-				else//can't be immed
-				{
-					arg1_index = get_index_of_temp(expr -> arg1.expr);
-					if(arg1_index != -1)
-						arg1_info = get_info_from_index(arg1_index);
-				}
-				
-				if(arg1_index == -1)
-				{
-					/*gen condition*/;//should return jump cond
-					/* cond jump to .L+(varmap->label or total_label_num) */;//we need a jump table in varmap and total_label_num
-				}
-				else
-				{
-					arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
-
-					if(arg1_flag == Arg_Mem)//can't be immd
-						/* lod tempreg */;
-					/* CSUB tempreg, 0 */
-					/* beq or bne to .L+..*/;
-					/* restore tempreg */;
-				}
-
-				break;
+                 gen_cj_expr(expr);
+                 break;
 			}
 
 		case UncondJump:
@@ -1013,48 +1320,17 @@ static void gen_per_code(struct triargexpr * expr)
 				break;
 			}
 
-
-		case Uplus:             /* +  */
-            break;
-		case Uminus:                     /* -  */
+    case Uplus:                      /* +  */
+         break;
+    case Uminus:                     /* -  */
 			{
-                int except[3];
-                int ex_size = 0;
-				if(dest_flag == Arg_Reg)
-				{
-                    except[ex_size++] = dest_info->reg_addr;
-                    
-					if(arg1_flag == Arg_Mem)
-					{
-                        
-							/* lod tempreg */;
-							/* mvn tempreg, dest */;
-							/* restore for arg1 */;
-                    }
-					else
-					{
-						if(expr -> op == Uminus)
-							/* mvn arg1, dest */;
-						else /* mov arg1, dest */;
-					}
-				}
-				else
-				{
-					if(arg1_flag == Arg_Mem)
-					{
-						/* lod tempreg */;
-						if(expr -> op == Uminus)
-							/* mvn tempreg, tempreg */;
-						/* str tempreg, dest */;
-						/* restore for arg1 */;
-					}
-					else
-					{
-						if(expr -> op == Uminus)
-							/* mvn arg1, arg1 */;
-						/* str arg1, dest */;
-					}
-				}	
+                 /*
+                  构造三元式编号的triarg，调用函数gen_assign_code得到结果
+                  */
+                 struct triarg expr_arg;
+                 expr_arg.type = ExprArg;
+                 expr_arg.expr = expr->index;
+                 gen_assign_arg_code(&expr_arg , &(expr->arg1) , expr);
 				break;
 			}
 
