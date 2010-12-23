@@ -10,18 +10,23 @@ int IFStage(RegFile * storage, PipeState * pipe_state, uint32_t special_entry)
     uint32_t pc = storage->reg[PC];
     uint32_t instr;
     int readinfo;
-    
-    if(pipe_state->ex_fwd[0].freg == PC)
-    {
-        pc = pipe_state->ex_fwd[0].fdata;
-    }
-    else if(pipe_state->mem_fwd.freg == PC)
-    {
-        pc = pipe_state->mem_fwd.fdata;
-    }
-    else if(pipe_state->ex_fwd[1].freg == PC)
+
+     /* as for pc, take the earlier one */
+    if(pipe_state->ex_fwd[1].freg == PC)
     {
         pc = pipe_state->ex_fwd[1].fdata;
+        /* flush the pipeline */
+        pipe_state->wb_in.bubble = 1;
+        pipe_state->mem_in.bubble = 1;
+        pipe_state->ex_in.bubble = 1;
+        
+    }
+    else if(pipe_state->ex_fwd[0].freg == PC)
+    {
+        pc = pipe_state->ex_fwd[0].fdata;
+        /* flush the pipeline */
+        pipe_state->mem_in.bubble = 1;
+        pipe_state->ex_in.bubble = 1;
     }
     else
         pc = storage->reg[PC];

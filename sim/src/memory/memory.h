@@ -1,9 +1,13 @@
 #ifndef __MINISIM_MEMORY_H__
 #define __MINISIM_MEMORY_H__
 
-#include <memory/vmem.h>
 #include <stdint.h>
 #include <stddef.h>
+#include "cache.h"
+#include "vmem.h"
+
+extern int * gp_cachemiss;
+extern int * gp_cachewb;
 
 extern int mem_read_instruction(uint32_t addr, uint32_t * instr);
 

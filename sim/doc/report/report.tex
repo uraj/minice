@@ -129,47 +129,47 @@ MiniSim在完成指令功能模拟的同时，以软件的形式模拟了处理�
 \usetikzlibrary{shadows}
 \usetikzlibrary{shapes}
 \begin{center}
-\scalebox{1.1}
-         {
-  \begin{tikzpicture}[node distance=0.5cm]
-    \node[fill=blue!20] (wb){WB};
-    \node[fill=white] (wbin)[below =of wb]{数据传递};
-    \node[fill=blue!20] (mem)[below =of wbin]{MEM};
-    \node[fill=white] (memin)[below =of mem]{数据传递};
-    \node[fill=blue!20] (ex)[below =of memin]{EX};
-    \node[fill=white] (exin)[below =of ex]{数据传递};
-    \node[fill=blue!20] (id)[below =of exin]{ID};
-    \node[fill=blue!20] (ctrl)[right= of id]{控制};
-    \node[fill=white] (idin)[below = of id]{数据传递};
-    \node[fill=blue!20] (if)[below =of idin]{IF};
-    \node[fill=red!40] (reg)[left= of wb]{寄存器堆};
-    \node[fill=red!40,node distance=2cm] (memory)[right = of mem]{内存};
-    \node[fill=red!40] (fwd) [left=of id]{前递单元};
-    \draw[<->] (memory) -- (mem);
-    \draw[<-] (fwd) -- (reg);
-    \draw[->] (fwd) -- (id);
-    \draw[->] (id) -- (ctrl);
-    \draw[->] (ctrl) |- (exin);
-    \draw[->] (wbin) -- (wb);
-    \draw[->] (mem) -- (wbin);
-    \draw[->] (memin) -- (mem);
-    \draw[->] (ex) -- (memin);
-    \draw[->] (exin) -- (ex);
-    \draw[->] (id) -- (exin);
-    \draw[->] (idin) -- (id);
-    \draw[->] (if) -- (idin);
-    \draw[<-] (if) -| (fwd);
-    \draw[->] (ex) -- ++(-4,0) -- ++(0,-1) |-  (fwd);
-    \draw[->] (mem) -- ++(-3.5,0) -- ++(0,-1) |- (fwd);
-    \draw[->] (wb) -| (reg);
-  \end{tikzpicture}
-}
+  \scalebox{1.1}
+           {
+             \begin{tikzpicture}[node distance=0.5cm]
+               \node[fill=blue!20] (wb){WB};
+               \node[fill=white] (wbin)[below =of wb]{数据传递};
+               \node[fill=blue!20] (mem)[below =of wbin]{MEM};
+               \node[fill=white] (memin)[below =of mem]{数据传递};
+               \node[fill=blue!20] (ex)[below =of memin]{EX};
+               \node[fill=white] (exin)[below =of ex]{数据传递};
+               \node[fill=blue!20] (id)[below =of exin]{ID};
+               \node[fill=blue!20] (ctrl)[right= of id]{控制};
+               \node[fill=white] (idin)[below = of id]{数据传递};
+               \node[fill=blue!20] (if)[below =of idin]{IF};
+               \node[fill=red!40] (reg)[left= of wb]{寄存器堆};
+               \node[fill=red!40,node distance=2cm] (memory)[right = of mem]{内存};
+               \node[fill=red!40] (fwd) [left=of id]{前递单元};
+               \draw[<->] (memory) -- (mem);
+               \draw[<-] (fwd) -- (reg);
+               \draw[->] (fwd) -- (id);
+               \draw[->] (id) -- (ctrl);
+               \draw[->] (ctrl) |- (exin);
+               \draw[->] (wbin) -- (wb);
+               \draw[->] (mem) -- (wbin);
+               \draw[->] (memin) -- (mem);
+               \draw[->] (ex) -- (memin);
+               \draw[->] (exin) -- (ex);
+               \draw[->] (id) -- (exin);
+               \draw[->] (idin) -- (id);
+               \draw[->] (if) -- (idin);
+               \draw[<-] (if) -| (fwd);
+               \draw[->] (ex) -- ++(-4,0) -- ++(0,-1) |-  (fwd);
+               \draw[->] (mem) -- ++(-3.5,0) -- ++(0,-1) |- (fwd);
+               \draw[->] (wb) -| (reg);
+             \end{tikzpicture}
+           }
 \end{center}
 \subsection{程序实现}
 下面是MiniSim实现流水线的主要数据结构：
 \begin{lstlisting}[language=c]
-typedef struct
-{
+  typedef struct
+  {
     FwdData ex_fwd[2];
     FwdData mem_fwd;
 
@@ -178,14 +178,14 @@ typedef struct
     EX_input ex_in;
     MEM_input mem_in;
     WB_input wb_in;
-} PipeState;
+  } PipeState;
 
-typedef struct
-{
+  typedef struct
+  {
     uint32_t reg[32];
     PSW CMSR;
     uint32_t usr_trap_no;
-} RegFile;
+  } RegFile;
 \end{lstlisting}
 PipeState中存储了每一个流水级所需要的数据及控制信息。
 \begin{enumerate}
@@ -235,6 +235,12 @@ EX阶段所需要的两个操作数也在ID阶段产生，所以需要完成读�
 \end{enumerate}
 移位的具体实现被封装在一个函数中，该函数会根据基址，移位值和移位类型自动产生结果并设置标志位。
 \subsection{跳转}
+MiniSim实现的UniCore2指令子集中共有三种类型的跳转：
+\begin{itemize}
+\item 跳转切换，
+\item 无条件跳转
+\item 条件跳转
+\end{itemize}
 \chapter{模拟器控制台}
 
 \chapter{测试与验证}

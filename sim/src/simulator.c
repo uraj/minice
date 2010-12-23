@@ -8,17 +8,7 @@
 #include "loader.h"
 #include "pipeline.h"
 #include "console.h"
-#include <memory/memory.h>
-
-/* used by memory.h */
-L2PT L1PageTable[L1PTSIZE];
-
-/* used by debug.h */
-const RegFile * gp_reg = NULL;
-const PipeState * gp_pipe = NULL;
-
-/* used by console() in console.c */
-jmp_buf beginning;
+#include "memory/memory.h"
 
 typedef struct
 {
@@ -31,8 +21,41 @@ typedef struct
     int cache_wb;
 } StatInfo;
 
-void simulate_init(RegFile * storage, PipeState * pipe_state) /* important */
+/* used by memory.h */
+L2PT L1PageTable[L1PTSIZE];
+
+/* used by cache.h */
+Cacheline Cache[2][SETNUM][LINENUM];
+enum CacheSwapStrategy swap_strategy;
+enum CacheWriteStrategy write_strategy;
+
+/* used by debug.h */
+const RegFile * gp_reg = NULL;
+const PipeState * gp_pipe = NULL;
+
+/* used by memory.h */
+int * gp_cachemiss = NULL;
+int * gp_cachewb = NULL;
+
+/* used by console() in console.c */
+jmp_buf beginning;
+
+
+ /* important */
+void simulate_init(RegFile * storage, PipeState * pipe_state, StatInfo * stat_info)
 {
+    gp_reg = storage;
+    gp_pipe = pipe_state;
+    gp_cachemiss = &(stat_info->cache_miss);
+    gp_cachewb = &(stat_info->cache_wb);
+
+    /* init cache */
+    init_cache(LRU, Write_back);
+    
+    /* init statistic information */
+    memset(stat_info, 0, sizeof(StatInfo));
+    
+    /* init reg file */
     memset(storage->reg, 0, 32 * sizeof(uint32_t));
     storage->reg[SP] = 0xf0000000;
     storage->reg[FP] = 0xf0000000;
@@ -40,7 +63,8 @@ void simulate_init(RegFile * storage, PipeState * pipe_state) /* important */
     storage->CMSR.Z = 0;
     storage->CMSR.C = 0;
     storage->CMSR.V = 0;
-
+    
+    /* init pipeline */
     pipe_state->id_in.bubble = 1;
     pipe_state->ex_in.bubble = 1;
     pipe_state->mem_in.bubble = 1;
@@ -66,17 +90,11 @@ void simulate_init(RegFile * storage, PipeState * pipe_state) /* important */
 StatInfo simulate(uint32_t simulation_entry, uint32_t special_entry)
 {
     StatInfo stat_info;
-    stat_info.cycle_count = 0;
-    stat_info.instr_count = 0;
-    stat_info.bubble_count = 0;
-    
     RegFile storage;
     PipeState pipe_state;
-    gp_reg = &storage;
-    gp_pipe = &pipe_state;
     
     /* initialization */
-    simulate_init(&storage, &pipe_state);
+    simulate_init(&storage, &pipe_state, &stat_info);
     storage.reg[PC] = simulation_entry;
     
     while(1)
@@ -105,15 +123,8 @@ StatInfo simulate_db(uint32_t simulation_entry, uint32_t special_entry)
     StatInfo stat_info;
     RegFile storage;
     PipeState pipe_state;
-    gp_reg = &storage;
-    gp_pipe = &pipe_state;
-    
-    /* initialization */
-    stat_info.cycle_count = 0;
-    stat_info.instr_count = 0;
-    stat_info.bubble_count = 0;
 
-    simulate_init(&storage, &pipe_state);
+    simulate_init(&storage, &pipe_state, &stat_info);
     storage.reg[PC] = simulation_entry;
     
     while(1)
@@ -145,8 +156,9 @@ StatInfo simulate_db(uint32_t simulation_entry, uint32_t special_entry)
     return stat_info;
 }
 
-void print_stat_info(const StatInfo * stat_info)
+void print_stat_info(StatInfo * stat_info)
 {
+    stat_info->cycle_count += 9 * stat_info->cache_miss;
     fprintf(stderr, "Simulation Profile:\n\tclock-cycle count: %d\n", stat_info->cycle_count);
     fprintf(stderr, "\tinstrcutin count: %d\n", stat_info->instr_count);
     fprintf(stderr, "\tbubble count: %d\n", stat_info->bubble_count);
@@ -204,6 +216,7 @@ int main(int argc, char * argv[])
         return 1;
     }
     
+    memset(L1PageTable, 0, sizeof(L1PageTable));    
     Elf32_Ehdr ehdr = get_elf_hdr(elf);
     load_elf_segments(elf, ehdr);
     uint32_t special_entry = get_func_entry(elf, ehdr, "__minic_print");
