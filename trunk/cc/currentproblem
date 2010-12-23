@@ -46,4 +46,4 @@ new:
 
 1.global_var_last_ref//uncertainty
 2.mark whether the temp var is a pointer
-3.some wrong op type in triargexpr
+3.offset may be too big when addressing characters 

@@ -50,7 +50,7 @@ static const int max_reg_num = 27;
 static int cur_code_index;
 static int cur_code_bound;
 
-static int arglist_num_mark;
+static int arglist_num_mark;//count arglist num, should be clear to zero after func call and pop arg
 
 static struct mach_arg null;
 
@@ -306,7 +306,28 @@ static inline int ref_jump_dest(int expr_id)//get the label for jump dest
 
 
 /************************** get pointer begin **************************/
-
+static inline void load_pointer(int var_index, int reg_num)
+{
+	struct var_info * id_info = get_info_from_index(var_index);
+	if(isglobal(var_index))
+	{
+		struct value_info * tmp_info = get_valueinfo_byno(cur_func_info -> func_symt, var_index); 
+		int offset = id_info -> mem_addr;
+		struct mach_arg address;
+		address.type = Mach_Label;
+		address.label = gen_new_var_offset(offset);
+		insert_mem_code(LDW, reg_num, address, null, null, 0, NO);
+	}
+	else
+	{
+		struct mach_arg tmp_fp, tmp_offset;
+		tmp_fp.type = Mach_Reg;
+		tmp_fp.reg = FP;
+		tmp_offset.type = Mach_Imm;
+		tmp_offset.reg = id_info -> mem_addr;
+		insert_dp_code(SUB, reg_num, tmp_fp, tmp_offset, 0, NO);	
+	}
+}
 /************************** get pointer end ****************************/
 
 /**************************** load store var beg *****************************/
@@ -524,10 +545,7 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 {
 	enum Arg_Flag flag;	
 	if(is_global(arg_index))
-		ref_global_var(arg_index);//global var prepared when first used
-	if(is_array(arg_index))
-	{
-	}
+		ref_global_var(arg_index);//global var prepared when first used	
 
 	if(alloc_reg.result[arg_index] != -1)
 	{
@@ -538,12 +556,26 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 			check_reg(arg_info -> reg_addr);//if global var in reg, should store to mem
 			reg_dpt[arg_info -> reg_addr].content = arg_index;
 			reg_dpt[arg_info -> reg_addr].dirty = 0;
-			if(arg_type == 1 && is_global(arg_index))
-				load_global_var(get_info_from_index(arg_index) , alloc_reg.result[arg_index]);//if global var as arg, should load
+			if(is_array(arg_index))
+				load_pointer(arg_index, alloc_reg.result[arg_index]);
+			else
+			{
+				if(arg_type == 1 && is_global(arg_index))
+					load_global_var(get_info_from_index(arg_index) , alloc_reg.result[arg_index]);//if global var as arg, should load
+			}
 		}
 	}
 	else
+	{
+		if(is_array(arg_index))
+		{
+			int reg_num = get_tempreg(NULL, 0);
+			load_pointer(arg_index, reg_num);
+			store_var(arg_info, reg_num);
+			restore_tempreg(reg_num);
+		}
 		flag = Arg_Mem;
+	}
 	return flag;
 }
 /************************ prepare arg end ********************************/
@@ -990,7 +1022,7 @@ static void gen_per_code(struct triargexpr * expr)
 		case Minusminus:                 /* -- */
 		case Uplus:                      /* +  */
 		case Uminus:                     /* -  */
-		case Ref:						 /* &  */
+		//case Ref:						 /* &  */
 		case Deref:						 /* *  */
 		case Subscript:					 /* [] */
 		case BigImm:
@@ -1317,10 +1349,8 @@ static void gen_per_code(struct triargexpr * expr)
 			}
         case TrueJump:
         case FalseJump://immed cond has been optimized before, so the cond can only be expr or id
-        {
                 gen_cj_expr(expr);
                 break;
-        }
             
 		case UncondJump:
         {
