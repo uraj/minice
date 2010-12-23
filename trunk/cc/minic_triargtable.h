@@ -14,6 +14,7 @@ struct triargtable
 	struct triargexpr_list ** index_to_list;//This is one way.
 	int expr_num;
 	int var_id_num;//The number of the variables the function can see
+	int table_bound;
 };
 
 struct taexpr_list_header/*the name is to long, 

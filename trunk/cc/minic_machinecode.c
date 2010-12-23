@@ -582,7 +582,7 @@ static void flush_pointer_entity(struct var_list * entity_list)
 		}
 	}
 }
-/******************** flush pointer entity end ***************************/
+/**************************** flush pointer entity end ***************************/
 
 
 /************************************* gen code beg ******************************/

@@ -456,6 +456,23 @@ static void print_fd()
 }
 #endif
 
+static struct triargexpr_list * basicblock_insert_triargexpr(struct triargexpr expr)//used later and the gtriargexpr_table and index has no use then
+{
+	gtriargexpr_table = table_list[cur_func_index] -> table;
+	gtriargexpr_table_index = table_list[cur_func_index] -> expr_num;
+	gtriargexpr_table_bound = table_list[cur_func_index] -> table_bound;
+	int index = insert_triargexpr(expr);
+	table_list[cur_func_index] -> table = gtriargexpr_table;
+	table_list[cur_func_index] -> expr_num = gtriargexpr_table_index;
+	table_list[cur_func_index] -> table_bound = gtriargexpr_table_bound;
+	struct triargexpr_list * new_node = calloc(1, sizeof(struct triargexpr_list));
+	new_node -> entity = &(table_list[cur_func_index] -> table[index]);
+	new_node -> prev = NULL;
+	new_node -> next = NULL;
+	new_node -> pointer_entity = NULL;
+	return new_node;
+}//the expr inserted are all uncond jump, they can't be refed, and can't be jumped so they can be out of var_map
+
 static struct search_res search_block(struct basic_block * block)
 {
 	struct search_res res;
@@ -474,7 +491,20 @@ static struct search_res search_block(struct basic_block * block)
 	{
 		case TrueJump:
 		case FalseJump:
-			search_block(block -> next -> entity);
+			tmp_res = search_block(block -> next -> entity);
+			if(res.reached_before)
+			{
+				struct triargexpr uncond_jump;
+				uncond_jump.op = UncondJump;
+				uncond_jump.arg1.type = ExprArg;
+				uncond_jump.arg1.expr = tmp_res.expr_index;
+				uncond_jump.arg2.type = ExprArg;
+				uncond_jump.arg2.expr = -1;
+				struct triargexpr_list * uncond_node = basicblock_insert_triargexpr(uncond_jump);
+				block -> tail -> next = uncond_node;
+				uncond_node -> prev = block -> tail;
+				block -> tail = uncond_node;
+			}
 			tmp_res = search_block(block -> next -> next -> entity);
 			set_expr_label_mark(tmp_res.expr_index);
 			expr -> arg2.expr = tmp_res.expr_index;
@@ -494,9 +524,61 @@ static struct search_res search_block(struct basic_block * block)
 			}
 			break;
 		default:
+			if(block -> next != NULL)
+			{
+				tmp_res = search_block(block -> next -> entity);
+				if(res.reached_before)
+				{
+					struct triargexpr uncond_jump;
+					uncond_jump.op = UncondJump;
+					uncond_jump.arg1.type = ExprArg;
+					uncond_jump.arg1.expr = tmp_res.expr_index;
+					uncond_jump.arg2.type = ExprArg;
+					uncond_jump.arg2.expr = -1;
+					struct triargexpr_list * uncond_node = basicblock_insert_triargexpr(uncond_jump);
+					block -> tail -> next = uncond_node;
+					uncond_node -> prev = block -> tail;
+					block -> tail = uncond_node;
+				}
+			}
 			break;
 	}
 	return res;
+}
+
+static void print_recover()
+{
+	int index;
+	int num = 0;
+	for(index = 0; index < g_block_num; index++)
+	{
+		printf("Block No.%d\n", linear_block_seq[index] -> index);
+		struct triargexpr_list * expr = linear_block_seq[index] -> head; 
+		while(expr != NULL)
+		{
+			print_triargexpr(*(expr -> entity));
+			num ++;
+			expr = expr -> next;
+		}
+		struct basic_block_list * next_list_node = linear_block_seq[index] -> next;
+		printf("next blocks:");
+		while(next_list_node != NULL)
+		{
+			printf("%d ", next_list_node -> entity -> index);
+			next_list_node = next_list_node -> next;
+		}
+		printf("\n");
+
+		next_list_node = linear_block_seq[index] -> prev;
+		printf("prev blocks:");
+		while(next_list_node != NULL)
+		{
+			printf("%d ", next_list_node -> entity -> index);
+			next_list_node = next_list_node -> next;
+		}
+		printf("\n\n");
+	}
+	printf("%d\n", num);
 }
 
 struct basic_block * make_fd(int function_index)
@@ -524,7 +606,8 @@ void recover_triargexpr(struct basic_block * block_head)
 	struct triargexpr_list * head = block_head -> head;
 	struct triargexpr_list * tail = block_head -> tail;
 	free(block_head);
-	for(index = 1; index < g_block_num; index ++)
+	print_recover();
+	for(index = 1; index < cur_linear_block_index; index ++)
 	{
 		tail -> next = linear_block_seq[index] -> head;
 		tail = linear_block_seq[index] -> tail;
@@ -533,7 +616,9 @@ void recover_triargexpr(struct basic_block * block_head)
 	tail -> next = NULL;
 	table_list[cur_func_index] -> head = head;
 	table_list[cur_func_index] -> tail = tail;
+	print_table(table_list[cur_func_index]);	
 	free(linear_block_seq);
 	free(DFS_array);
+	DFS_array = NULL;
 }
 

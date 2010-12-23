@@ -66,6 +66,7 @@ struct triargtable * new_table(char *name)//malloc a newtable
 	newtable -> index_to_list = new_index_to_list();
 	newtable -> expr_num = gtriargexpr_table_index;
 	newtable -> var_id_num = g_var_id_num;
+	newtable -> table_bound = gtriargexpr_table_bound;
 	return newtable;
 }
 
