@@ -185,11 +185,22 @@ int is_global(int index)/* global or const str */
 	return is_conststr_byno(cur_func_info -> func_symt, index) || ((index < (get_globalvar_num())) && (index >= 0));
 }
 
-int is_id_var(index)
+int is_id_var(int index)
 {
 	if(index < cur_var_id_num)
 		return 1;
 	else return 0;
+}
+
+int is_array(int index)
+{
+	if(is_id_var(index))
+	{
+		struct value_info * id_info = get_valueinfo_byno(index);
+		if(id_info -> type -> type == Array)
+			return 1;
+	}
+	return 0;
 }
 
 int get_ref_var_num()/* new and used, just mark */
