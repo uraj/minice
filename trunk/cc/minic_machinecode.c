@@ -39,7 +39,7 @@ static int ref_g_var_num;
 static char * global_var_label;
 
 static struct triargtable * cur_table;
-static int value_info * cur_func_info;
+static value_info * cur_func_info;
 static int cur_var_id_num;
 static int cur_ref_var_num;
 static int cur_func_index;
@@ -1212,10 +1212,10 @@ static void gen_per_code(struct triargexpr * expr)
 					restore_tempreg(tempreg1);
 				break;
 			}
-
-    case Plusplus:                   /* ++ */
-    case Minusminus:                 /* -- *//*优先级高于二元或赋值操作*/
-			{
+            
+        case Plusplus:                   /* ++ */
+        case Minusminus:                 /* -- *//*优先级高于二元或赋值操作*/
+        {
                  /*如果操作数在内存之中，先申请一个临时寄存器，将数据load进去，然后操作，在回写到内存之中*/
                  int arg1_reg_index;
 				if(arg1_flag == Arg_Mem)//can't be immd
@@ -1305,35 +1305,80 @@ static void gen_per_code(struct triargexpr * expr)
                 
 				break;
 			}
-    case TrueJump:
-    case FalseJump://immed cond has been optimized before, so the cond can only be expr or id
-			{
-                 gen_cj_expr(expr);
-                 break;
-			}
-
+        case TrueJump:
+        case FalseJump://immed cond has been optimized before, so the cond can only be expr or id
+        {
+                gen_cj_expr(expr);
+                break;
+        }
+            
 		case UncondJump:
-			{
-				int label_num = ref_jump_dest(expr -> index);
-				char * dest_label_name = gen_new_label(label_num);
-				insert_buncond_code(dest_label_name, 0);
-				break;
-			}
+        {
+            int label_num = ref_jump_dest(expr -> index);
+            char * dest_label_name = gen_new_label(label_num);
+            insert_buncond_code(dest_label_name, 0);
+            break;
+        }
+        
+        case Uplus:                      /* +  */
+            break;
+        case Uminus:                     /* -  */
+        {
+            int except[3];
+            int ex_size = 0;
+            int temp_reg, dest_reg;
+            int mark = 0;
+            struct mach_arg arg1, arg2;
+            if(dest_flag == Arg_Mem)
+            {
+                if(arg1_flag == Arg_Reg)
+                    except[ex_size++] = arg1_info->reg_addr;
+                dest_reg = gen_tempreg(except. ex_size);
+                ex_size = 0;
+            }
+            else
+                dest_reg = dest_info->reg_addr;
 
-    case Uplus:                      /* +  */
-         break;
-    case Uminus:                     /* -  */
-			{
-                 /*
-                  构造三元式编号的triarg，调用函数gen_assign_code得到结果
-                  */
-                 struct triarg expr_arg;
-                 expr_arg.type = ExprArg;
-                 expr_arg.expr = expr->index;
-                 gen_assign_arg_code(&expr_arg , &(expr->arg1) , expr);
-				break;
-			}
-
+            if(arg1_flag == Arg_Mem)
+            {
+                /* lod tempreg */;
+                except[ex_size++] = dest_reg;
+                tempreg = gen_tempreg(except, ex_size);
+                /* -x = ~x + 1 */
+                arg1.type = Mach_Reg;
+                arg1.reg = tempreg;
+                insert_dp_code(MVN, dest_reg, arg1, null, 0, NO);
+                arg1.reg = dest_reg;
+                arg2.type = Mach_Imm;
+                arg2.imme = 1;
+                insert_dp_code(ADD, dest_reg, arg1, arg2, 0, NO);
+                /* restore for arg1 */;
+                restore_tempreg(tempreg);
+            }
+            else
+            {
+                if(arg1_flag == Arg_Reg)
+                {
+                    arg1.type = Mach_Reg;
+                    arg1.reg = arg1_info->reg_addr;
+                }
+                else    /* arg1_flag == Arg_Imm */
+                {
+                    arg1.type = Mach_Imm;
+                    arg1.imme = expr->arg1.imme;    
+                }          
+                insert_dp_code(MVN, dest_reg, arg1,null, 0, NO);
+                arg1.reg = dest_reg;
+                arg2.type = Mach_Imm;
+                arg2.imme = 1;
+                insert_dp_code(ADD, dest_reg, arg1, arg2, 0, NO);
+            }
+            if(dest_flag == Arg_Mem)
+            {
+                store_var(dest_info, dest_reg);
+                restore_tempreg(dest_reg);
+            }
+        }
 		case Subscript:                  /* [] */
 			{					
 				if(arg1_flag == Arg_Mem)
@@ -1482,7 +1527,7 @@ static void gen_per_code(struct triargexpr * expr)
 				else if(arg1_flag == Arg_Mem)
                 {
                     /* lod r0, arg1 */;
-                    struct mach_arg  mach_base;
+                    struct mach_arg  mach_base, mach_offset;
                     mach_base.type = Mach_Reg;
                     mach_base.reg = FP;
                     if(expr->width == 4)
