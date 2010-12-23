@@ -1508,7 +1508,7 @@ static void gen_per_code(struct triargexpr * expr)
 			}
 
 		case Arglist:
-			{	
+			{
 				if(arg1_flag == Arg_Reg)
 					/* push arg1 */;
 				else
@@ -1537,18 +1537,17 @@ static void gen_per_code(struct triargexpr * expr)
 				else if(arg1_flag == Arg_Mem)
                 {
                     /* lod r0, arg1 */;
-                    struct mach_arg  mach_base, mach_offset;
                     mach_base.type = Mach_Reg;
                     mach_base.reg = FP;
-                    if(expr->width == 4)
-                        insert_mem_code(LDW, 0, null, mach_base, arg1_info->mem_addr, NO);
-                    else if(expr->width == 1)
-                        insert_mem_code(LDB, 0, null, mach_base, arg1_info->mem_addr, NO);
-                    else
-                        exit(1);
+                    load_var(arg1_info, 0);
                 }
                 else            /* arg1_flag == Arg_Imm */
-                    insert_mem_code(MOV, 0, null, null, expr->arg1.imme, NO);
+                {
+                    struct mach_arg mach_arg1;
+                    mach_arg1.type = Mach_Imm;
+                    mach_arg1.imme = expr->arg1.imme;
+                    insert_mem_code(MOV, 0, mach_arg1, null, 0, NO);
+                }        
 				break;
 			}
 		case Nullop:
