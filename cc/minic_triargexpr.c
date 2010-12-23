@@ -347,13 +347,13 @@ struct subexpr_info triargexpr_gen(struct ast* root)
             --level;
             if(root->op == Ref)
             {
-                if(root->left->ast_typetree->base_type == Char)
+                if(root->left->ast_typetree->type == Char)
                     expr.stride = 1;
                 else
                     expr.stride = 4;
             }
             else
-                expr.strid = 1;
+                expr.stride = 1;
             if(lsub.arithtype)
                 expr.arg1 = lsub.subexpr_arg;
             else
