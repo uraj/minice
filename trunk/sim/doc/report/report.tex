@@ -189,10 +189,10 @@ typedef struct
 \end{lstlisting}
 PipeState中存储了每一个流水级所需要的数据及控制信息。
 \begin{enumerate}
-\item ID\_input
-\item EX\_input
-\item MEM\_input
-\item WB\_input
+\item ID\_input，主要是需要译码的指令以及从IF阶段上传的流水级信息。
+\item EX\_input，包括ID阶段获取的操作数、需要执行的ALU或乘法器操作类型、以及在ID阶段产生、需要上传个MEM和WB的控制信号。
+\item MEM\_input，包括从前一流水级上传的控制信号，主要有读写控制、地址选择（基址还是变址）、访存数据宽度、是否进行对load数据进行符号扩展等。
+\item WB\_input，包括需要回写的目标寄存器号，需要回写的数据本身，以及回写目标选择（回写存储器输出，回写EX阶段输出，或者都回写，或者都不回写）。
 \end{enumerate}
 \section{数据冒险相关}
 由于数据冒险和控制冒险问题影响着整个流水线的运行，所以在描述各个流水级之前，先对MiiSim解决数据冒险的机制和策略做一介绍。
