@@ -56,7 +56,7 @@ static inline struct var_info *  new_var_info()
 	new_info -> reg_addr = -1;
 	new_info -> mem_addr = INITIAL_MEM_ADDR;
 	new_info -> label_num = -1; 
-	//new_info -> ref_point = NULL;
+	new_info -> ref_point = NULL;
 	return new_info;
 }
 

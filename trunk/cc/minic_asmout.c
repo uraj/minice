@@ -112,13 +112,13 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
             switch(mcode->branch_op)
             {
                 case JUMP:
-                    fprintf(out_buf, "\tjump\tr%d\n", mcode->arg1.reg);
+                    fprintf(out_buf, "\tjump\tr%d\n", mcode->dest);
                     break;
                 case B:
                     if(mcode->link)
-                        fprintf(out_buf, "\tb.l\t%s\n", mcode->arg1.label);
+                        fprintf(out_buf, "\tb.l\t%s\n", mcode->dest_label);
                     else
-                        fprintf(out_buf, "\tb\t%s\n", mcode->arg1.label);
+                        fprintf(out_buf, "\tb\t%s\n", mcode->dest_label);
                     break;
                 case BCOND:
                     switch(mcode->cond)
@@ -142,7 +142,7 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
                             fprintf(out_buf, "\tbsge");
                             break;
                     }
-                    fprintf(out_buf, "\t%s\n", mcode->label);
+                    fprintf(out_buf, "\t%s\n", mcode->dest_label);
                     break;
             }
             break;
