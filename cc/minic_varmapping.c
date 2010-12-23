@@ -196,7 +196,7 @@ int is_array(int index)
 {
 	if(is_id_var(index))
 	{
-		struct value_info * id_info = get_valueinfo_byno(index);
+		struct value_info * id_info = get_valueinfo_byno(cur_func_info -> func_symt, index);
 		if(id_info -> type -> type == Array)
 			return 1;
 	}

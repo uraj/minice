@@ -305,13 +305,6 @@ static inline int ref_jump_dest(int expr_id)//get the label for jump dest
 /************************** deal with label end *************************/
 
 
-
-/************************** deal with arglist beg ***********************/
-
-/************************** deal with arglist end ***********************/
-
-
-
 /************************** get pointer begin **************************/
 
 /************************** get pointer end ****************************/
