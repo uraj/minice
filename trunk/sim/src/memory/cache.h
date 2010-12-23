@@ -9,6 +9,8 @@
 #define LINENUM 0x8		/* 8  */
 #define SETNUM 0x40		/* 64 */
 #define BLOCKSIZE 0x40	/* 64 */
+#define ICACHE 0
+#define DCACHE 1
 
 enum CacheSwapStrategy { RAND, FIFO, LRU };
 enum CacheWriteStrategy { Write_back, Write_through };
@@ -27,11 +29,11 @@ typedef struct
 	uint32_t tag;
 } Cacheline;
 
-extern Cacheline Cache[SETNUM][LINENUM];
+extern Cacheline Cache[2][SETNUM][LINENUM];
 
-extern void init_cache();
+extern void init_cache(enum CacheSwapStrategy swap, enum CacheWriteStrategy write);
 
-extern int cache_write(uint32_t addr);/* miss: 1		hit: 0		write_through: -1 */
-extern int cache_read(uint32_t addr);/* miss: 1	hit: 0	*/
+extern int cache_write(int id_sel, uint32_t addr);/* miss: 1		hit: 0		write_through: -1 */
+extern int cache_read(int id_sel, uint32_t addr);/* miss: 1	hit: 0	*/
 
 #endif

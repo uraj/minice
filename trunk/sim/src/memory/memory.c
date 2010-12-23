@@ -1,21 +1,21 @@
-#include <memory/memory.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "memory.h"
 
 int mem_read_instruction(uint32_t addr, uint32_t * instr)
 {
-    int cachemiss = 0;
     if(mem_read_direct_w(addr, instr))
         return -1;
+    if(cache_read(ICACHE, addr))
+        *gp_cachemiss += 1;
 #ifdef DEBUG
     printf("Fetch instruction 0x%08x, pc = 0x%08x\n", *instr, addr);
 #endif
-    return cachemiss;
+    return 0;
 }
 
 int mem_read(uint32_t addr, size_t size, int sign_ext, uint32_t * data)
 {
-    int cachemiss = 0;          /* cache related */
     if((size == 4) && (addr % 4 == 0))
     {    
         if(mem_read_direct_w(addr, data))
@@ -69,13 +69,14 @@ int mem_read(uint32_t addr, size_t size, int sign_ext, uint32_t * data)
     }
     else
         return -1;
+    if(cache_read(ICACHE, addr))
+        *gp_cachemiss += 1;
     
-    return cachemiss;
+    return 0;
 }
 
 int mem_write(uint32_t addr, size_t size, uint32_t data)
 {
-    int writeback = 0;          /* cache related */
     if((size == 4) && (addr % 4 == 0))
     {
         if(mem_write_direct_w(addr, data))
@@ -117,6 +118,8 @@ int mem_write(uint32_t addr, size_t size, uint32_t data)
     }   
     else
         exit(6);
+    if(cache_write(DCACHE, addr & 0xfffffffc))
+        *gp_cachewb += 1;
     
-    return writeback;
+    return 0;
 }
