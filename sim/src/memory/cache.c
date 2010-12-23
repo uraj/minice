@@ -5,7 +5,7 @@
 
 #define BLOCKLEN 6
 #define SETLEN 6
-#define TABLEN 16
+#define TABLEN 20
 
 //instrution cache and data cache??
 
