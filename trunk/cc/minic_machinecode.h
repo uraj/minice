@@ -40,12 +40,11 @@ enum dp_op_type
 
 	MUL,
 	//MLA,//may be useful
-	MULSL
 };
 
 enum cmp_op_type
 {
-	CMPSUB.A
+	CMPSUB_A
 }; 
 
 enum mem_op_type//width? the fields for memory are already to many..
@@ -65,12 +64,12 @@ enum branch_op_type
 
 enum condition_type
 {
-	EQ,	/*equal*/
-	NE, /*not equal*/
-	SL,/*signed less than*/
-	SG,/*signed greater than*/
-	EL,/*signed less equal*/
-	EG/*signed greater equal*/
+	Mach_EQ,	/*equal*/
+	Mach_NE, /*not equal*/
+	Mach_SL,/*signed less than*/
+	Mach_SG,/*signed greater than*/
+	Mach_EL,/*signed less equal*/
+	Mach_EG/*signed greater equal*/
 };
 
 enum shift_type
@@ -113,7 +112,7 @@ struct mach_code//mach means machine
 	union
 	{
 		char link;								/* 1 jump and link, 0 not *//* used in branch */
-		char offet;								/* 1 is +, -1 is - and 0 is no*//* used in mem */
+		char offset;								/* 1 is +, -1 is - and 0 is no*//* used in mem */
 	};
 
 	enum shift_type shift;					/* used in data-processing and memory-access*/
