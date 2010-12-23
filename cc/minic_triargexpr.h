@@ -28,7 +28,6 @@ struct triargexpr
 struct triargexpr_list
 {
     struct triargexpr* entity;
-	int actvar_change[4];/*记录该三元式与下一条或者var_out[i]相比，活跃变量的变化。记录形式为map_index，前两个表示去掉者，后两个表示增加者*/
     struct var_list * pointer_entity;  
 	struct triargexpr_list* prev;
     struct triargexpr_list* next;

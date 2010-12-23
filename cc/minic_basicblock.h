@@ -29,6 +29,12 @@ struct basic_block_list//used for prev_list next_list and DFS_list
 extern int g_block_num;
 extern struct symbol_table * simb_table;
 extern struct triargtable ** table_list; 
+extern struct triargexpr * gtriargexpr_table;
+extern int gtriargexpr_table_index;
+extern int gtriargexpr_table_bound;
+	
+
+
 extern struct basic_block ** DFS_array;
 
 extern struct basic_block * make_fd(int function_index);//make the flow diagram for a function

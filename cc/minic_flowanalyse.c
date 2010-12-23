@@ -535,13 +535,13 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
                   &&temp_point_list->head == temp_point_list->tail)//只有一个元素，直接将该指针换成对应实体变量
                {
                     struct var_info *temp_var_info = get_info_from_index(temp_point_list->head->var_map_index);
-                    if(temp_var_info->ref_point == NULL)//此指针为数组
+                    /*if(temp_var_info->ref_point == NULL)//此指针为数组
                     {
                          arg->type = IdArg;
                          arg->idname=(get_valueinfo_byno(cur_func_sym_table,temp_point_list->head->var_map_index))->name;
                          i = get_index_of_id(arg->idname);
                          change = 1;
-                    }
+                    }*/
                }
           }
 #ifdef SHOW_FLOW_DEBUG
@@ -599,7 +599,7 @@ static void initial_func_var(int func_index)//通过函数index获得当前函�
      cur_func_triarg_table = table_list[func_index];
      
      /*由于一个数组变量的所有数组元素对应定值点的map_id构成的链ref_point在形成时没有排序去重，所以这里补充了这个工作。*/
-     int total_id_num = simb_table->id_num + cur_func_sym_table->id_num;
+     /*int total_id_num = simb_table->id_num + cur_func_sym_table->id_num;
      int i;
      struct var_info *temp_var_info;
      for(i = 0 ; i < total_id_num ; i++)
@@ -632,7 +632,7 @@ static void initial_func_var(int func_index)//通过函数index获得当前函�
           var_list_sort(temp_var_info->ref_point , var_list_count(temp_var_info->ref_point));
           var_list_del_repeate(temp_var_info->ref_point);
 //          var_list_print(temp_var_info->ref_point);
-     }
+     }*/
 }
 
 static void initial_active_var()//活跃变量分析的初始化部分def和use
@@ -808,13 +808,13 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)/
                     if(temp_point_list->head == temp_point_list->tail)//只有一个元素
                     {
                          struct var_info *temp_var_info = get_info_from_index(temp_point_list->head->var_map_index);
-                         if(temp_var_info->ref_point != NULL)//此指针为数组
+                         /*if(temp_var_info->ref_point != NULL)//此指针为数组
                          {
                               var_list_free(temp_point_list);
                               temp_expr_node->pointer_entity = temp_var_info->ref_point;//实体链指向数组的定点链
                               //     (*dest) = temp_var_info->ref_point;
                               return get_index_of_temp(arg->expr);
-                         }
+                         }*/
                          arg->type = IdArg;
                          arg->idname=(get_valueinfo_byno(cur_func_sym_table,temp_point_list->head->var_map_index))->name;
                          return temp_point_list->head->var_map_index;
@@ -828,13 +828,13 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)/
                if(temp_point_list->head == temp_point_list->tail)//只有一个元素
                {
                     struct var_info *temp_var_info = get_info_from_index(temp_point_list->head->var_map_index);
-                    if(temp_var_info->ref_point != NULL)//此指针为数组
+                    /*if(temp_var_info->ref_point != NULL)//此指针为数组
                     {
                          var_list_free(temp_point_list);
                          temp_expr_node->pointer_entity = temp_var_info->ref_point;//实体链指向数组的定点链
                          (*dest) = temp_var_info->ref_point;//该数组中所有元素的三元式编号的map_id都需要从活跃变量中删除
                          return get_index_of_temp(arg->expr);
-                    }
+                    }*/
                     arg->type = IdArg;
                     arg->idname = (get_valueinfo_byno(cur_func_sym_table , temp_point_list->head->var_map_index))->name;
                     return temp_point_list->head->var_map_index;

@@ -8,6 +8,23 @@ int b()
 int loop()
 {
 	int a, c;
+	
+	if(a > c || a < c)
+	{
+		a = c;
+	}
+	else
+	{
+		if(a < c)
+		{
+			c = a++;
+		}
+		else
+		{
+			a = c++;
+		}
+	}
+	
 	while(a > c)
 	{
 		while(a < c)
