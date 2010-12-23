@@ -50,6 +50,8 @@ static const int max_reg_num = 27;
 static int cur_code_index;
 static int cur_code_bound;
 
+static int arglist_num_mark;
+
 static struct mach_arg null;
 
 /****************************** initial begin ***************************/
@@ -77,7 +79,8 @@ static inline void set_cur_function(int func_index)
 		reg_dpt[index].content = REG_UNUSED;
 		reg_dpt[index].dirty = 0;
 	}
-	null.type = Unused;//used for unused arg 
+	null.type = Unused;//used for unused arg
+	arglist_num_mark = 0;
 }
 
 static inline void leave_cur_function()
@@ -302,6 +305,17 @@ static inline int ref_jump_dest(int expr_id)//get the label for jump dest
 /************************** deal with label end *************************/
 
 
+
+/************************** deal with arglist beg ***********************/
+
+/************************** deal with arglist end ***********************/
+
+
+
+/************************** get pointer begin **************************/
+
+/************************** get pointer end ****************************/
+
 /**************************** load store var beg *****************************/
 
 static inline void load_var(struct var_info * v_info, int reg_num)
@@ -518,6 +532,9 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 	enum Arg_Flag flag;	
 	if(is_global(arg_index))
 		ref_global_var(arg_index);//global var prepared when first used
+	if(is_array(arg_index))
+	{
+	}
 
 	if(alloc_reg.result[arg_index] != -1)
 	{

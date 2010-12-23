@@ -42,6 +42,7 @@ extern int get_ref_var_num();/*return total number of vars which have been refer
 
 extern int is_global(int index);
 extern int is_id_var(int index);
+extern int is_array(int index);
 
 extern int new_var_map(int func_index);
 extern void free_var_map();
