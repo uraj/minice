@@ -805,7 +805,7 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)/
                          return -2;
                     if(temp_point_list->head == NULL)
                          return -2;
-                    if(temp_point_list->head == temp_point_list->tail)//只有一个元素
+                    /*                   if(temp_point_list->head == temp_point_list->tail)//只有一个元素
                     {
                          struct var_info *temp_var_info = get_info_from_index(temp_point_list->head->var_map_index);
                          /*if(temp_var_info->ref_point != NULL)//此指针为数组
@@ -814,18 +814,18 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)/
                               //temp_expr_node->pointer_entity = temp_var_info->ref_point;//实体链指向数组的定点链
                               //     (*dest) = temp_var_info->ref_point;
                               return get_index_of_temp(arg->expr);
-                         }*/
+                         }
                          arg->type = IdArg;
                          arg->idname=(get_valueinfo_byno(cur_func_sym_table,temp_point_list->head->var_map_index))->name;
                          return temp_point_list->head->var_map_index;
-                    }
+                    }*/
                     return get_index_of_temp(arg->expr);
                }
                if(temp_point_list == NULL)//预示该代码可能会段错误，要把下一条的活跃变量全部清空，这里做不了，返回-2
                     return -2;
                if(temp_point_list->head == NULL)//预示该代码可能会段错误，要把下一条的活跃变量全部清空，这里做不了，返回-2
                     return -2;
-               if(temp_point_list->head == temp_point_list->tail)//只有一个元素
+/*               if(temp_point_list->head == temp_point_list->tail)//只有一个元素
                {
                     struct var_info *temp_var_info = get_info_from_index(temp_point_list->head->var_map_index);
                     /*if(temp_var_info->ref_point != NULL)//此指针为数组
@@ -834,11 +834,11 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)/
                          //temp_expr_node->pointer_entity = temp_var_info->ref_point;//实体链指向数组的定点链
                          //(*dest) = temp_var_info->ref_point;//该数组中所有元素的三元式编号的map_id都需要从活跃变量中删除
                          return get_index_of_temp(arg->expr);
-                    }*/
+                    }
                     arg->type = IdArg;
                     arg->idname = (get_valueinfo_byno(cur_func_sym_table , temp_point_list->head->var_map_index))->name;
                     return temp_point_list->head->var_map_index;
-               }
+               }*/
                (*dest) = temp_point_list;
                return (get_index_of_temp(arg->expr));
           }
