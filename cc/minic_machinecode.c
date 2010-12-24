@@ -334,7 +334,7 @@ static inline void load_pointer(int var_index, int reg_num)
 
 /**************************** load store var beg *****************************/
 
-static inline void push_param(struct var_info * v_info, int reg_num)
+static inline void push_param(int reg_num)
 {	
 	struct mach_arg tmp_sp, tmp_offset;
 	tmp_sp.type = Mach_Reg;
@@ -343,10 +343,10 @@ static inline void push_param(struct var_info * v_info, int reg_num)
 	tmp_offset.imme = WORD;
 	cur_sp += WORD;//just in case
 	insert_dp_code(SUB, SP, tmp_sp, tmp_offset, -1, NO);
-	insert_mem_code(STW, reg_num, SP);	
+	insert_mem_code(STW, reg_num, tmp_sp, null, null, 0, NO);	
 }
 
-static inline void pop_param(int param_num)//called param in case not to 
+static inline void pop_param(int param_num) 
 {
 	struct mach_arg tmp_sp, tmp_offset;
 	tmp_sp.type = Mach_Reg;
