@@ -1558,10 +1558,24 @@ static void gen_per_code(struct triargexpr * expr)
 			{
                 arglist_num_mark = 0;
                 /* caller save */
+                struct var_list_node * focus = expr->arg2.func_actvar_list.head;
+                struct var_info * vinfo = NULL;
+                char saved_reg[32];
+                int saved_reg_count = 0;
+                while(focus != NULL && focus != expr->arg2.func_actvar_list.tail)
+                {
+                    vinfo = get_info_from_index(focus->var_map_index);
+                    if(vinfo->reg_addr >= 4 && vinfo->reg_addr <= 15)
+                    {
+                        ;       /* push into stack */
+                        saved_reg[saved_reg_count++] = vinfo->reg_addr;
+                    }
+                }
                 insert_buncond_code(expr->arg1.idname, 1);
                 /* restore caller save */
+                for(--saved_reg_count; saved_reg_count >=0; --saved_reg_count)
+                    ;           /* resotre */
 			}
-
 		case Arglist:
 			{
 				if(arg1_flag == Arg_Reg)
