@@ -8,7 +8,7 @@ int b()
 int loop()
 {
 	int a, c;
-	
+	int * d, * e;
 	if(a > c || a < c)
 	{
 		a = c;

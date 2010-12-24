@@ -1211,7 +1211,7 @@ static void gen_per_code(struct triargexpr * expr)
 				switch(expr -> op)
 				{
 					case Plus:
-						op_type = ADD;
+						op_type = ADD;			
 						break;
 					case Minus:
 						op_type = SUB;
@@ -1220,11 +1220,14 @@ static void gen_per_code(struct triargexpr * expr)
 						op_type = MUL;
 						break;
 				}
-
 				if(dest_flag == Arg_Reg)
 				{
 					reg_dpt[dest_info -> reg_addr].dirty = 1;
-					insert_dp_code(op_type, dest_info -> reg_addr, tempreg1, tempreg2, NO);
+					if(get_stride_from_index(arg1_index) == WORD)//only add and sub
+						insert_dp_code(op_type, dest_info -> reg_addr, tempreg1, tempreg2, 2, LL);
+					else if(get_stride_from_index(arg2_index) == WORD)//only add
+						insert_dp_code(op_type, dest_info -> reg_addr, tempreg2, tempreg1, 2, LL);
+					else insert_dp_code(op_type, dest_info -> reg_addr, tempreg1, tempreg2, 0, NO);
 				}
 				else
 				{
@@ -1232,9 +1235,13 @@ static void gen_per_code(struct triargexpr * expr)
 					if(mark1)
 						tempdest = tempreg1;
 					else if(mark2)
-                        tempdest = tempreg2;
+						tempdest = tempreg2;
 					else tempdest = gen_tempreg(except, ex_size);
-					insert_dp_code(op_type, tempdest, tempreg1, tempreg2, 0, NO);	
+					if(get_stride_from_index(arg1_index) == WORD)//only add and sub
+						insert_dp_code(op_type, tempdest, tempreg1, tempreg2, 2, LL);
+					else if(get_stride_from_index(arg2_index) == WORD)//only add
+						insert_dp_code(op_type, tempdest, tempreg2, tempreg1, 2, LL);
+					else insert_dp_code(op_type, tempdest, tempreg1, tempreg2, 0, NO);	
 					store_var(dest_info, tempdest);
 					if(!mark1 && !mark2)
 						restore_tempreg(tempdest);

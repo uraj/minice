@@ -37,6 +37,7 @@ extern struct var_info * get_info_of_id(char * idname);
 
 extern struct var_info * get_info_from_index(int index);
 extern int get_width_from_index(int index);
+extern int get_stride_from_index(int index);
 
 extern int get_ref_var_num();/*return total number of vars which have been refered*/
 
