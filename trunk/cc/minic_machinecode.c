@@ -1552,24 +1552,24 @@ static void gen_per_code(struct triargexpr * expr)
 					}
 				}
 				break;
-			}	
+			}
 		
 		case Funcall:                    /* () */
 			{
                 arglist_num_mark = 0;
-				/* b.l arg1.idname */;
-				/* caller save */; // deal with callee save and sp ip fp at the head of each function */
+                /* caller save */
+                insert_buncond_code(expr->arg1.idname, 1);
+                /* restore caller save */
 			}
 
 		case Arglist:
-			{                
+			{
 				if(arg1_flag == Arg_Reg)
                 {
                     if(arglist_num_mark < 4) /* r0-r3 available */
                         gen_mov_rsrd_code(arglist_num_mark, arg1_info->reg_addr);
                     else
                         ;       /* push into stack */
-                    
                 }
 				else if(arg1_flag == Arg_Mem)
 				{
@@ -1585,7 +1585,7 @@ static void gen_per_code(struct triargexpr * expr)
                         load_var(arg1_info, tempreg);
                         ;       /* push into stack */
                         restore_tempreg(tempreg);
-                    }   
+                    }
 				}
                 else            /* arg1_flag == Arg_Imm */
                 {
@@ -1622,13 +1622,16 @@ static void gen_per_code(struct triargexpr * expr)
                     load_var(arg1_info, 0);
                 }
                 else            /* arg1_flag == Arg_Imm */
-                {
-                    struct mach_arg mach_arg1;
-                    mach_arg1.type = Mach_Imm;
-                    mach_arg1.imme = expr->arg1.imme;
-                    insert_mem_code(MOV, 0, mach_arg1, null, 0, NO);
-                    insert_jump_code(LR);
-                }
+                    gen_mov_rsim_code(0, expr->arg1.imme);
+                struct mach_arg mach_base, mach_offset;
+                mach_base.type = Mach_Reg;
+                mach_base.reg = FP;
+                mach_offset.type = Mach_Imm;
+                mach_offset.imme = -4;
+
+                /* get saved LR in stack */
+                insert_mem_code(LDW, LR, mach_base, mach_offset, 0, NP);
+                insert_jump_code(LR);
 				break;
 			}
 		case Nullop:
