@@ -659,11 +659,11 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                     def_size[0] ++;
                     var_list_append(def , j);
                }
-               //for(j = start ; j < end ; j++)
-               //{
-               //     def_size[0] ++;
-               //     var_list_append(def , j);
-               //}
+               for(j = start ; j < end ; j++)
+               {
+                    def_size[0] ++;
+                    var_list_append(def , j);
+               }
           }
           temp = DFS_array[i]->head;
           while(temp != NULL)
