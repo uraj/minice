@@ -253,7 +253,8 @@ static inline int prepare_temp_var_inmem()//gen addr at first
 							offset_from_sp -= (offset_from_sp % WORD);
 							offset_from_sp += (WORD * size);
 						}
-						tmp_v_info -> mem_addr = cur_sp + offset_from_sp;			
+						offset_from_sp += WORD;
+						tmp_v_info -> mem_addr = cur_sp + offset_from_sp;	
 						continue;
 					}
 				}
