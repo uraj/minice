@@ -6,6 +6,7 @@
 #define MAX_LABEL_NAME_LEN 20
 #define SP 29
 #define FP 27
+#define LR 30
 #define BYTE 1
 #define WORD 4
 
@@ -332,6 +333,29 @@ static inline void load_pointer(int var_index, int reg_num)
 /************************** get pointer end ****************************/
 
 /**************************** load store var beg *****************************/
+
+static inline void push_param(struct var_info * v_info, int reg_num)
+{	
+	struct mach_arg tmp_sp, tmp_offset;
+	tmp_sp.type = Mach_Reg;
+	tmp_sp.reg = SP;
+	tmp_offset.type = Mach_Imm;
+	tmp_offset.imme = WORD;
+	cur_sp += WORD;//just in case
+	insert_dp_code(SUB, SP, tmp_sp, tmp_offset, -1, NO);
+	insert_mem_code(STW, reg_num, SP);	
+}
+
+static inline void pop_param(int param_num)//called param in case not to 
+{
+	struct mach_arg tmp_sp, tmp_offset;
+	tmp_sp.type = Mach_Reg;
+	tmp_sp.reg = SP;
+	tmp_offset.type = Mach_Imm;
+	tmp_offset.imme = WORD * param_num;
+	cur_sp -= (WORD * param_num);
+	insert_dp_code(ADD, SP, tmp_sp, tmp_offset, 1, NO);
+}
 
 static inline void load_var(struct var_info * v_info, int reg_num)
 {
