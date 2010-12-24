@@ -162,6 +162,8 @@ void print_stat_info(StatInfo * stat_info)
     fprintf(stderr, "Simulation Profile:\n\tclock-cycle count: %d\n", stat_info->cycle_count);
     fprintf(stderr, "\tinstrcutin count: %d\n", stat_info->instr_count);
     fprintf(stderr, "\tbubble count: %d\n", stat_info->bubble_count);
+    fprintf(stderr, "\tcache miss: %d\n", stat_info->cache_miss);
+    fprintf(stderr, "\tcache writeback: %d\n", stat_info->cache_wb);
     return;
 }
 
