@@ -1030,6 +1030,8 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     act_list_index++;
                }
           after_make_actvarlist:
+               if(temp_expr->op == Funcall)
+                    temp_expr->arg2->func_actvar_list = (actvar_list + act_list_index -1);
 #ifdef SHOW_FLOW_DEBUG
                printf("del:");
                var_list_print(del_list);
