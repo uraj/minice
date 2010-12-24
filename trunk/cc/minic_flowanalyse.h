@@ -24,7 +24,7 @@ extern void var_list_printbynode(struct var_list_node *head);//打印head以后�
 
 /*var_list*/
 extern struct var_list *var_list_new();
-int var_list_count(struct var_list *list);//返回元素个数
+extern int var_list_count(struct var_list *list);//返回元素个数
 extern void var_list_sort(struct var_list *list_array , int size);//将一个定值点链表或者变量编号链表排序
 extern void var_list_del_repeate(struct var_list *list);//将排好序的链去重
 extern void var_list_free_bynode(struct var_list_node *head);//给定一个节点，释放node以后的链

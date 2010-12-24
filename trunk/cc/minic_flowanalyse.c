@@ -28,6 +28,7 @@ static struct var_list *use;
 static int *def_size;
 static int *use_size;
 static int s_expr_num;//the num of the tri-expressions
+static int sg_max_func_varlist = 0;//每条Funcall语句都会接有一条当前的活跃变量链
 static const int gc_change_num = 4;
 
 static inline int compare (const void * a, const void * b) 
@@ -467,10 +468,19 @@ struct var_list *var_list_inter(struct var_list *inter , struct var_list *dest)/
     return dest;
 }
 
-//void var_list_change(int change_array[4] , struct var_list *list)//给定增加和减少的变量，
+static inline int is_mapid_available(int map_id)
+{
+     if(map_id == -1)
+          return 0;
+     if(is_array(map_id) == 1)
+          return 0;
+     return 1;
+}
 
 static inline void analyse_map_index(int i , int type , int block_index)
 {
+     if(is_mapid_available(i) == 0)
+          return;
 #ifdef SHOW_FLOW_DEBUG
      if(type == DEFINE)//**************************
           printf("DEFINE ");
@@ -656,6 +666,8 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                int j;
                for(j = 0 ; j < global_var_num ; j++)
                {
+                    if(is_mapid_available(j) == 0)
+                         continue;
                     def_size[0] ++;
                     var_list_append(def , j);
                }
@@ -789,7 +801,12 @@ static void solve_equa_ud()//求解活跃变量方程组
 static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)//get the map_index of arg,but if arg is a *p,we must do something about the pointer_entity list.Return -1 if we can't find the map_id or we find more than one idents in the pointer_entity list but dest is NULL.If pointer_entity list has only one ident,replace arg with it and return its map_id.If pointer_entity list has more than one idents and dest isn't NULL,it'll return the map_id of arg and put the pointer_entity list in dest.
 {
      if(arg->type == IdArg)
-          return (get_index_of_id(arg->idname));
+     {
+          int i = get_index_of_id(arg->idname);
+          if(is_mapid_available(i) == 0)
+               return -1;
+          return i;
+     }
      else if(arg->type == ExprArg)
      {
           if(arg->expr == -1)
@@ -864,7 +881,7 @@ static void make_change_list(int num1 , int num2 , struct var_list *dest)
           var_list_append(dest , num2);
 }
 
-struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分析
+struct var_list *analyse_actvar(int *expr_num , int *max_f_varlist , int func_index)//活跃变量分析
 {
      initial_func_var(func_index);//通过函数index获得当前函数信息，以便后续使用
      malloc_active_var();//活跃变量分析相关的数组空间分配
@@ -1031,7 +1048,12 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                }
           after_make_actvarlist:
                if(temp_expr->op == Funcall)
+               {
                     temp_expr->arg2->func_actvar_list = (actvar_list + act_list_index -1);
+                    int count = var_list_count(temp_expr->arg2->func_actvar_list);
+                    if(count > sg_max_func_varlist)
+                         sg_max_func_varlist = count;
+               }
 #ifdef SHOW_FLOW_DEBUG
                printf("del:");
                var_list_print(del_list);
@@ -1046,6 +1068,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                temp_expr = temp_expr->prev;
           }
      }
+     (*max_f_varlist) = sg_max_func_varlist;
      free_all();
      return actvar_list;
 }
