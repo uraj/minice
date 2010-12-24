@@ -163,6 +163,19 @@ int get_width_from_index(int index)
 	}
 }
 
+int get_stride_from_index(int index)
+{
+	if(is_id_var(index))
+	{
+		struct value_info * id_info = get_valueinfo_byno(cur_func_info -> func_symt, index);
+		if(id_info -> type -> type == Pointer && id_info -> type -> base_type -> type != Char)
+			return 4;
+		return 1;
+	}
+	else
+		return table_list[cur_func_index] -> table[map_bridge[index - cur_var_id_num]].stride;
+}
+
 void set_expr_label_mark(int exprnum)//only for label
 {
 	struct var_info * tmp_info = get_info_of_temp(exprnum);

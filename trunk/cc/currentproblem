@@ -46,4 +46,5 @@ new:
 
 1.global_var_last_ref//uncertainty
 2.mark whether the temp var is a pointer
-3.offset may be too big when addressing characters 
+3.offset may be too big when addressing characters
+4.calculate a instead of load it from the mem
