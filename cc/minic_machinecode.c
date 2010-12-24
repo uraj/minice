@@ -124,7 +124,7 @@ static inline int insert_dp_code(enum dp_op_type dp_op, int dest, struct mach_ar
 	new_code.arg1 = arg1;
 	new_code.arg2 = arg2;
 	new_code.arg3 = arg3;
-	new_code.shift = shift;
+    new_code.shift = shift;
 	return insert_code(new_code);
 }
 
@@ -1532,20 +1532,47 @@ static void gen_per_code(struct triargexpr * expr)
 		
 		case Funcall:                    /* () */
 			{
+                arglist_num_mark = 0;
 				/* b.l arg1.idname */;
 				/* caller save */; // deal with callee save and sp ip fp at the head of each function */
 			}
 
 		case Arglist:
-			{
+			{                
 				if(arg1_flag == Arg_Reg)
-					/* push arg1 */;
-				else
+                {
+                    if(arglist_num_mark < 4) /* r0-r3 available */
+                        gen_mov_rsrd_code(arglist_num_mark, arg1_info->reg_addr);
+                    else
+                        ;       /* push into stack */
+                    
+                }
+				else if(arg1_flag == Arg_Mem)
 				{
-					/* lod tempreg, arg1 */;
+                    /* lod tempreg, arg1 */;
 					/* push tempreg */;
 					/* restore tempreg */;
-				}//can also be imme arg, I forgot to write that
+
+                    if(arglist_num_mark < 4)
+                        load_var(arg1_info, arglist_num_mark);
+                    else
+                    {
+                        int tempreg = gen_tempreg(NULL, 0);
+                        load_var(arg1_info, tempreg);
+                        ;       /* push into stack */
+                        restore_tempreg(tempreg);
+                    }   
+				}
+                else            /* arg1_flag == Arg_Imm */
+                {
+                    if(arglist_num_mark < 4)
+                        gen_mov_rsim_code(arglist_num_mark, expr->arg1.imme);
+                    else
+                    {
+                        ; /* push into stack */
+                    }
+                }
+                ++arglist_num_mark;
 				break;
 			}
 
@@ -1576,7 +1603,8 @@ static void gen_per_code(struct triargexpr * expr)
                     mach_arg1.type = Mach_Imm;
                     mach_arg1.imme = expr->arg1.imme;
                     insert_mem_code(MOV, 0, mach_arg1, null, 0, NO);
-                }        
+                    insert_jump_code(LR);
+                }
 				break;
 			}
 		case Nullop:
