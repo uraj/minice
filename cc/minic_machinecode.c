@@ -254,7 +254,6 @@ static inline int prepare_temp_var_inmem()//gen addr at first
 							offset_from_sp -= (offset_from_sp % WORD);
 							offset_from_sp += (WORD * size);
 						}
-						offset_from_sp += WORD;
 						tmp_v_info -> mem_addr = cur_sp + offset_from_sp;	
 						continue;
 					}
@@ -308,17 +307,49 @@ static inline int ref_jump_dest(int expr_id)//get the label for jump dest
 
 
 /************************** get pointer begin **************************/
-static inline void load_pointer(int var_index, int reg_num)
+static inline void load_pointer(int var_index, int reg_num, int imm_offset, int reg_offset)
 {
+	/*
+		if imm_offset == 0 and reg_offset == 0
+			normal;
+		if imm_offset == 0 and reg_offset != 0
+			for global
+				LDW and ADD
+			for temp
+				SUB
+		if imm_offset != 0 and reg_offset == 0
+			for global
+				LDW adn ADD
+			for temp
+				SUB
+	*/
 	struct var_info * id_info = get_info_from_index(var_index);
 	if(isglobal(var_index))
 	{
 		struct value_info * tmp_info = get_valueinfo_byno(cur_func_info -> func_symt, var_index); 
-		int offset = id_info -> mem_addr;
+		int id_offset = id_info -> mem_addr;
 		struct mach_arg address;
 		address.type = Mach_Label;
-		address.label = gen_new_var_offset(offset);
-		insert_mem_code(LDW, reg_num, address, null, null, 0, NO);
+		address.label = gen_new_var_offset(id_offset);
+		insert_mem_code(LDW, reg_num, address, null, 0, 0, NO);
+		if(imm_offset != 0)
+		{
+			struct mach_arg imm_arg;
+			imm_arg.type = Mach_Imm;
+			imm_arg.imme = imm_offset;
+			if(get_stride_with_index(var_index) == WORD)
+				insert_dp_code(ADD, reg_num, reg_num, imm_offset, 2, LL);
+			else insert_dp_code(ADD, reg_num, reg_num, imm_offset, 0, NO);
+		}
+		else if(reg_offset != 0)
+		{
+			struct mach_arg reg_arg;
+			reg_arg.type = Mach_Reg;
+			reg_arg.imme = reg_offset;
+			if(get_stride_with_index(var_index) == WORD)
+				insert_dp_code(ADD, reg_num, reg_num, reg_offset, 2, LL);
+			else insert_dp_code(ADD, reg_num, reg_num, reg_offset, 0, NO);
+		}
 	}
 	else
 	{
@@ -327,7 +358,34 @@ static inline void load_pointer(int var_index, int reg_num)
 		tmp_fp.reg = FP;
 		tmp_offset.type = Mach_Imm;
 		tmp_offset.reg = id_info -> mem_addr;
-		insert_dp_code(SUB, reg_num, tmp_fp, tmp_offset, 0, NO);	
+		if(imm_offset != 0)
+		{
+			if(get_stride_with_index(var_index) == WORD)
+				insert_dp_code(SUB, reg_num, tmp_fp, WORD * (tmp_offset - imme_offset), 0, NO);
+			else insert_dp_code(SUB, reg_num, tmp_fp, BYTE * (tmp_offset - imme_offset), 0, NO);
+		}
+		else if(reg_offset != 0)
+		{
+			struct mach_arg reg_arg;
+			reg_arg.type = Mach_Reg;
+			reg_arg.imme = reg_offset;
+			int shift_bits;
+			enum shift_type tmp_shift_type;
+			if(get_stride_with_index(var_index) == WORD)
+			{
+				shift_bits = 2;
+				tmp_shift_type = LL;
+			}
+			else
+			{
+				shift_bits = 0;
+				tmp_shift_type = NO;
+			}
+			insert_dp_code(SUB, reg_num, tmp_fp, tmp_offset, shift_bits, tmp_shift_type);
+			insert_dp_code(ADD, reg_num, reg_num, reg_offset, shift_bits, tmp_shift_type);				
+		}
+		else
+			insert_dp_code(SUB, reg_num, tmp_fp, tmp_offset, 0, NO);	
 	}
 }
 /************************** get pointer end ****************************/
@@ -581,13 +639,10 @@ static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struc
 			check_reg(arg_info -> reg_addr);//if global var in reg, should store to mem
 			reg_dpt[arg_info -> reg_addr].content = arg_index;
 			reg_dpt[arg_info -> reg_addr].dirty = 0;
-			if(is_array(arg_index))
-				load_pointer(arg_index, alloc_reg.result[arg_index]);
-			else
-			{
-				if(arg_type == 1 && is_global(arg_index))
-					load_global_var(get_info_from_index(arg_index) , alloc_reg.result[arg_index]);//if global var as arg, should load
-			}
+			if(is_array(arg_index) && is_global(arg_index))
+				load_pointer(arg_index, alloc_reg.result[arg_index], 0, 0);
+			else if(arg_type == 1 && is_global(arg_index))
+				load_global_var(get_info_from_index(arg_index) , alloc_reg.result[arg_index]);//if global var as arg, should load
 		}
 	}
 	else
@@ -981,6 +1036,46 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
      }
 }
 
+void gen_ref_code(struct triargexpr * expr, int dest_index, char var_info * dest_info, enum Arg_Flag dest_flag)
+{
+	if(expr -> arg1.type == IdArg)
+	{
+		arg1_index = get_index_of_id(expr -> arg1.idname);
+		arg1_info = get_info_from_index(arg1_index);
+		if(dest_flag == Arg_Reg)
+			load_pointer(arg1_index, dest_info -> reg_addr, 0, 0);
+		else
+		{
+			int tmp_reg = gen_tempreg(NULL, 0);
+			load_pointer(arg1_info, tmp_reg, 0, 0);
+			store_var(arg1_info, tmp_reg);
+			restore_tempreg(tmp_reg);
+		}
+	}
+	else(expr -> arg1.type == ExprArg)
+	{
+		struct triargexpr refed_expr = cur_table[expr -> arg1.expr];
+		switch(refed_expr.op)
+		{
+			case Subscript:
+				{
+					if(dest_flag == Arg_Reg)
+					{
+						if(is_array(refed_expr.arg1))
+							load_pointer(arg1_index, dest_info -> reg_addr, )
+					}
+					case Deref:
+
+					case default:
+					fprintf(stderr, "error in gen code for ref\n");
+					break;
+				}
+		}
+	}
+}
+
+
+
 static void gen_per_code(struct triargexpr * expr)
 {
 	check_is_jump_dest(expr -> index);
@@ -1054,21 +1149,10 @@ static void gen_per_code(struct triargexpr * expr)
 
 				if(expr -> op == Ref)
 				{
-					if(expr -> arg1.type == IdArg)
-					{
-						arg1_index = get_index_of_id(expr -> arg1.idname);
-						arg1_info = get_info_from_index(arg1_index);
-						if(dest_flag == Arg_Reg)
-							load_pointer(arg1_index, dest_info -> reg_addr);
-						else
-						{
-							load_pointer(arg1_info, )
-							store_var(arg1_info, )
-					}
-					else(expr -> arg1.type == IdArg)
-					{
-					}
+					gen_ref_code(expr, dest_index, dest_info, dest_flag);	
+					break;
 				}
+
 				//ImmArg op ImmArg should be optimized before
 				if(expr -> arg1.type == ExprArg && expr -> arg1.expr == -1)
 					;
