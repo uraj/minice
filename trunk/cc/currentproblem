@@ -50,4 +50,4 @@ new:
 4.calculate a instead of load it from the mem
 5.store global var before func, and load after func
 6.Ref
-7.deal with array
+7.deal with array in triargexpr with binary op
