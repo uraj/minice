@@ -3,6 +3,7 @@
 
 #include "minic_ast.h"
 #include "minic_typetree.h"
+#inlcude "minic_flowanalyse.h"
 
 enum triarg_type { IdArg = 0, ImmArg, ExprArg };
 
@@ -14,6 +15,7 @@ struct triarg
         char* idname;
         int expr; /* use index of the triargexpr, not the address */
         int imme;
+         struct var_list *func_actvar_list;
     };
 };
 
