@@ -1603,7 +1603,7 @@ static void gen_per_code(struct triargexpr * expr)
                     if(arglist_num_mark < 4) /* r0-r3 available */
                         gen_mov_rsrd_code(arglist_num_mark, arg1_info->reg_addr);
                     else
-                        ;       /* push into stack */
+                        push_param(arg1_info->reg_addr); /* push into stack */
                 }
 				else if(arg1_flag == Arg_Mem)
 				{
@@ -1617,7 +1617,7 @@ static void gen_per_code(struct triargexpr * expr)
                     {
                         int tempreg = gen_tempreg(NULL, 0);
                         load_var(arg1_info, tempreg);
-                        ;       /* push into stack */
+                        push_param(arg1_info->reg_addr); /* push into stack */
                         restore_tempreg(tempreg);
                     }
 				}
@@ -1627,7 +1627,10 @@ static void gen_per_code(struct triargexpr * expr)
                         gen_mov_rsim_code(arglist_num_mark, expr->arg1.imme);
                     else
                     {
-                        ; /* push into stack */
+                        int tempreg = gen_tempreg(NULL, 0);
+                        gen_mov_rsim_code(tempreg, expr->arg1.imme);
+                        push_param(tempreg); /* push into stack */
+                        restore_tempreg(tempreg);
                     }
                 }
                 ++arglist_num_mark;
