@@ -170,9 +170,6 @@ void init_cache(enum CacheSwapStrategy swap, enum CacheWriteStrategy write)
 		srand((unsigned)time(NULL));
 }
 
-//clear cache?
-//clear cacheinfo?
-
 int cache_write(int id_sel, uint32_t addr)
 {
 	unsigned int tag = addr >> (BLOCKLEN + SETLEN);
