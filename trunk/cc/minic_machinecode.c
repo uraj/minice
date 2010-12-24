@@ -624,7 +624,7 @@ static inline void check_reg(int reg_num)//must deal with dirty and has_refed be
 	}
 }
 
-static inline enum arg_flag mach_prepare_arg(int ref_index, int arg_index, struct var_info * arg_info, int arg_type)/* arg_type : 0=>dest, 1=>normal *///ref_global_var!!!
+static inline enum arg_flag mach_prepare_arg(int arg_index, struct var_info * arg_info, int arg_type)/* arg_type : 0=>dest, 1=>normal *///ref_global_var!!!
 {
 	enum Arg_Flag flag;	
 	if(is_global(arg_index))
@@ -1038,19 +1038,20 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
 
 void gen_ref_code(struct triargexpr * expr, int dest_index, char var_info * dest_info, enum Arg_Flag dest_flag)
 {
+	int dest_reg, tmp_mark = 0, tmp_inner_mark = 0;
+	if(dest_flag == Arg_Reg)
+		dest_reg = dest_info -> reg_addr;
+	else
+	{
+		dest_reg = gen_tempreg(NULL, 0);
+		tmp_mark = 1;
+	}
+
 	if(expr -> arg1.type == IdArg)
 	{
 		arg1_index = get_index_of_id(expr -> arg1.idname);
 		arg1_info = get_info_from_index(arg1_index);
-		if(dest_flag == Arg_Reg)
-			load_pointer(arg1_index, dest_info -> reg_addr, 0, 0);
-		else
-		{
-			int tmp_reg = gen_tempreg(NULL, 0);
-			load_pointer(arg1_info, tmp_reg, 0, 0);
-			store_var(arg1_info, tmp_reg);
-			restore_tempreg(tmp_reg);
-		}
+		load_pointer(arg1_index, dest_reg, 0, 0);
 	}
 	else(expr -> arg1.type == ExprArg)
 	{
@@ -1059,11 +1060,24 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, char var_info * dest
 		{
 			case Subscript:
 				{
-					if(dest_flag == Arg_Reg)
+					if(refed_expr -> arg2.type == ImmArg)
+						load_pointer(arg1_index, dest_reg, refed_expr -> arg2.type, 0);
+					else if(refed_expr -> arg2.type == IdArg)
 					{
-						if(is_array(refed_expr.arg1))
-							load_pointer(arg1_index, dest_info -> reg_addr, )
-					}
+						int tmp_arg_index = get_index_of_id(refed_expr -> arg2.idname);
+						struct var_info * tmp_arg_info = get_info_from_index(tmp_arg_index);
+						int tmp_arg_flag = mach_prepare_arg(tmp_arg_index, tmp_arg_info, 1);
+						if(tmp_arg_flag == Arg_Reg)
+							load_pointer(arg1_index, dest_reg, 0, alloc_reg.result[tmp_arg_index]);
+						else
+						{
+							int inner_reg;
+							if(tmp_mark == 1)
+								inner_reg = gen_tempreg(&dest_reg, 1);
+							else inner_reg = gen_tempreg(NULL, 0);
+							load_var(tmp_arg_info, inner_reg);
+							load_pointer(arg1_index, dest_reg, 0, )
+						}
 					case Deref:
 
 					case default:
@@ -1099,7 +1113,7 @@ static void gen_per_code(struct triargexpr * expr)
 					arg1_info = get_info_from_index(arg1_index);
 				}
 
-				arg1_flag = mach_prepare_arg(expr -> index, arg1_index, arg1_info, 0);
+				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 0);
 
 				if(expr -> arg2.type != ImmArg)
 				{
