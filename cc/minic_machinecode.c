@@ -47,7 +47,7 @@ static int cur_func_index;
 static var_list * active_var_array; 
 
 /* may only use bp sp lr and pc, so there is 29 registers can be used*/
-static const int max_reg_num = 27;
+static const int max_reg_num = 23;
 static int cur_code_index;
 static int cur_code_bound;
 
@@ -1031,6 +1031,9 @@ static void gen_per_code(struct triargexpr * expr)
 				}
 				break;
 			}
+		case Ref:						/* &  */
+			/* &(*) &a &[] */
+			load_pointer(int var_index, int reg_num);
 		case Plus:                       /* +  */
 		case Minus:                      /* -  */	
 		case Mul:                        /* *  */
@@ -1038,7 +1041,6 @@ static void gen_per_code(struct triargexpr * expr)
 		case Minusminus:                 /* -- */
 		case Uplus:                      /* +  */
 		case Uminus:                     /* -  */
-		//case Ref:						 /* &  */
 		case Deref:						 /* *  */
 		case Subscript:					 /* [] */
 		case BigImm:
@@ -1050,6 +1052,23 @@ static void gen_per_code(struct triargexpr * expr)
 
 				dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
 
+				if(expr -> op == Ref)
+				{
+					if(expr -> arg1.type == IdArg)
+					{
+						arg1_index = get_index_of_id(expr -> arg1.idname);
+						arg1_info = get_info_from_index(arg1_index);
+						if(dest_flag == Arg_Reg)
+							load_pointer(arg1_index, dest_info -> reg_addr);
+						else
+						{
+							load_pointer(arg1_info, )
+							store_var(arg1_info, )
+					}
+					else(expr -> arg1.type == IdArg)
+					{
+					}
+				}
 				//ImmArg op ImmArg should be optimized before
 				if(expr -> arg1.type == ExprArg && expr -> arg1.expr == -1)
 					;
@@ -1491,6 +1510,7 @@ static void gen_per_code(struct triargexpr * expr)
 
 		case Ref:                        /* &  */
 			{
+				if(arg1_info -> )
 				if(arg1_info -> mem_addr == -1)
 				{
 					/* push arg1 */;
@@ -1654,29 +1674,20 @@ static void gen_per_code(struct triargexpr * expr)
 	}
 }
 
-static void init_reg_map(struct ralloc_info *alloc_reg)//
+static void reset_reg_number()//
 {//可用的寄存器：R4－R15，R17－R26，R28
      int i;
-     for(i = 0 ; i < 32 ; i ++)
-     {
-          if(i <= 0)
-               map_to_reg[i] = -1;
-          else if(i <= 12)
-               map_to_reg[i] = i + 3;
-          else if(i <= 22)
-               map_to_reg[i] = i + 4;
-          else if(i == 23)
-               map_to_reg[i] = 28;
-          else
-               map_to_reg[i] = -1;
+	 for(i = 0; i < cur_ref_var_num; i++)
+	 {
+		 if(alloc_reg.result[i] == -1)
+			 ;
+		 else if(alloc_reg.result[i] <= 12)
+			 alloc_reg.result[i] += 3;
+		 else if(alloc_reg.result[i] <= 22)
+			 alloc_reg.result[i] += 4;
+		 else if(alloc_reg.result[i] == 23)
+			 alloc_reg.result[i] = 28;
      }
-}
-
-static int get_reg_map(int alloc_index)
-{
-     if(alloc_index >= 32 && alloc_index < 0)
-          return -1;
-     return map_to_reg[alloc_index];
 }
 
 void new_code_table_list()
@@ -1701,7 +1712,7 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 	set_cur_function(func_index);
 	new_active_var_array();
 	alloc_reg = reg_alloc(active_var_array, cur_table -> exprnum, cur_ref_var_num, max_reg_num);//current now
-	init_reg_map(&alloc_reg);//初始化map数组，用作将分配的寄存器编号映射成真实寄存器	
+	reset_reg_number();//reset the reg number
 	prepare_temp_var_inmem();//alloc mem for temp var in stack	
 	struct triargexpr_list * tmp_node = cur_table -> head;
 	while(tmp_node != NULL)//make tail's next to be NULL
