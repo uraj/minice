@@ -1057,7 +1057,7 @@ static inline int prtrtm_cond_expr(struct triargexpr *cond_expr)
      }
      if(cond_expr->arg1.type == Arg_Imm)
      {
-          fprinf(stderr , "Triarg Expression Error!\n    ");
+          fprintf(stderr , "Triarg Expression Error!\n    ");
           print_triargexpr(*cond_expr);
           return 0;
      }
