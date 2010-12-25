@@ -1735,7 +1735,7 @@ static void gen_per_code(struct triargexpr * expr)
 				{
 					if(expr -> arg1.type != ImmArg)
 					{
-						arg1_index = get_index_of_arg(expr -> arg1);
+                         arg1_index = get_index_of_arg(&(expr->arg1));
 						arg1_info = get_info_from_index(arg1_index);
 						if(expr -> op == Plusplus || expr -> op == Minusminus)//these two unary ops will write arg1
 							arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 0);
@@ -1752,7 +1752,7 @@ static void gen_per_code(struct triargexpr * expr)
 				{
 					if(expr -> arg2.type != ImmArg)
 					{
-						arg2_index = get_index_of_arg(expr -> arg2);
+                         arg2_index = get_index_of_arg(&(expr -> arg2));
 						arg2_info = get_info_from_index(arg2_index);
 						arg2_flag = mach_prepare_arg(arg2_index, arg2_info, 1);
 					}
@@ -1776,7 +1776,7 @@ static void gen_per_code(struct triargexpr * expr)
 			{
 				if(expr -> arg1.type != ImmArg)
 				{
-					arg1_index = get_index_of_arg(expr -> arg1);
+                     arg1_index = get_index_of_arg(&(expr -> arg1));
 					arg1_info = get_info_from_index(arg1_index);
 					arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
 				}
@@ -1815,7 +1815,7 @@ static void gen_per_code(struct triargexpr * expr)
 		case Minus:                      /* -  */	
 		case Mul:                        /* *  */
 			{
-				int tempreg1 = arg1_info -> reg_addr, tmpreg2 = arg2_info -> arg2_info -> reg_addr;
+				int tempreg1 = arg1_info -> reg_addr, tempreg2 = arg2_info -> reg_addr;
 				int mark1 = 0, mark2 = 0;
 				int except[3];
 				int ex_size = 0;
@@ -1940,13 +1940,7 @@ static void gen_per_code(struct triargexpr * expr)
 					dp_op = ADD;
 				else
 					dp_op = SUB;
-				arg1.type = Mach_Reg;
-				arg1.reg = arg1_reg_index;
-				arg2.type = Mach_Imm;
-				arg2.imme = stride;
-				int i_arg3 = 0;
-				insert_dp_code(dp_op, arg1_reg_index , arg1, arg2, i_arg3, shift);
-
+				i
 				/* add or sub tempreg, tempreg, 1 */;
 				if(dest_index != -1)/*be used later*//******************** can be optimized *******************/
 				{
@@ -1974,7 +1968,7 @@ static void gen_per_code(struct triargexpr * expr)
 						int offset = -1;
 						enum shift_type shift = NO;
 						except[0] = arg1_reg_index;
-						dest_reg_index = gen_tempreg(except , 1);//申请一个临时寄存器
+						int dest_reg_index = gen_tempreg(except , 1);//申请一个临时寄存器
 
 						/*MOV dest_reg , arg1_reg*/
 						arg1.type = Mach_Reg;
