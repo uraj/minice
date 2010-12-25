@@ -37,6 +37,8 @@ struct triargtable **table_list;/*all funcs' table in one array*/
 int table_list_index;/*the current index to insert table*/
 int table_list_bound;/*the capacity of the array current now*/
 
+struct mach_code_table * code_table_list;
+
 int g_table_list_size;/* size of the table list */
 int g_global_id_num = 0;/* total global id num, increase when insert global id */
 
