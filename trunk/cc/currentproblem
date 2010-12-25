@@ -53,3 +53,4 @@ new:
 7.How can we make sure that temp array head always marked in mem after register allocation//Done
 8.Optimize push param//Done
 9.Deal with param's addr
+10.flush global var before leaving func

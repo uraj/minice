@@ -265,6 +265,14 @@ static int prepare_temp_var_inmem()//gen addr at first
 						continue;
 					}
 				}
+
+				if(is_arglist_byno(cur_func_info -> func_symt, index))
+				{
+					//MARK TAOTAOTHERIPPER
+				}
+				else
+				{
+				}
 				tmp_v_info = get_info_from_index(index);
 				if(get_width_from_index(index) == BYTE)
 					offset_from_sp ++;
@@ -765,7 +773,7 @@ static void reload_global_var()
 	}
 }
 
-static void flush_pointer_entity(struct var_list * entity_list)
+static void flush_pointer_entity(enum mem type, struct var_list * entity_list)
 {
 	struct var_info * v_info;
 	int index;	
@@ -778,9 +786,13 @@ static void flush_pointer_entity(struct var_list * entity_list)
 			v_info = get_info_from_index(alloc_reg[index].content);
 			if(is_id_var(alloc_reg[index].content) && alloc_reg[index].dirty)
 			{
-				store(v_info, index);
-				load(v_info, index);
-				alloc_reg[index].dirty = 0;
+				if(type == load)
+					load(v_info, index);
+				else
+				{
+					store(v_info, index);
+					alloc_reg[index].dirty = 0;
+				}
 			}
 		}
 	}
@@ -798,9 +810,13 @@ static void flush_pointer_entity(struct var_list * entity_list)
 					struct value_info * array_info = get_info_from_index(tmp -> var_map_index);
 					if(alloc_reg[index].dirty && array_info -> type -> type != Array)
 					{
-						store(v_info, index);
-						load(v_info, index);
-						alloc_reg[index].dirty = 0;
+						if(type == load)
+							load(v_info, index);
+						else
+						{
+							store(v_info, index);
+							alloc_reg[index].dirty = 0;
+						}
 					}
 				}
 			}
@@ -2258,6 +2274,7 @@ static void gen_per_code(struct triargexpr * expr)
                 else            /* arg1_flag == Arg_Imm */
                     gen_mov_rsim_code(0, expr->arg1.imme);
 
+				flush_global_var();
 				callee_save_pop();
 				leave_func();
                 insert_jump_code(LR);
