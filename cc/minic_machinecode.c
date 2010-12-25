@@ -1992,13 +1992,12 @@ static void gen_per_code(struct triargexpr * expr)
 				int except[3];
 				int ex_size = 0;
 				int temp_reg, dest_reg;
-				int mark = 0;
 				struct mach_arg arg1, arg2;
 				if(dest_flag == Arg_Mem)
 				{
 					if(arg1_flag == Arg_Reg)
 						except[ex_size++] = arg1_info->reg_addr;
-					dest_reg = gen_tempreg(except. ex_size);
+					dest_reg = gen_tempreg(except, ex_size);
 					ex_size = 0;
 				}
 				else
@@ -2008,17 +2007,17 @@ static void gen_per_code(struct triargexpr * expr)
 				{
 					/* lod tempreg */;
 					except[ex_size++] = dest_reg;
-					tempreg = gen_tempreg(except, ex_size);
+					temp_reg = gen_tempreg(except, ex_size);
 					/* -x = ~x + 1 */
 					arg1.type = Mach_Reg;
-					arg1.reg = tempreg;
+					arg1.reg = temp_reg;
 					insert_dp_code(MVN, dest_reg, arg1, null, 0, NO);
 					arg1.reg = dest_reg;
 					arg2.type = Mach_Imm;
 					arg2.imme = 1;
 					insert_dp_code(ADD, dest_reg, arg1, arg2, 0, NO);
 					/* restore for arg1 */;
-					restore_tempreg(tempreg);
+					restore_tempreg(temp_reg);
 				}
 				else
 				{
