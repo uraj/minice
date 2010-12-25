@@ -2314,11 +2314,16 @@ void free_code_table_list()
 
 void gen_machine_code(int func_index)//Don't forget NULL at last
 {
-	set_cur_function(func_index);
 	int var_list_size;
+	/********************************* data flow analyse ***************************************/
 	struct basic_block * block_head = make_fd(func_index);
 	pointer_analyse(func_index);	
 	struct var_list * active_var_array = analyse_actvar(&var_list_size, func_index);//活跃变量分析
+
+	/********************************* gen mach code beg ***************************************/
+	set_cur_function(func_index);
+	//printf("%d\n", var_list_size);
+	//printf("%d\n", cur_ref_var_num);
 	alloc_reg = reg_alloc(active_var_array, var_list_size, cur_ref_var_num, max_reg_num);//current now
 	//free_active_list TAOTAOTHERIPPER MARK
 	recover_triargexpr(block_head);		
