@@ -665,7 +665,8 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                //int start = cur_func_sym_table->arg_no_min;
                //int end = cur_func_sym_table->arg_no_max;
                int global_var_num = get_globalvar_num();
-               int j;
+               int j , start , end;
+               get_arg_interval(cur_func_sym_table , &start , &end);
                for(j = 0 ; j < global_var_num ; j++)
                {
                     if(is_mapid_available(j) == 0)
@@ -1054,10 +1055,10 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     act_list_index++;
                }
           after_make_actvarlist:
-               if(temp_expr->op == Funcall)
+               if(temp_expr->entity->op == Funcall)
                {
-                    temp_expr->arg2->func_actvar_list = (actvar_list + act_list_index -1);
-                    int count = var_list_count(temp_expr->arg2->func_actvar_list);
+                    temp_expr->entity->arg2.func_actvar_list = (actvar_list + act_list_index -1);
+                    int count = var_list_count(temp_expr->entity->arg2.func_actvar_list);
                     if(count > sg_max_func_varlist)
                          sg_max_func_varlist = count;
                }
