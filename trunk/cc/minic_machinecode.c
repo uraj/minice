@@ -2353,8 +2353,10 @@ void free_code_table_list()
 void gen_machine_code(int func_index)//Don't forget NULL at last
 {
 	set_cur_function(func_index);
-	new_active_var_array();
-	alloc_reg = reg_alloc(active_var_array, cur_table -> expr_num, cur_ref_var_num, max_reg_num);//current now
+	int var_list_size;
+	struct var_list * active_list = analyse_actvar(&var_list_size, func_index);//活跃变量分析
+	alloc_reg = reg_alloc(active_list, var_list_size, cur_ref_var_num, max_reg_num);//current now
+	//free_active_list TAOTAOTHERIPPER MARK
 	reset_reg_number();//reset the reg number
 	enter_func_push();
 	callee_save_push();
