@@ -316,18 +316,18 @@ static inline int ref_jump_dest(int expr_id)//get the label for jump dest
 static inline void load_pointer(int var_index, int reg_num, int imm_offset, int reg_offset)
 {
 	/*
-		if imm_offset == 0 and reg_offset == 0
+		if imm_offset == 0 and reg_offset == -1
 			normal;
-		if imm_offset == 0 and reg_offset != 0
+		if imm_offset == 0 and reg_offset != -1
 			for global
 				LDW and ADD
 			for temp
 				SUB
-		if imm_offset != 0 and reg_offset == 0
+		if imm_offset != 0 and reg_offset == -1
 			for global
-				LDW adn ADD
+				LDW and ADD
 			for temp
-				SUB
+				SUB and ADD
 	*/
 	struct var_info * id_info = get_info_from_index(var_index);
 	if(isglobal(var_index))
@@ -347,7 +347,7 @@ static inline void load_pointer(int var_index, int reg_num, int imm_offset, int 
 				insert_dp_code(ADD, reg_num, reg_num, imm_offset, 2, LL);
 			else insert_dp_code(ADD, reg_num, reg_num, imm_offset, 0, NO);
 		}
-		else if(reg_offset != 0)
+		else if(reg_offset != -1)
 		{
 			struct mach_arg reg_arg;
 			reg_arg.type = Mach_Reg;
@@ -370,7 +370,7 @@ static inline void load_pointer(int var_index, int reg_num, int imm_offset, int 
 				insert_dp_code(SUB, reg_num, tmp_fp, WORD * (tmp_offset - imme_offset), 0, NO);
 			else insert_dp_code(SUB, reg_num, tmp_fp, BYTE * (tmp_offset - imme_offset), 0, NO);
 		}
-		else if(reg_offset != 0)
+		else if(reg_offset != -1)
 		{
 			struct mach_arg reg_arg;
 			reg_arg.type = Mach_Reg;
@@ -1364,31 +1364,112 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, char var_info * dest
 		{
 			case Subscript:
 				{
+					/* 
+					   if id_head in Reg just ADD
+					   if id_head in Mem use load_pointer
+					*/
+					int id_index = get_index_of_id(refed_expr -> arg1.idname);//must be id
+					struct var_info * id_info = get_info_from_index(id_index);
+					int id_flag = mach_prepare_arg(id_index, id_info, 1);
+					
+					int tmp_arg_index, tmp_arg_flag;
+					struct var_info * tmp_arg_info;
 					if(refed_expr -> arg2.type == ImmArg)
-						load_pointer(arg1_index, dest_reg, refed_expr -> arg2.type, 0);
-					else if(refed_expr -> arg2.type == IdArg)
+						tmp_arg_flag = Arg_Imm;
+					else
 					{
-						int tmp_arg_index = get_index_of_id(refed_expr -> arg2.idname);
-						struct var_info * tmp_arg_info = get_info_from_index(tmp_arg_index);
-						int tmp_arg_flag = mach_prepare_arg(tmp_arg_index, tmp_arg_info, 1);
-						if(tmp_arg_flag == Arg_Reg)
-							load_pointer(arg1_index, dest_reg, 0, alloc_reg.result[tmp_arg_index]);
+						tmp_arg_index = get_index_of_arg(refed_expr -> arg2);
+						tmp_arg_info = get_info_from_index(tmp_arg_index);
+						tmp_arg_flag = mach_prepare_arg(tmp_arg_index, tmp_arg_info, 1);
+					}
+
+					if(id_flag == Arg_Reg)
+					{
+						struct mach_arg array_head, array_offset;
+						array_head.type = Mach_Reg;
+						array_head.reg = alloc_reg.result[id_index];
+						if(tmp_arg_flag == Arg_Imm)
+						{
+							array_offset.type = Mach_Imm;
+							array_offset.imme = expr -> arg2.imme;
+						}
 						else
 						{
-							int inner_reg;
-							if(tmp_mark == 1)
-								inner_reg = gen_tempreg(&dest_reg, 1);
-							else inner_reg = gen_tempreg(NULL, 0);
-							load_var(tmp_arg_info, inner_reg);
-							load_pointer(arg1_index, dest_reg, 0, )
+							array_offset.type = Mach_Reg;
+							if(tmp_arg_flag == Arg_Reg)
+								array_offset.reg = alloc_reg.result[tmp_arg_index];
+							else
+							{
+								tmp_inner_mark = 1;
+								int except[2];
+								except[0] = dest_reg;
+								except[1] = alloc_reg.result[id_index];
+								array_offset.reg = gen_tempreg(except, 2);
+								load_var(tmp_arg_info, array_offset.reg);
+							}
 						}
-					case Deref:
-
-					case default:
-					fprintf(stderr, "error in gen code for ref\n");
+						if(get_stride_with_index(id_index) == WORD)
+							insert_dp_code(ADD, dest_reg, array_head, array_offset, 2, LL);
+						else insert_dp_code(ADD, dest_reg, array_head, array_offset, 0, NO);
+						if(tmp_inner_mark == 1)
+							restore_tempreg(array_offset.reg);
+					}
+					else
+					{
+						if(refed_expr -> arg2.type == ImmArg)
+							load_pointer(id_index, dest_reg, refed_expr -> arg2.imme, 0);
+						else
+						{
+							if(refed_expr -> arg2.type == IdArg)
+							{
+								int offset_reg;
+								if(tmp_arg_flag == Arg_Reg)
+									offset_reg = alloc_reg.result[tmp_arg_index];
+								else
+								{
+									tmp_inner_mark = 1;
+									offset_reg = gen_tempreg(&dest_reg, 1);
+									load_var(tmp_arg_info, offset_reg);
+								}
+								load_pointer(arg1_index, dest_reg, 0, offset_reg);
+								if(tmp_inner_mark == 1)
+									restore_tempreg(offset_reg);
+							}
+						}
+					}
 					break;
 				}
+			case Deref:
+				{
+					/*
+						if in reg just mov
+						if in mem 
+							for array load_pointer
+							for other load
+					 */
+					int p_index = get_index_of_arg(refed_expr -> arg1);
+					struct var_info * p_info = get_info_from_index(p_index);
+					int p_flag = mach_prepare_arg(p_index, id_info, 1);
+					if(p_flag == Arg_Reg)//the temp array head can't be in reg
+						gen_mov_rsrd_code(dest_reg, alloc_reg.result[p_index]);
+					else
+					{
+						if(is_array(p_index))
+							load_pointer(p_index, dest_reg, 0, 0);
+						else
+							load_var(p_info, dest_reg);
+					}
+					break;
+				}
+			case default:
+				fprintf(stderr, "error in gen code for ref\n");
+				break;
 		}
+	}
+	if(tmp_mark == 1)
+	{
+		store_var(dest_info, dest_reg);
+		restore(dest_reg);
 	}
 }
 
@@ -1406,31 +1487,14 @@ static void gen_per_code(struct triargexpr * expr)
 	{
 		case Assgin:
 			{
-				if(expr -> arg1.type == IdArg)
-				{
-					arg1_index = get_index_of_id(expr -> arg1.idname);
-					arg1_info = get_info_from_index(arg1_index);
-				}
-				else//need to deal with * and []
-				{
-					arg1_index = get_index_of_temp(expr -> arg1.expr);
-					arg1_info = get_info_from_index(arg1_index);
-				}
-
+				arg1_index = get_index_of_arg(expr -> arg1);
+				arg1_info = get_info_from_index(arg1_index);
 				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 0);
-
+				
 				if(expr -> arg2.type != ImmArg)
 				{
-					if(expr -> arg2.type == IdArg)
-					{
-						arg2_index = get_index_of_id(expr -> arg2.idname);
-						arg2_info = get_info_from_index(arg2_index);
-					}
-					else//need to look forward one step
-					{
-						arg2_index = get_index_of_temp(expr -> arg2.expr);
-						arg2_info = get_info_from_index(arg2_index);
-					}
+					arg2_index = get_index_of_arg(expr -> arg2);
+					arg2_info = get_info_from_index(arg2_index);
 					arg2_flag = mach_prepare_arg(arg2_index, arg2_info, 1);
 				}
 				else
@@ -1445,8 +1509,6 @@ static void gen_per_code(struct triargexpr * expr)
 				break;
 			}
 		case Ref:						/* &  */
-			/* &(*) &a &[] */
-			load_pointer(int var_index, int reg_num);
 		case Plus:                       /* +  */
 		case Minus:                      /* -  */	
 		case Mul:                        /* *  */
@@ -1478,16 +1540,8 @@ static void gen_per_code(struct triargexpr * expr)
 				{
 					if(expr -> arg1.type != ImmArg)
 					{
-						if(expr -> arg1.type == IdArg)
-						{
-							arg1_index = get_index_of_id(expr -> arg1.idname);
-							arg1_info = get_info_from_index(arg1_index);
-						}
-						else
-						{
-							arg1_index = get_index_of_temp(expr -> arg1.expr);
-							arg1_info = get_info_from_index(arg1_index);
-						}
+						arg1_index = get_index_of_arg(expr -> arg1);
+						arg1_info = get_info_from_index(arg1_index);
 						if(expr -> op == Plusplus || expr -> op == Minusminus)//these two unary ops will write arg1
 							arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 0);
 						else
@@ -1503,17 +1557,8 @@ static void gen_per_code(struct triargexpr * expr)
 				{
 					if(expr -> arg2.type != ImmArg)
 					{
-						if(expr -> arg2.type == IdArg)
-						{
-							arg2_index = get_index_of_id(expr -> arg2.idname);
-							arg2_info = get_info_from_index(arg2_index);
-						}
-						else
-						{
-							arg2_index = get_index_of_temp(expr -> arg2.expr);
-							arg2_info = get_info_from_index(arg2_index);
-						}
-
+						arg2_index = get_index_of_arg(expr -> arg2);
+						arg2_info = get_info_from_index(arg2_index);
 						arg2_flag = mach_prepare_arg(arg2_index, arg2_info, 1);
 					}
 					else
@@ -1526,17 +1571,8 @@ static void gen_per_code(struct triargexpr * expr)
 			{
 				if(expr -> arg1.type != ImmArg)
 				{
-					if(expr -> arg1.type == IdArg)
-					{
-						arg1_index = get_index_of_id(expr -> arg1.idname);
-						arg1_info = get_info_from_index(arg1_index);
-					}
-					else
-					{
-						arg1_index = get_index_of_temp(expr -> arg1.expr);
-						arg1_info = get_info_from_index(arg1_index);
-					}
-
+					arg1_index = get_index_of_arg(expr -> arg1);
+					arg1_info = get_info_from_index(arg1_index);
 					arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
 				}
 				else
@@ -1551,77 +1587,27 @@ static void gen_per_code(struct triargexpr * expr)
 	switch(expr -> op)
 	{
 		case Assign:                     /* =  */
-        {//**********************************字符串情况可能没处理
-                 /*
-                   arg1 = arg2的翻译方式。
-                   1、赋值。
-                       a)赋值操作
-                           <1>arg1和arg2是寄存器，或者arg1是寄存器而arg2是立即数，MOV；
-                           <2>arg1是寄存器，arg2是内存，load；
-                           <3>arg1是内存，arg2是寄存器，store；
-                           <4>arg1是内存，arg2是立即数，申请临时寄存器，存入arg2，store；
-                           <5>arg1和arg2都是内存，先将arg2导入临时寄存器，然后将临时寄存器的值存入内存。
-                       b)如果arg1是三元式编号，还要看一下它对应的三元式是否是*p或者a[i]，如果是的话，还要对内存操作。
-                   2、指针相关操作。
-                       <1>如果arg1是（*arg）的形式，需要把（*arg）对应的三元式的pointer_entity中所有map_id对应的寄存器都写入内存。
-                 */
-             gen_assign_arg_code(&(expr->arg1) , &(expr->arg2) , NULL);
-             struct triarg arg;
-             arg.type = ExprArg;
-             arg.expr = expr->index;
-             gen_assign_arg_code(&arg , &(expr->arg1) , NULL);//此处可以重构函数进行优化，因为第一个gen_assign如果申请临时变量没必要恢复，可以下面接着用。可以考虑递归调用**************************************************88
-/*				if(arg1_flag == Arg_Reg)
-				{
-					if(arg2_flag == Arg_Reg)
-					{
-						// if(arg1_info -> reg_addr != arg2_info -> reg_addr)//may be very important
-
-						// mov reg ;
-					}
-					else if(arg2_flag == Arg_Mem)
-						// lod ;
-					else
-						// mov immd ;
-
-					if(dest_index != -1)// deal with return value 
-					{
-						if(dest_flag == Arg_Reg)	
-							// mov arg1 => dest ;
-						else if(dest_flag == Arg_Mem)
-							// str arg1 => dest ;
-					}
-				}
-				else
-				{
-					if(arg2_flag == Arg_Reg)
-						// str ;
-					else if(arg2_flag == Arg_Imm)
-					{
-						// mov immd tempreg ;
-						// str ;
-						// restore tempreg ;
-					}
-					else
-					{
-						// lod tempreg ;
-						// str ;
-						// restore tempreg ;
-					}
-
-					if(dest_index != -1)// deal with return value
-					{
-						if(dest_flag == Arg_Reg)
-							// lod ;
-						else if(dest_flag == Arg_Mem)
-						{
-							// lod tempreg;
-							// str ;/**************** can be optimized some ****************
-                            // restore tempreg ;
-						}
-					}
-                    }*/
+			{//**********************************字符串情况可能没处理
+				/*
+				   arg1 = arg2的翻译方式。
+				   1、赋值。
+				   a)赋值操作
+				   <1>arg1和arg2是寄存器，或者arg1是寄存器而arg2是立即数，MOV；
+				   <2>arg1是寄存器，arg2是内存，load；
+				   <3>arg1是内存，arg2是寄存器，store；
+				   <4>arg1是内存，arg2是立即数，申请临时寄存器，存入arg2，store；
+				   <5>arg1和arg2都是内存，先将arg2导入临时寄存器，然后将临时寄存器的值存入内存。
+				   b)如果arg1是三元式编号，还要看一下它对应的三元式是否是*p或者a[i]，如果是的话，还要对内存操作。
+				   2、指针相关操作。
+				   <1>如果arg1是（*arg）的形式，需要把（*arg）对应的三元式的pointer_entity中所有map_id对应的寄存器都写入内存。
+				 */
+				gen_assign_arg_code(&(expr->arg1) , &(expr->arg2) , NULL);
+				struct triarg arg;
+				arg.type = ExprArg;
+				arg.expr = expr->index;
+				gen_assign_arg_code(&arg , &(expr->arg1) , NULL);//此处可以重构函数进行优化，因为第一个gen_assign如果申请临时变量没必要恢复，可以下面接着用。可以考虑递归调用**************************************************88
+				break;				
 			}
-			break;				
 			/* cond op translated when translating condjump */
 
 		case Plus:                       /* +  */
@@ -1654,7 +1640,12 @@ static void gen_per_code(struct triargexpr * expr)
 				}
 	
 				if(arg1_flag == Arg_Mem)
-					load_var(arg1_info, tempreg1);	
+				{
+					if(is_array(arg1_index))
+						load_pointer(arg1_index, tempreg1);
+					else
+						load_var(arg1_info, tempreg1);
+				}
 				else if(arg1_flag == Arg_Imm)//Only one Imm
 				{
 					tmp_arg1.type = Mach_Imm;
@@ -1663,7 +1654,12 @@ static void gen_per_code(struct triargexpr * expr)
 				}
 			
 				if(arg2_flag == Arg_Mem)
-					load_var(arg2_info, tempreg2);
+				{
+					if(is_array(arg1_index))
+						load_pointer(arg2_index, tempreg2);
+					else
+						load_var(arg2_info, tempreg2);
+				}
 				else if(arg2_flag == Arg_Imm)//Only one Imm
 				{
 					tmp_arg2.type = Mach_Imm;
