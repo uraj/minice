@@ -58,7 +58,7 @@ static int cur_code_index;
 static int cur_code_bound;
 
 static int arglist_num_mark;//count arglist num, should be clear to zero after func call and pop arg
-
+static int caller_save_index;
 static struct mach_arg null;
 
 /****************************** initial begin ***************************/
@@ -277,13 +277,10 @@ static int prepare_temp_var_inmem()//gen addr at first
 			}
 		}
 	}
+	offset_from_sp += (WORD * get_max_func_varlist());
+	caller_save_index = offset_from_sp;/* the callee save register should be stored from low addr to high addr */
 	cur_sp += offset_from_sp;
 	code_table_list[func_index].table[code_index].arg3 = offset_from_sp;
-}
-
-static void prepare_caller_save_inmem()
-{
-
 }
 
 static void callee_save_push()
@@ -1602,7 +1599,7 @@ static void gen_per_code(struct triargexpr * expr)
 						arg1_flag = Arg_Imm;
 				}
 
-				if(expr -> arg1.type == ExprArg && expr -> arg1.expr == -1)
+				if(expr -> arg1.type == ExprArg && expr -> arg1.expr == -1)//TAOTAOTHERIPPER MARK
 					;
 				else
 				{
@@ -2127,11 +2124,13 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 	new_active_var_array();
 	alloc_reg = reg_alloc(active_var_array, cur_table -> exprnum, cur_ref_var_num, max_reg_num);//current now
 	reset_reg_number();//reset the reg number
+	callee_save_push();
 	prepare_temp_var_inmem();//alloc mem for temp var in stack	
 	struct triargexpr_list * tmp_node = cur_table -> head;
 	while(tmp_node != NULL)//make tail's next to be NULL
 	{
 		struct triargexpr * expr = tmp_node -> entity; 
 	}
+	callee_save_pop();
 }
 
