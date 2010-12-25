@@ -74,7 +74,7 @@ static inline void store_global_var(struct var_info * g_v_info, int reg_num);
 static int gen_tempreg(int * except, int size);
 static inline void restore_tempreg(int temp_reg);
 
-static void itoa(int i, char * a, int radix)
+static inline void itoa(int i, char * a, int radix)
 {
     sprintf(a, "%d", i);
     return;
