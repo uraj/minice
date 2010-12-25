@@ -886,6 +886,11 @@ static inline void check_reg(int reg_num)//must deal with dirty and has_refed be
 
 static inline enum Arg_Flag mach_prepare_arg(int arg_index, struct var_info * arg_info, int arg_type)/* arg_type : 0=>dest, 1=>normal *///ref_global_var!!!
 {
+	if(arg_index < 0)
+	{
+		fprintf(stderr, "error when prepare arg.\n");
+		exit(1);
+	}
 	enum Arg_Flag flag;	
 	if(is_global(arg_index))
 		ref_global_var(arg_index);//global var prepared when first used	
@@ -1724,7 +1729,7 @@ static void gen_per_code(struct triargexpr * expr)
 				{
 					if(expr -> arg1.type != ImmArg)
 					{
-                         arg1_index = get_index_of_arg(&(expr->arg1));
+						arg1_index = get_index_of_arg(&(expr->arg1));
 						arg1_info = get_info_from_index(arg1_index);
 						if(expr -> op == Plusplus || expr -> op == Minusminus)//these two unary ops will write arg1
 							arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 0);
@@ -1741,7 +1746,7 @@ static void gen_per_code(struct triargexpr * expr)
 				{
 					if(expr -> arg2.type != ImmArg)
 					{
-                         arg2_index = get_index_of_arg(&(expr -> arg2));
+						arg2_index = get_index_of_arg(&(expr -> arg2));
 						arg2_info = get_info_from_index(arg2_index);
 						arg2_flag = mach_prepare_arg(arg2_index, arg2_info, 1);
 					}
@@ -1806,16 +1811,22 @@ static void gen_per_code(struct triargexpr * expr)
 		case Minus:                      /* -  */	
 		case Mul:                        /* *  */
 			{
-				int tempreg1 = arg1_info -> reg_addr, tempreg2 = arg2_info -> reg_addr;
+				int tempreg1, tempreg2;
 				int mark1 = 0, mark2 = 0;
 				int except[3];
 				int ex_size = 0;
 				if(dest_flag == Arg_Reg)
 					except[ex_size++] = dest_info -> reg_addr;
 				if(arg1_flag == Arg_Reg)
+				{
+					tempreg1 = arg1_info -> reg_addr;
 					except[ex_size++] = tempreg1;
+				}
 				if(arg2_flag == Arg_Reg)
+				{
+					tempreg2 = arg2_info -> reg_addr;
 					except[ex_size++] = tempreg2;
+				}
 
 				if(arg1_flag != Arg_Reg)
 				{
