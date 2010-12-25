@@ -115,6 +115,7 @@ struct mach_code//mach means machine
 		char offset;								/* 1 is +, -1 is - and 0 is no*//* used in mem */
 	};
 
+	char write_back;							/* 1 => write_back, 2 => not write_back */ 
 	enum shift_type shift;					/* used in data-processing and memory-access*/
 };
 

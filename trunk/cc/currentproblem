@@ -47,8 +47,8 @@ new:
 1.global_var_last_ref//uncertainty
 2.mark whether the temp var is a pointer
 3.offset may be too big when addressing characters
-4.store global var before func, and load after func
+4.store global var before func, and load after func//Done
 5.Ref//Done
-6.deal with array in triargexpr with binary op
-7.How can we make sure that temp array head always marked in mem after register allocation
+6.deal with array in triargexpr with binary op//Done
+7.How can we make sure that temp array head always marked in mem after register allocation//Done
 8.Optimize push param
