@@ -2079,7 +2079,7 @@ static void gen_per_code(struct triargexpr * expr)
                  {
                       /*(1)回写内存；(2)恢复临时寄存器*/
                       store_var(dest_info , dest_reg);
-                      restore_reg(dest_reg);
+                      restore_tempreg(dest_reg);
                  }
 				break;	
 			}
@@ -2121,7 +2121,7 @@ static void gen_per_code(struct triargexpr * expr)
                  if(dest_flag == Arg_Mem)
                  {
                       store_var(dest_info , rd);
-                      restore_reg(rd);
+                      restore_tempreg(rd);
                  }
 				break;
 			}
