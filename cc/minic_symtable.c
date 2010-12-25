@@ -445,6 +445,8 @@ int get_globalstr_num()//获得该程序的常量字符串个数，前提是已�
 
 int get_arglist_rank(struct symbol_table *table , int arg_index)//给定一个参数map_id，返回这是第几个参数
 {
+     if(is_arglist_byno(table , arg_index) == 0)
+          return -1;
      int start , end;
      get_arg_interval(table , &start , &end);
      return arg_index - start + 1;
