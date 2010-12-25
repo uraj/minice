@@ -542,7 +542,7 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
                struct var_list *temp_point_list = temp_expr_node->pointer_entity;
 //               printf("//************************(%d)" , temp_expr->index);
 //               var_list_print(temp_point_list);
-               if(temp_point_list != NULL
+/*               if(temp_point_list != NULL
                   && temp_point_list->head != NULL
                   &&temp_point_list->head == temp_point_list->tail)//只有一个元素，直接将该指针换成对应实体变量
                {
@@ -553,8 +553,8 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
                          arg->idname=(get_valueinfo_byno(cur_func_sym_table,temp_point_list->head->var_map_index))->name;
                          i = get_index_of_id(arg->idname);
                          change = 1;
+                    }
                     }*/
-               }
           }
 #ifdef SHOW_FLOW_DEBUG
           if(i != -1)//***************************
@@ -828,7 +828,7 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)/
                     /*                   if(temp_point_list->head == temp_point_list->tail)//只有一个元素
                     {
                          struct var_info *temp_var_info = get_info_from_index(temp_point_list->head->var_map_index);
-                         /*if(temp_var_info->ref_point != NULL)//此指针为数组
+                         if(temp_var_info->ref_point != NULL)//此指针为数组
                          {
                               var_list_free(temp_point_list);
                               //temp_expr_node->pointer_entity = temp_var_info->ref_point;//实体链指向数组的定点链
