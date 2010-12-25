@@ -227,7 +227,7 @@ static inline char * gen_new_var_offset(int offset)//need free later
 /******************** deal with global var end ************************/
 
 /******************** deal with temp var begin ************************/
-static inline int prepare_temp_var_inmem()//gen addr at first
+static int prepare_temp_var_inmem()//gen addr at first
 {
 	int index, mem_tmp_var_num = 0;
 	struct var_info * tmp_v_info;
@@ -280,6 +280,46 @@ static inline int prepare_temp_var_inmem()//gen addr at first
 	cur_sp += offset_from_sp;
 	code_table_list[func_index].table[code_index].arg3 = offset_from_sp;
 }
+
+static void prepare_caller_save_inmem()
+{
+
+}
+
+static void callee_save_push()
+{
+	int used_reg[32];
+	memset(used_calle_reg, 0, sizeof(int));
+	int idx;
+	for(idx = 0; idx < cur_ref_var_num; idx ++)
+	{
+		if(alloc_reg.result[idx] != -1)
+			used_reg[alloc_reg.result[idx]] = 1;
+	}
+	for(idx = 17; idx <= 25; idx ++)
+	{
+		if(used_reg[idx] == 1)
+			push_param(idx);
+	}
+}
+
+static void callee_save_pop()
+{
+	int used_reg[32];
+	memset(used_calle_reg, 0, sizeof(int));
+	int idx;
+	for(idx = 0; idx < cur_ref_var_num; idx ++)
+	{
+		if(alloc_reg.result[idx] != -1)
+			used_reg[alloc_reg.result[idx]] = 1;
+	}
+	for(idx = 25; idx >= 17; idx --)
+	{
+		if(used_reg[idx] == 1)
+			pop_param_to_reg(idx);
+	}
+}
+
 /******************** deal with temp var end **************************/
 
 /******************** deal with label begin *****************************/
@@ -406,8 +446,19 @@ static inline void push_param(int reg_num)
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = WORD;
 	cur_sp += WORD;//just in case
-	insert_dp_code(SUB, SP, tmp_sp, tmp_offset, -1, NO);
+	insert_dp_code(SUB, SP, tmp_sp, tmp_offset, 1, NO);
 	insert_mem_code(STW, reg_num, tmp_sp, null, null, 0, NO);	
+}
+
+static inline void pop_param_to_reg(int reg_num)
+{
+	tmp_sp.type = Mach_Reg;
+	tmp_sp.reg = SP;
+	tmp_offset.type = Mach_Imm;
+	tmp_offset.imme = WORD;
+	cur_sp -= WORD;
+	insert_mem_code(LDW, reg_num, tmp_sp, null, null, 0, NO);
+	insert_dp_code(ADD, SP, tmp_sp, tmp_offset, 1, NO);
 }
 
 static inline void pop_param(int param_num) 
@@ -499,7 +550,7 @@ static inline void store_global_var(struct var_info * g_v_info, int reg_num)
 
 
 /************************** get temp reg begin ***********************/
-static inline int gen_tempreg(int * except, int size)//general an temp reg for the var should be in memory
+static int gen_tempreg(int * except, int size)//general an temp reg for the var should be in memory
 {
 	int outlop, index, ex;
 	for(outlop = 0; outlop < 5; outlop ++)
@@ -1461,7 +1512,7 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, char var_info * dest
 					}
 					break;
 				}
-			case default:
+			default:
 				fprintf(stderr, "error in gen code for ref\n");
 				break;
 		}
@@ -1715,94 +1766,94 @@ static void gen_per_code(struct triargexpr * expr)
             
         case Plusplus:                   /* ++ */
         case Minusminus:                 /* -- *//*优先级高于二元或赋值操作*/
-        {
-                 /*如果操作数在内存之中，先申请一个临时寄存器，将数据load进去，然后操作，在回写到内存之中*/
-                 int arg1_reg_index;
-                 int stride = get_stride_from_index(arg1_index);
+			{
+				/*如果操作数在内存之中，先申请一个临时寄存器，将数据load进去，然后操作，在回写到内存之中*/
+				int arg1_reg_index;
+				int stride = get_stride_from_index(arg1_index);
 				if(arg1_flag == Arg_Mem)//can't be immd
-                {
+				{
 					/* load tempreg */;
-                     arg1_reg_index = gen_tempreg(NULL , 0);//申请临时寄存器
-                     load_var(arg1_info, arg1_reg_index);
-                }
-                else if(arg1_flag == Arg_Reg)
-                {
-                     arg1_reg_index = arg1_info->reg_addr;
-                     reg_dpt[arg1_reg_index].dirty = 1;
-                }
-                /*操作数据*/
-                /*ADD/SUB arg1_reg , arg1_reg , #stride*/
-                enum dp_op_type dp_op;
-                struct mach_arg arg1 , arg2;
-                enum shift_type shift = NO;
-                if(expr->op == Plusplus)
-                     dp_op = ADD;
-                else
-                     dp_op = SUB;
-                arg1.type = Mach_Reg;
-                arg1.reg = arg1_reg_index;
-                arg2.type = Mach_Imm;
-                arg2.imme = stride;
-                int i_arg3 = 0;
-                insert_dp_code(dp_op, arg1_reg_index , arg1, arg2, i_arg3, shift);
-                
+					arg1_reg_index = gen_tempreg(NULL , 0);//申请临时寄存器
+					load_var(arg1_info, arg1_reg_index);
+				}
+				else if(arg1_flag == Arg_Reg)
+				{
+					arg1_reg_index = arg1_info->reg_addr;
+					reg_dpt[arg1_reg_index].dirty = 1;
+				}
+				/*操作数据*/
+				/*ADD/SUB arg1_reg , arg1_reg , #stride*/
+				enum dp_op_type dp_op;
+				struct mach_arg arg1 , arg2;
+				enum shift_type shift = NO;
+				if(expr->op == Plusplus)
+					dp_op = ADD;
+				else
+					dp_op = SUB;
+				arg1.type = Mach_Reg;
+				arg1.reg = arg1_reg_index;
+				arg2.type = Mach_Imm;
+				arg2.imme = stride;
+				int i_arg3 = 0;
+				insert_dp_code(dp_op, arg1_reg_index , arg1, arg2, i_arg3, shift);
+
 				/* add or sub tempreg, tempreg, 1 */;
 				if(dest_index != -1)/*be used later*//******************** can be optimized *******************/
 				{
 					if(dest_flag == Arg_Reg)
-                    {
+					{
 						/* mov tempreg => dest reg*/;
-                         /*MOV dest_reg , arg1_reg*/
-                         enum dp_op_type dp_op;
-                         struct mach_arg arg1 , arg2;
-                         enum shift_type shift = NO;
-                         int dest_reg_index = (get_info_from_index(dest_index))->reg_addr;
-                         reg_dpt[dest_reg_index].dirty = 1;
-                         arg1.type = Mach_Reg;
-                         arg1.reg = arg1_reg_index;
-                         int i_arg3 = 0;
-                         insert_dp_code(dp_op, dest_reg_index  , arg1, null, i_arg3, shift);
-                    }
+						/*MOV dest_reg , arg1_reg*/
+						enum dp_op_type dp_op;
+						struct mach_arg arg1 , arg2;
+						enum shift_type shift = NO;
+						int dest_reg_index = (get_info_from_index(dest_index))->reg_addr;
+						reg_dpt[dest_reg_index].dirty = 1;
+						arg1.type = Mach_Reg;
+						arg1.reg = arg1_reg_index;
+						int i_arg3 = 0;
+						insert_dp_code(dp_op, dest_reg_index  , arg1, null, i_arg3, shift);
+					}
 					else
 					{
 						/* str */;
-                         int except[1];
-                         int wide;//byte OR word
-                         enum mem_op_type mem_op;
-                         struct mach_arg arg1 , arg2 , arg3;
-                         int offset = -1;
-                         enum shift_type shift = NO;
-                         except[0] = arg1_reg_index;
-                         dest_reg_index = gen_tempreg(except , 1);//申请一个临时寄存器
-                         
-                         /*MOV dest_reg , arg1_reg*/
-                         arg1.type = Mach_Reg;
-                         arg1.reg = arg1_reg_index;
-                         arg2.type = Unused;
-                         int i_arg3 = 0;
-                         insert_dp_code(dp_op , dest_reg_index  , arg1 , arg2, i_arg3 , shift);
-                         
-                         /*STB/STW dest_reg , [fp-] , dest_addr*/
-                         
-						 if(wide == 1)
-                              mem_op = STB;
-                         else
-                              mem_op = STW;
-                         arg1.type = Mach_Reg;
-                         arg1.reg = FP;
-                         arg2.type = Mach_Imm;
-                         arg2.imme = (get_info_from_index(dest_index))->mem_addr;
-                         arg3.type = Unused;
-                         insert_mem_code(mem_op , dest_reg_index , arg1 , arg2 , arg3 , offset , shift);
+						int except[1];
+						int wide;//byte OR word
+						enum mem_op_type mem_op;
+						struct mach_arg arg1 , arg2 , arg3;
+						int offset = -1;
+						enum shift_type shift = NO;
+						except[0] = arg1_reg_index;
+						dest_reg_index = gen_tempreg(except , 1);//申请一个临时寄存器
 
-                         restore_tempreg(dest_reg_index);
+						/*MOV dest_reg , arg1_reg*/
+						arg1.type = Mach_Reg;
+						arg1.reg = arg1_reg_index;
+						arg2.type = Unused;
+						int i_arg3 = 0;
+						insert_dp_code(dp_op , dest_reg_index  , arg1 , arg2, i_arg3 , shift);
+
+						/*STB/STW dest_reg , [fp-] , dest_addr*/
+
+						if(wide == 1)
+							mem_op = STB;
+						else
+							mem_op = STW;
+						arg1.type = Mach_Reg;
+						arg1.reg = FP;
+						arg2.type = Mach_Imm;
+						arg2.imme = (get_info_from_index(dest_index))->mem_addr;
+						arg3.type = Unused;
+						insert_mem_code(mem_op , dest_reg_index , arg1 , arg2 , arg3 , offset , shift);
+
+						restore_tempreg(dest_reg_index);
 					}
 				}
 
 				/* restore for arg1 */;
-                if(arg1_flag == Arg_Mem)
-                     restore_tempreg(arg1_reg_index);
-                
+				if(arg1_flag == Arg_Mem)
+					restore_tempreg(arg1_reg_index);
+
 				break;
 			}
         case TrueJump:
@@ -1811,72 +1862,73 @@ static void gen_per_code(struct triargexpr * expr)
                 break;
             
 		case UncondJump:
-        {
-            int label_num = ref_jump_dest(expr -> index);
-            char * dest_label_name = gen_new_label(label_num);
-            insert_buncond_code(dest_label_name, 0);
-            break;
-        }
-        
+				{
+					int label_num = ref_jump_dest(expr -> index);
+					char * dest_label_name = gen_new_label(label_num);
+					insert_buncond_code(dest_label_name, 0);
+					break;
+				}
+
         case Uplus:                      /* +  */
             break;
         case Uminus:                     /* -  */
-        {
-            int except[3];
-            int ex_size = 0;
-            int temp_reg, dest_reg;
-            int mark = 0;
-            struct mach_arg arg1, arg2;
-            if(dest_flag == Arg_Mem)
-            {
-                if(arg1_flag == Arg_Reg)
-                    except[ex_size++] = arg1_info->reg_addr;
-                dest_reg = gen_tempreg(except. ex_size);
-                ex_size = 0;
-            }
-            else
-                dest_reg = dest_info->reg_addr;
+			{
+				int except[3];
+				int ex_size = 0;
+				int temp_reg, dest_reg;
+				int mark = 0;
+				struct mach_arg arg1, arg2;
+				if(dest_flag == Arg_Mem)
+				{
+					if(arg1_flag == Arg_Reg)
+						except[ex_size++] = arg1_info->reg_addr;
+					dest_reg = gen_tempreg(except. ex_size);
+					ex_size = 0;
+				}
+				else
+					dest_reg = dest_info->reg_addr;
 
-            if(arg1_flag == Arg_Mem)
-            {
-                /* lod tempreg */;
-                except[ex_size++] = dest_reg;
-                tempreg = gen_tempreg(except, ex_size);
-                /* -x = ~x + 1 */
-                arg1.type = Mach_Reg;
-                arg1.reg = tempreg;
-                insert_dp_code(MVN, dest_reg, arg1, null, 0, NO);
-                arg1.reg = dest_reg;
-                arg2.type = Mach_Imm;
-                arg2.imme = 1;
-                insert_dp_code(ADD, dest_reg, arg1, arg2, 0, NO);
-                /* restore for arg1 */;
-                restore_tempreg(tempreg);
-            }
-            else
-            {
-                if(arg1_flag == Arg_Reg)
-                {
-                    arg1.type = Mach_Reg;
-                    arg1.reg = arg1_info->reg_addr;
-                }
-                else    /* arg1_flag == Arg_Imm */
-                {
-                    arg1.type = Mach_Imm;
-                    arg1.imme = expr->arg1.imme;    
-                }          
-                insert_dp_code(MVN, dest_reg, arg1,null, 0, NO);
-                arg1.reg = dest_reg;
-                arg2.type = Mach_Imm;
-                arg2.imme = 1;
-                insert_dp_code(ADD, dest_reg, arg1, arg2, 0, NO);
-            }
-            if(dest_flag == Arg_Mem)
-            {
-                store_var(dest_info, dest_reg);
-                restore_tempreg(dest_reg);
-            }
-        }
+				if(arg1_flag == Arg_Mem)
+				{
+					/* lod tempreg */;
+					except[ex_size++] = dest_reg;
+					tempreg = gen_tempreg(except, ex_size);
+					/* -x = ~x + 1 */
+					arg1.type = Mach_Reg;
+					arg1.reg = tempreg;
+					insert_dp_code(MVN, dest_reg, arg1, null, 0, NO);
+					arg1.reg = dest_reg;
+					arg2.type = Mach_Imm;
+					arg2.imme = 1;
+					insert_dp_code(ADD, dest_reg, arg1, arg2, 0, NO);
+					/* restore for arg1 */;
+					restore_tempreg(tempreg);
+				}
+				else
+				{
+					if(arg1_flag == Arg_Reg)
+					{
+						arg1.type = Mach_Reg;
+						arg1.reg = arg1_info->reg_addr;
+					}
+					else    /* arg1_flag == Arg_Imm */
+					{
+						arg1.type = Mach_Imm;
+						arg1.imme = expr->arg1.imme;    
+					}          
+					insert_dp_code(MVN, dest_reg, arg1,null, 0, NO);
+					arg1.reg = dest_reg;
+					arg2.type = Mach_Imm;
+					arg2.imme = 1;
+					insert_dp_code(ADD, dest_reg, arg1, arg2, 0, NO);
+				}
+				if(dest_flag == Arg_Mem)
+				{
+					store_var(dest_info, dest_reg);
+					restore_tempreg(dest_reg);
+				}
+			}
+
         case Subscript:                  /* [] */
 			{
                  int dest_reg;
@@ -1898,39 +1950,9 @@ static void gen_per_code(struct triargexpr * expr)
 			}
 
 		case Ref:                        /* &  */
-			{
-				if(arg1_info -> )
-				if(arg1_info -> mem_addr == -1)
-				{
-					/* push arg1 */;
-				}
+			break;//should have gen code before
 
-				if(dest_flag == Arg_Reg)
-				{
-					if(/* arg1 -> mem_addr > 9 bits */)//the mem_addr need some adjust
-					{
-						/* mov tempreg, mem_addr */;
-						/* mov dest, tempreg*/;
-						/* restore tempreg */;
-					}
-					else
-						/* mov dest, mem_addr; */
-				}
-				else
-				{
-					if(/* arg1 -> mem_addr > 9 bits */)//the mem_addr need some adjust
-						/* mov tempreg, mem_addr */;
-					else
-						/* mov tempreg, mem_addr */;
-
-					/* str tempreg, dest */;
-					/* str tempreg, dest */
-					/* restore tempreg */;
-				}
-				break;
-			}
-
-            case Deref:                      /* '*' */
+		case Deref:                      /* '*' */
 			{
                  
                  int width_shift = 2;
@@ -1985,6 +2007,7 @@ static void gen_per_code(struct triargexpr * expr)
                 for(--saved_reg_count; saved_reg_count >=0; --saved_reg_count)
                     ;           /* resotre */
 			}
+
 		case Arglist:
 			{
 				if(arg1_flag == Arg_Reg)
@@ -2006,7 +2029,7 @@ static void gen_per_code(struct triargexpr * expr)
                     {
                         int tempreg = gen_tempreg(NULL, 0);
                         load_var(arg1_info, tempreg);
-                        push_param(arg1_info->reg_addr); /* push into stack */
+                        push_param(tempreg); /* push into stack */
                         restore_tempreg(tempreg);
                     }
 				}
@@ -2060,9 +2083,8 @@ static void gen_per_code(struct triargexpr * expr)
                 insert_jump_code(LR);
 				break;
 			}
-		case Nullop:
+		default:
 			break;
-
 	}
 }
 
