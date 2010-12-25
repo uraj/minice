@@ -2009,13 +2009,14 @@ static void gen_per_code(struct triargexpr * expr)
 		
 		case Funcall:                    /* () */
 			{
-                arglist_num_mark = 0;
+
                 flush_global_var();//MARK TAOTAOTHERIPPER
 				/* caller save */
                 struct var_list_node * focus = expr->arg2.func_actvar_list.head;
                 struct var_info * vinfo = NULL;
                 char saved_reg[32];
                 int saved_reg_count = 0;
+                int i;
                 while(focus != NULL && focus != expr->arg2.func_actvar_list.tail)
                 {
                     vinfo = get_info_from_index(focus->var_map_index);
@@ -2027,9 +2028,10 @@ static void gen_per_code(struct triargexpr * expr)
                 }
                 insert_buncond_code(expr->arg1.idname, 1);
                 /* restore caller save */
-                for(--saved_reg_count; saved_reg_count >=0; --saved_reg_count)
+                for(i = 0; i < saved_reg_count; ++i)
                     gen_mem_rri_code(store, saved_reg[saved_reg_count], FP, -1, caller_save_index - saved_reg_count * WORD, WORD);           /* resotre */
 				reload_global_var();//MARK TAOTAOTHERIPPER
+                arglist_num_mark = 0;
 			}
 
 		case Arglist:
@@ -2072,7 +2074,47 @@ static void gen_per_code(struct triargexpr * expr)
                 ++arglist_num_mark;
 				break;
 			}
-
+        case BigImm:
+        {
+            int reg;
+            uint32_t src = expr->arg1.imme;
+            struct mach_arg mach_src, mach_base;
+            mach_src.type = Mach_Imm;
+            mach_base.type = Mach_Reg;
+            if(dest_flag == Arg_reg)
+                reg = dest_info->reg_addr;
+            else                /* dest_flag == Arg_Mem */
+                reg = gen_tempreg(NULL, 0);
+            if((~src) <= 0x1ff)
+                insert_dp_code(MVN, reg, mach_src, null, 0, NO);
+            else
+            {
+                int lsb = 0;
+                while((src >> lsb) & 1 == 0)
+                    ++lsb;
+                mach_src.imme = (src >> lsb) & 0x1ff;
+                insert_dp_code(MOV, reg, mach_src, null, 32-lsb, RR);
+                lsb += 9;
+                
+                mach_base.reg = reg;
+                while(lsb < 32)
+                {
+                    while(lsb < 32 && ((src >> lsb) & 1) == 0)
+                        ++lsb;
+                    if(lsb >= 32)
+                        break;
+                    mach_src.imme = (src >> lsb) & 0x1ff;
+                    insert_dp_code(OR, reg, mach_base, mach_src, 32-lsb, RR);
+                    lsb += 9;
+                }
+            }
+            if(dest_flag == Arg_Mem)
+            {
+                store_var(dest_info, reg);
+                restore(reg);
+            }
+        }
+        
 		case Return:
 			{
 				if(arg1_flag == Arg_Reg)

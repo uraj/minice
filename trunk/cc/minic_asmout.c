@@ -7,7 +7,15 @@ static void mach_arg_out(struct mach_arg marg1, struct mach_arg marg2, int marg3
 {
     if(marg1.type != Unused)
     {
-        fprintf(out_buf, ", r%d", marg1.reg);
+        if(marg1.type == Mach_Reg)
+            fprintf(out_buf, ", r%d", marg1.reg);
+        else if(marg1.type == Mach_Imm)
+            fprintf(out_buf, ", #%d", marg1.imme);
+        else
+        {
+            printf("Wrong: mach_arg_out()\n");
+            exit(1);
+        }
     }
     if(marg2.type != Unused)
     {
