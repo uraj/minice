@@ -1556,7 +1556,7 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 	}
 	else if(expr -> arg1.type == ExprArg)
 	{
-         struct triargexpr refed_expr = cur_table[(expr->arg1).expr];
+		struct triargexpr refed_expr = cur_table -> table[(expr->arg1).expr];
 		switch(refed_expr.op)
 		{
 			case Subscript:
@@ -1565,17 +1565,17 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 					   if id_head in Reg just ADD
 					   if id_head in Mem use load_pointer
 					*/
-					int id_index = get_index_of_id(refed_expr -> arg1.idname);//must be id
+					int id_index = get_index_of_id(refed_expr.arg1.idname);//must be id
 					struct var_info * id_info = get_info_from_index(id_index);
 					int id_flag = mach_prepare_arg(id_index, id_info, 1);
 					
 					int tmp_arg_index, tmp_arg_flag;
 					struct var_info * tmp_arg_info;
-					if(refed_expr -> arg2.type == ImmArg)
+					if(refed_expr.arg2.type == ImmArg)
 						tmp_arg_flag = Arg_Imm;
 					else
 					{
-						tmp_arg_index = get_index_of_arg(refed_expr -> arg2);
+						tmp_arg_index = get_index_of_arg(refed_expr.arg2);
 						tmp_arg_info = get_info_from_index(tmp_arg_index);
 						tmp_arg_flag = mach_prepare_arg(tmp_arg_index, tmp_arg_info, 1);
 					}
@@ -1613,11 +1613,11 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 					}
 					else
 					{
-						if(refed_expr -> arg2.type == ImmArg)
-							load_pointer(id_index, dest_reg, refed_expr -> arg2.imme, 0);
+						if(refed_expr.arg2.type == ImmArg)
+							load_pointer(id_index, dest_reg, refed_expr.arg2.imme, 0);
 						else
 						{
-							if(refed_expr -> arg2.type == IdArg)
+							if(refed_expr.arg2.type == IdArg)
 							{
 								int offset_reg;
 								if(tmp_arg_flag == Arg_Reg)
@@ -1644,7 +1644,7 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 							for array load_pointer
 							for other load
 					 */
-					int p_index = get_index_of_arg(refed_expr -> arg1);
+					int p_index = get_index_of_arg(refed_expr.arg1);
 					struct var_info * p_info = get_info_from_index(p_index);
 					int p_flag = mach_prepare_arg(p_index, id_info, 1);
 					if(p_flag == Arg_Reg)//the temp array head can't be in reg
