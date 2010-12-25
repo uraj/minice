@@ -1043,7 +1043,7 @@ static inline enum Arg_Flag get_argflag(struct triarg *arg , struct var_info *ar
 /*前一个比较数是立即数的话，将两个比较数互换，并且改变运算符。如果发现两个都是立即数，返回0；否则，返回1*/
 static inline int prtrtm_cond_expr(struct triargexpr *cond_expr)
 {
-     if(cond_expr->arg1.type == Arg_Imm)
+     if(cond_expr->arg1.type == ImmArg)
      {
           struct triarg temp_arg;
           memcpy(&temp_arg , &(cond_expr->arg1) , sizeof(struct triarg));//temp = arg1
@@ -1061,7 +1061,7 @@ static inline int prtrtm_cond_expr(struct triargexpr *cond_expr)
           default :break;
           }
      }
-     if(cond_expr->arg1.type == Arg_Imm)
+     if(cond_expr->arg1.type == ImmArg)
      {
           fprintf(stderr , "Triarg Expression Error!\n    ");
           print_triargexpr(*cond_expr);
