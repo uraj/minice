@@ -135,6 +135,9 @@ static inline int insert_code(struct mach_code newcode)
     }
 	code_table_list[cur_func_index].code_num ++;
 	code_table_list[cur_func_index].table[cur_code_index++] = newcode;
+#ifdef MACH_DEBUG
+	mcode_out(&newcode, stdout);
+#endif
 	return cur_code_index - 1;
 }
 
