@@ -3,6 +3,9 @@
 #include "minic_regalloc.h"
 #include "minic_typedef.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
 #define INITIAL_MACH_CODE_SIZE 100
 #define MAX_LABEL_NAME_LEN 20
 #define SP 29
@@ -11,8 +14,8 @@
 #define BYTE 1
 #define WORD 4
 
-#define REG_UNUSED
-#define REG_TEMP
+#define REG_UNUSED -1
+#define REG_TEMP -2
 
 enum Arg_Flag
 {
@@ -41,7 +44,6 @@ static int cur_sp;
 static int total_label_num;//set zero in new_code_table_list 
 
 static struct Reg_Dpt shadow_reg_dpt[32];//use to deal with temp reg
-static int shadow_sp_offset[32];//use to deal with temp reg
 static int * global_var_label_offset;
 static int ref_g_var_num;
 static char * global_var_label;
@@ -61,6 +63,17 @@ static int cur_code_bound;
 static int arglist_num_mark;//count arglist num, should be clear to zero after func call and pop arg
 static int caller_save_index;
 static struct mach_arg null;
+
+static inline char * gen_new_label(int label_num);
+static inline void push_param(int reg_num);
+static inline void pop_param_to_reg(int reg_num);
+static inline void pop_param(int param_num); 
+static inline void load_temp_var(struct var_info * t_v_info, int reg_num);
+static inline void store_temp_var(struct var_info * t_v_info, int reg_num);
+static inline void load_global_var(struct var_info * g_v_info, int reg_num);
+static inline void store_global_var(struct var_info * g_v_info, int reg_num);
+static int gen_tempreg(int * except, int size);
+static inline void restore_tempreg(int temp_reg);
 
 /****************************** initial begin ***************************/
 static inline void set_cur_function(int func_index)
@@ -94,7 +107,6 @@ static inline void set_cur_function(int func_index)
 static inline void leave_cur_function()
 {
 	free(global_var_label_offset);
-	free(g_var_dpt);//error
 	free(global_var_label);
 }
 /*************************** initial end *******************************/
@@ -119,7 +131,7 @@ static inline void insert_label_code(char * label_name)
 {
 	struct mach_code new_code;
 	new_code.op_type = LABEL;
-	new_code.label_name = label_name;
+	new_code.label = label_name;
 	insert_code(new_code);
 }
 
@@ -363,7 +375,7 @@ static inline void gen_dp_rri_code(enum dp_op_type op , int rd , int rs , int im
      arg2.imme = imme;
      arg1.type = Mach_Reg;
      arg1.reg = rs;
-     reg_dpt[rd] = 1;
+     reg_dpt[rd].dirty = 1;
      insert_dp_code(op, rd, arg1, arg2, 0, NO);
 }
 
@@ -392,11 +404,11 @@ static inline char * gen_new_var_offset(int offset)//need free later
 /******************** deal with global var end ************************/
 
 /******************** deal with temp var begin ************************/
-static int prepare_temp_var_inmem()//gen addr at first
+static void prepare_temp_var_inmem()//gen addr at first
 {
-	int index, mem_tmp_var_num = 0;
+	int index;
 	struct var_info * tmp_v_info;
-	struct mach_arg tmp_sp, tmp_offet;
+	struct mach_arg tmp_sp, tmp_offset;
 	tmp_sp.type = Mach_Reg;
 	tmp_sp.reg = SP;
 	tmp_offset.type = Mach_Imm;
@@ -404,20 +416,20 @@ static int prepare_temp_var_inmem()//gen addr at first
 
 	int code_index = insert_dp_code(SUB, SP, tmp_sp, tmp_offset, -1, NO);
 
-	int offset_from_fp = 0;//cur_sp should sp - fp
+	int offset_from_sp = 0;//cur_sp should sp - fp
 	for(index = 0; index < cur_ref_var_num; index ++)
 	{
 		if(index < cur_var_id_num || alloc_reg.result[index] == -1)
 		{
-			if(!isglobal(index))
+			if(!is_global(index))
 			{
 				if(index < cur_var_id_num)
 				{
                      struct value_info * id_info = get_valueinfo_byno(cur_func_info->func_symt ,  index);
 					if(id_info -> type -> type == Array)
 					{
-						int size = id_info -> size;
-						if(id_info -> type -> base_type == Char)
+						int size = id_info -> type -> size;
+						if(id_info -> type -> base_type -> type == Char)
 							offset_from_sp += (BYTE * size);
 						else
 						{
@@ -432,7 +444,7 @@ static int prepare_temp_var_inmem()//gen addr at first
 
 				if(is_arglist_byno(cur_func_info -> func_symt, index))
 				{
-					//MARK TAOTAOTHERIPPER
+					get_arglist_rank(cur_func_info -> func_symt, index);//MARK TAOTAOTHERIPPER
 				}
 				else
 				{
@@ -453,7 +465,7 @@ static int prepare_temp_var_inmem()//gen addr at first
 	offset_from_sp += (WORD * get_max_func_varlist());
 	caller_save_index = offset_from_sp;/* the callee save register should be stored from low addr to high addr */
 	cur_sp += offset_from_sp;
-	code_table_list[func_index].table[code_index].arg3 = offset_from_sp;
+	code_table_list[cur_func_index].table[code_index].arg3 = offset_from_sp;
 }
 
 static void enter_func_push()
@@ -478,7 +490,7 @@ static void leave_func_pop()
 static void callee_save_push()
 {
 	int used_reg[32];
-	memset(used_calle_reg, 0, sizeof(int));
+	memset(used_reg, 0, sizeof(int));
 	int idx;
 	for(idx = 0; idx < cur_ref_var_num; idx ++)
 	{
@@ -498,7 +510,7 @@ static void callee_save_push()
 static void callee_save_pop()
 {
 	int used_reg[32];
-	memset(used_calle_reg, 0, sizeof(int));
+	memset(used_reg, 0, sizeof(int));
 	int idx;
 	for(idx = 0; idx < cur_ref_var_num; idx ++)
 	{
@@ -565,45 +577,47 @@ static inline void load_pointer(int var_index, int reg_num, int imm_offset, int 
 				SUB and ADD
 	*/
 	struct var_info * id_info = get_info_from_index(var_index);
-	if(isglobal(var_index))
+	struct mach_arg src_reg, offset_arg;
+	src_reg.type = Mach_Reg;
+	src_reg.reg = reg_num;
+	if(is_global(var_index))
 	{
-		struct value_info * tmp_info = get_valueinfo_byno(cur_func_info -> func_symt, var_index); 
 		int id_offset = id_info -> mem_addr;
 		struct mach_arg address;
 		address.type = Mach_Label;
 		address.label = gen_new_var_offset(id_offset);
-		insert_mem_code(LDW, reg_num, address, null, 0, 0, NO, 0);
+		insert_mem_code(LDW, reg_num, address, null, 0, 0, NO, 0);	
 		if(imm_offset != 0)
 		{
-			struct mach_arg imm_arg;
-			imm_arg.type = Mach_Imm;
-			imm_arg.imme = imm_offset;
-			if(get_stride_with_index(var_index) == WORD)
-				insert_dp_code(ADD, reg_num, reg_num, imm_offset, 2, LL);
-			else insert_dp_code(ADD, reg_num, reg_num, imm_offset, 0, NO);
+			offset_arg.type = Mach_Imm;
+			offset_arg.imme = imm_offset;
+			if(get_stride_from_index(var_index) == WORD)
+				insert_dp_code(ADD, reg_num, src_reg, offset_arg, 2, LL);
+			else insert_dp_code(ADD, reg_num, src_reg, offset_arg, 0, NO);
 		}
 		else if(reg_offset != -1)
 		{
-			struct mach_arg reg_arg;
-			reg_arg.type = Mach_Reg;
-			reg_arg.imme = reg_offset;
-			if(get_stride_with_index(var_index) == WORD)
-				insert_dp_code(ADD, reg_num, reg_num, reg_offset, 2, LL);
-			else insert_dp_code(ADD, reg_num, reg_num, reg_offset, 0, NO);
+			offset_arg.type = Mach_Reg;
+			offset_arg.reg = reg_offset;
+			if(get_stride_from_index(var_index) == WORD)
+				insert_dp_code(ADD, reg_num, src_reg, offset_arg, 2, LL);
+			else insert_dp_code(ADD, reg_num, src_reg, offset_arg, 0, NO);
 		}
 	}
 	else
 	{
-		struct mach_arg tmp_fp, tmp_offset;
+		struct mach_arg tmp_fp;
 		tmp_fp.type = Mach_Reg;
 		tmp_fp.reg = FP;
-		tmp_offset.type = Mach_Imm;
-		tmp_offset.reg = id_info -> mem_addr;
+		offset_arg.type = Mach_Imm;
+		offset_arg.imme = id_info -> mem_addr;
 		if(imm_offset != 0)
 		{
-			if(get_stride_with_index(var_index) == WORD)
-				insert_dp_code(SUB, reg_num, tmp_fp, WORD * (tmp_offset - imme_offset), 0, NO);
-			else insert_dp_code(SUB, reg_num, tmp_fp, BYTE * (tmp_offset - imme_offset), 0, NO);
+			if(get_stride_from_index(var_index) == WORD)
+				offset_arg.imme = offset_arg.imme - WORD * imm_offset;	
+			else
+				offset_arg.imme = offset_arg.imme - imm_offset;
+			insert_dp_code(SUB, reg_num, tmp_fp, offset_arg, 0, NO);
 		}
 		else if(reg_offset != -1)
 		{
@@ -612,7 +626,7 @@ static inline void load_pointer(int var_index, int reg_num, int imm_offset, int 
 			reg_arg.imme = reg_offset;
 			int shift_bits;
 			enum shift_type tmp_shift_type;
-			if(get_stride_with_index(var_index) == WORD)
+			if(get_stride_from_index(var_index) == WORD)
 			{
 				shift_bits = 2;
 				tmp_shift_type = LL;
@@ -622,11 +636,11 @@ static inline void load_pointer(int var_index, int reg_num, int imm_offset, int 
 				shift_bits = 0;
 				tmp_shift_type = NO;
 			}
-			insert_dp_code(SUB, reg_num, tmp_fp, tmp_offset, shift_bits, tmp_shift_type);
-			insert_dp_code(ADD, reg_num, reg_num, reg_offset, shift_bits, tmp_shift_type);				
+			insert_dp_code(SUB, reg_num, tmp_fp, offset_arg, 0, NO);
+			insert_dp_code(ADD, reg_num, src_reg, reg_arg, shift_bits, tmp_shift_type);	
 		}
 		else
-			insert_dp_code(SUB, reg_num, tmp_fp, tmp_offset, 0, NO);	
+			insert_dp_code(SUB, reg_num, tmp_fp, offset_arg, 0, NO);	
 	}
 }
 /************************** get pointer end ****************************/
@@ -641,17 +655,18 @@ static inline void push_param(int reg_num)
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = WORD;
 	cur_sp += WORD;//just in case
-	insert_mem_code(STW, reg_num, tmp_sp, tmp_offset, null, -1, NO, PREW);	
+	insert_mem_code(STW, reg_num, tmp_sp, tmp_offset, 0, -1, NO, PREW);	
 }
 
 static inline void pop_param_to_reg(int reg_num)
 {
+	struct mach_arg tmp_sp, tmp_offset;
 	tmp_sp.type = Mach_Reg;
 	tmp_sp.reg = SP;
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = WORD;
 	cur_sp -= WORD;
-	insert_mem_code(LDW, reg_num, tmp_sp, tmp_offset, null, 1, NO, POST);
+	insert_mem_code(LDW, reg_num, tmp_sp, tmp_offset, 0, 1, NO, POST);
 }
 
 static inline void pop_param(int param_num) 
@@ -667,7 +682,7 @@ static inline void pop_param(int param_num)
 
 static inline void load_var(struct var_info * v_info, int reg_num)
 {
-	if(isglobal(v_info -> index))
+	if(is_global(v_info -> index))
 		load_global_var(v_info, reg_num);
 	else
 		load_temp_var(v_info, reg_num);
@@ -675,7 +690,7 @@ static inline void load_var(struct var_info * v_info, int reg_num)
 
 static inline void store_var(struct var_info * v_info, int reg_num)
 {
-	if(isglobal(v_info -> index))
+	if(is_global(v_info -> index))
 		store_global_var(v_info, reg_num);
 	else
 		store_temp_var(v_info, reg_num);
@@ -688,12 +703,12 @@ static inline void load_temp_var(struct var_info * t_v_info, int reg_num)
 	tmp_fp.reg = FP;//need width later
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = t_v_info -> mem_addr;
-	int width = get_width_from_index(t_v_info -> width);
+	int width = get_width_from_index(t_v_info -> index);
 	enum mem_op_type tmp_mem_op;
 	if(width == BYTE)
 		tmp_mem_op = LDB;
 	else tmp_mem_op = LDW;
-	insert_mem_code(tmp_mem_op, reg_num, tmp_fp, tmp_offset, null, -1, NO, 0);
+	insert_mem_code(tmp_mem_op, reg_num, tmp_fp, tmp_offset, 0, -1, NO, 0);
 }
 
 static inline void store_temp_var(struct var_info * t_v_info, int reg_num)
@@ -703,25 +718,27 @@ static inline void store_temp_var(struct var_info * t_v_info, int reg_num)
 	tmp_fp.reg = FP;//need width later
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = t_v_info -> mem_addr;
-	int width = get_width_from_index(t_v_info -> width);
+	int width = get_width_from_index(t_v_info -> index);
 	enum mem_op_type tmp_mem_op;
 	if(width == BYTE)
 		tmp_mem_op = STB;
 	else tmp_mem_op = STW;	
-	insert_mem_code(tmp_mem_op, reg_num, tmp_fp, tmp_offset, null, -1, NO, 0);
+	insert_mem_code(tmp_mem_op, reg_num, tmp_fp, tmp_offset, 0, -1, NO, 0);
 }
 
 static inline void load_global_var(struct var_info * g_v_info, int reg_num)
 {
 	struct value_info * tmp_info = get_valueinfo_byno(cur_func_info -> func_symt, g_v_info -> index); 
 	int offset = g_v_info -> mem_addr;
-	struct mach_arg address;
+	struct mach_arg address, dest_reg;
 	address.type = Mach_Label;
 	address.label = gen_new_var_offset(offset);
-	insert_mem_code(LDW, reg_num, address, null, null, 0, NO, 0);
+	dest_reg.type = Mach_Reg;
+	dest_reg.reg = reg_num;
+	insert_mem_code(LDW, reg_num, address, null, 0, 0, NO, 0);
 	if(tmp_info -> type -> type == Char)
-		insert_mem_code(STB, reg_num, reg_num, null, null, 0, NO, 0);
-	else insert_mem_code(STW, reg_num, reg_num, null, null, 0, NO, 0);
+		insert_mem_code(STB, reg_num, dest_reg, null, 0, 0, NO, 0);
+	else insert_mem_code(STW, reg_num, dest_reg, null, 0, 0, NO, 0);
 }
 
 static inline void store_global_var(struct var_info * g_v_info, int reg_num)
@@ -729,13 +746,15 @@ static inline void store_global_var(struct var_info * g_v_info, int reg_num)
 	struct value_info * tmp_info = get_valueinfo_byno(cur_func_info -> func_symt, g_v_info -> index); 
 	int offset = g_v_info -> mem_addr;
 	int tmp_reg_num = gen_tempreg(&reg_num, 1);
-	struct mach_arg address;
+	struct mach_arg address, temp_reg;
 	address.type = Mach_Label;
 	address.label = gen_new_var_offset(offset);
-	insert_mem_code(LDW, tmp_reg_num, address, null, null, 0, NO, 0);
+	temp_reg.type = Mach_Reg;
+	temp_reg.reg = tmp_reg_num;
+	insert_mem_code(LDW, tmp_reg_num, address, null, 0, 0, NO, 0);
 	if(tmp_info -> type -> type == Char)
-		insert_mem_code(STB, reg_num, tmp_reg_num, null, null, 0, NO, 0);
-	else insert_mem_code(STW, reg_num, tmp_reg_num, null, null, 0, NO, 0);
+		insert_mem_code(STB, reg_num, temp_reg, null, 0, 0, NO, 0);
+	else insert_mem_code(STW, reg_num, temp_reg, null, 0, 0, NO, 0);
 	restore_tempreg(tmp_reg_num);
 }
 /**************************** load store var end *****************************/
@@ -765,7 +784,7 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 					}
 					break;
 				case 1:
-					if(!isglobal(reg_dpt[index].content) && !reg_dpt[index].dirty && ex == size)
+					if(!is_global(reg_dpt[index].content) && !reg_dpt[index].dirty && ex == size)
 					{
 						shadow_reg_dpt[index] = reg_dpt[index];
 						reg_dpt[index].content = REG_TEMP;
@@ -773,49 +792,33 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 					}
 					break;
 				case 2:
-					if(!isglobal(reg_dpt[index].content) && index != except)
+					if(!is_global(reg_dpt[index].content) && is_id_var(reg_dpt[index].content) && ex == size)
 					{
-						int width = get_width_from_index(reg_dpt[index].content);
-
-						if(width == BYTE)
-						{
-							shadow_sp_offset[index] = 1;
-							cur_sp += BYTE;
-						}
-						else
-						{
-							shadow_sp_offset[index] = cur_sp;
-							cur_sp += WORD;
-							if(cur_sp % WORD != 0)
-								cur_sp = cur_sp + WORD - cur_sp % WORD;
-							shadow_sp_offset[index] = cur_sp - shadow_sp_offset[index];
-						}
-
-						struct mach_arg tmp_sp, tmp_offet;
-						tmp_sp.type = Mach_Reg;
-						tmp_sp.reg = SP;
-						tmp_offset.type = Mach_Imm;			
-						tmp_offset.imme = shadow_sp_offset[index];	
-						insert_dp_code(SUB, SP, tmp_sp, tmp_offset, 0, NO);//******************************push
-						if(width == BYTE)
-                             insert_mem_code(STB, index, SP, null, 0, 0, NO, 0);
-						else insert_mem_code(STW, index, SP, null, 0, 0, NO, 0);
-
+						store_var(get_info_from_index(reg_dpt[index].content), index);
 						shadow_reg_dpt[index] = reg_dpt[index];
 						reg_dpt[index].content = REG_TEMP;
 						return index;
 					}
 					break;
 				case 3:
-					if(index != except && !reg_dpt[index].dirty)
+					if(!is_global(reg_dpt[index].content) && ex == size)
 					{
+						push_param(index);
 						shadow_reg_dpt[index] = reg_dpt[index];
 						reg_dpt[index].content = REG_TEMP;
 						return index;
 					}
 					break;
 				case 4:
-					if(index != except)
+					if(ex == size && !reg_dpt[index].dirty)
+					{
+						shadow_reg_dpt[index] = reg_dpt[index];
+						reg_dpt[index].content = REG_TEMP;
+						return index;
+					}
+					break;
+				case 5:
+					if(ex == size)
 					{
 						store_global_var(get_info_from_index(reg_dpt[index].content), index);
 						shadow_reg_dpt[index] = reg_dpt[index];
@@ -834,30 +837,18 @@ static inline void restore_tempreg(int temp_reg)
 {
 	if(shadow_reg_dpt[temp_reg].content == REG_UNUSED)
 		;
-	else if(!isglobal(shadow_reg_dpt[temp_reg].content) && !shadow_reg_dpt[temp_reg].dirty)
+	else if(!is_global(shadow_reg_dpt[temp_reg].content) && !shadow_reg_dpt[temp_reg].dirty)
 		;
-	else if(!isglobal(shadow_reg_dpt[index].content))
-	{
-		width = get_width_from_index(shadow_reg_dpt[index].content);
-		struct mach_arg tmp_sp, tmp_offet;
-		tmp_sp.type = Mach_Reg;
-		tmp_sp.reg = SP;
-		tmp_offset.type = Mach_Imm;	
-		tmp_offset.imme = shadow_sp_offset[index];	
-		if(width == BYTE)
-			insert_mem_code(LDB, index, SP, null, 0, NO, 0);
-		else insert_mem_code(LDW, index, SP, null, 0, NO, 0);
-		insert_dp_code(ADD, SP, tmp_sp, tmp_offset, 0, NO, 0);
-	}
+	else if(!is_global(shadow_reg_dpt[temp_reg].content) && is_id_var(shadow_reg_dpt[temp_reg].content))	
+		load_var(get_info_from_index(shadow_reg_dpt[temp_reg].content), temp_reg);
+	else if(!is_global(shadow_reg_dpt[temp_reg].content))
+		pop_param_to_reg(temp_reg);
 	else
-	{
 		load_global_var(get_info_from_index(shadow_reg_dpt[temp_reg].content), temp_reg);
-		shadow_reg_dpt[temp_reg].dirty = 0;//has updated once
-	}
+	shadow_reg_dpt[temp_reg].dirty = 0;//has updated once
 	reg_dpt[temp_reg] = shadow_reg_dpt[temp_reg];
 	shadow_reg_dpt[temp_reg].content = -1;
 	shadow_reg_dpt[temp_reg].dirty = 0;
-	shadow_sp_offset[temp_reg] = 0;
 }
 /*************************** get temp reg end ************************/
 
@@ -915,10 +906,11 @@ static inline enum Arg_Flag mach_prepare_index(int index , struct var_info **arg
 static void flush_global_var()
 {
 	int index;
+	struct var_info * v_info;
 	for(index = 0; index < max_reg_num; index ++)
 	{
-		v_info = get_info_from_index(alloc_reg[index].content);
-		if(is_global(alloc_reg[index].content) && alloc_reg[index].dirty)
+		v_info = get_info_from_index(reg_dpt[index].content);
+		if(is_global(reg_dpt[index].content) && reg_dpt[index].dirty)
 			store(v_info, index);
 	}
 }
@@ -926,13 +918,14 @@ static void flush_global_var()
 static void reload_global_var()
 {
 	int index;
+	struct var_info * v_info;
 	for(index = 0; index < max_reg_num; index ++)
 	{
-		v_info = get_info_from_index(alloc_reg[index].content);
-		if(is_global(alloc_reg[index].content) && alloc_reg[index].dirty)
+		v_info = get_info_from_index(reg_dpt[index].content);
+		if(is_global(reg_dpt[index].content) && reg_dpt[index].dirty)
 		{
-			load(v_info, index);
-			alloc_reg[index].dirty = 0;
+			load_var(v_info, index);
+			reg_dpt[index].dirty = 0;
 		}
 	}
 }
@@ -947,15 +940,15 @@ static void flush_pointer_entity(enum mem type, struct var_list * entity_list)
 	{
 		for(index = 0; index < max_reg_num; index ++)
 		{
-			v_info = get_info_from_index(alloc_reg[index].content);
-			if(is_id_var(alloc_reg[index].content) && alloc_reg[index].dirty)
+			v_info = get_info_from_index(reg_dpt[index].content);
+			if(is_id_var(reg_dpt[index].content) && reg_dpt[index].dirty)
 			{
 				if(type == load)
-					load(v_info, index);
+					load_var(v_info, index);
 				else
 				{
-					store(v_info, index);
-					alloc_reg[index].dirty = 0;
+					store_var(v_info, index);
+					reg_dpt[index].dirty = 0;
 				}
 			}
 		}
@@ -968,18 +961,18 @@ static void flush_pointer_entity(enum mem type, struct var_list * entity_list)
 		{
 			for(index = 0; index < max_reg_num; index ++)
 			{
-				if(alloc_reg[index].content = tmp -> var_map_index)
+				if(reg_dpt[index].content = tmp -> var_map_index)
 				{
 					v_info = get_info_from_index(tmp -> var_map_index);
 					struct value_info * array_info = get_info_from_index(tmp -> var_map_index);
-					if(alloc_reg[index].dirty && array_info -> type -> type != Array)
+					if(reg_dpt[index].dirty && array_info -> type -> type != Array)
 					{
 						if(type == load)
-							load(v_info, index);
+							load_var(v_info, index);
 						else
 						{
-							store(v_info, index);
-							alloc_reg[index].dirty = 0;
+							store_var(v_info, index);
+							reg_dpt[index].dirty = 0;
 						}
 					}
 				}
@@ -1751,6 +1744,16 @@ static void gen_per_code(struct triargexpr * expr)
 						arg2_flag = Arg_Imm;
 				}
 				break;
+			}	
+		case Funcall:
+			{
+				dest_index = get_index_of_temp(expr -> index);
+				if(dest_index != -1)
+				{
+					dest_info = get_info_from_index(dest_index);
+					dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
+				}
+				break;
 			}
 		case Arglist:
 		case Return:
@@ -2163,9 +2166,18 @@ static void gen_per_code(struct triargexpr * expr)
                 }
                 insert_buncond_code(expr->arg1.idname, 1);
                 /* restore caller save */
-                for(i = 0; i < saved_reg_count; ++i)
+				for(i = 0; i < saved_reg_count; ++i)
                     gen_mem_rri_code(store, saved_reg[saved_reg_count], FP, -1, caller_save_index - saved_reg_count * WORD, WORD);           /* resotre */
 				reload_global_var();//MARK TAOTAOTHERIPPER
+
+				if(dest_index != -1)//The r0 won't be changed during the restore above	
+				{
+					if(dest_flag == Arg_Reg)
+						gen_mov_rdrs_code(dest_info -> reg_addr, 0);
+					else
+						store_var(dest_info, 0);
+				}
+
                 arglist_num_mark = 0;
 			}
 
@@ -2277,7 +2289,7 @@ static void gen_per_code(struct triargexpr * expr)
 
 				flush_global_var();
 				callee_save_pop();
-				leave_func();
+				leave_func_pop();
                 insert_jump_code(LR);
 				break;
 			}
@@ -2323,15 +2335,17 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 {
 	set_cur_function(func_index);
 	new_active_var_array();
-	alloc_reg = reg_alloc(active_var_array, cur_table -> exprnum, cur_ref_var_num, max_reg_num);//current now
+	alloc_reg = reg_alloc(active_var_array, cur_table -> expr_num, cur_ref_var_num, max_reg_num);//current now
 	reset_reg_number();//reset the reg number
-	enter_func();
+	enter_func_push();
 	callee_save_push();
 	prepare_temp_var_inmem();//alloc mem for temp var in stack	
 	struct triargexpr_list * tmp_node = cur_table -> head;
 	while(tmp_node != NULL)//make tail's next to be NULL
 	{
-		struct triargexpr * expr = tmp_node -> entity; 
+		struct triargexpr * expr = tmp_node -> entity;
+		gen_per_code(expr);
+		tmp_node = tmp_node -> next;
 	}
 }
 
