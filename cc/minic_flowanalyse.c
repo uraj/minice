@@ -536,9 +536,9 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
           i = get_index_of_temp(arg->expr);
           struct triargexpr_list *temp_expr_node = cur_func_triarg_table->index_to_list[arg->expr];
           struct triargexpr *temp_expr = temp_expr_node->entity;
-          int change = 0;
-          if(temp_expr->op == Deref)//*p
-          {
+//          int change = 0;
+//          if(temp_expr->op == Deref)//*p
+//          {
 //x               struct var_list *temp_point_list = temp_expr_node->pointer_entity;
 //               printf("//************************(%d)" , temp_expr->index);
 //               var_list_print(temp_point_list);
@@ -559,10 +559,10 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
 #ifdef SHOW_FLOW_DEBUG
           if(i != -1)//***************************
           {
-               if(change == 0)
+//               if(change == 0)
                     printf("      mapid:%d->expr:%d " , i , arg->expr);//*************************
-               else
-                    printf("      mapid:%d->idname:%s " , i , arg->idname);//*****************************
+//               else
+//                    printf("      mapid:%d->idname:%s " , i , arg->idname);//*****************************
           }
 #endif
      }
