@@ -196,7 +196,9 @@ static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** igl
     int * statck = malloc(n * sizeof(int));
     isort_elem * elem = malloc(n * sizeof(isort_elem));
     int top = 0, left = n, i;
-    
+    for(i = 0; i < n; ++i)
+        if(iglist[i] == NULL)
+            result[i] = -1;
     while(left > 0)
     {
         get_degree((const char **)igmatrix, n, elem);
