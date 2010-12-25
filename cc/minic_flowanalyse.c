@@ -534,8 +534,8 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
           if(arg->expr == -1)
                return;
           i = get_index_of_temp(arg->expr);
-          struct triargexpr_list *temp_expr_node = cur_func_triarg_table->index_to_list[arg->expr];
-          struct triargexpr *temp_expr = temp_expr_node->entity;
+//          struct triargexpr_list *temp_expr_node = cur_func_triarg_table->index_to_list[arg->expr];
+//          struct triargexpr *temp_expr = temp_expr_node->entity;
 //          int change = 0;
 //          if(temp_expr->op == Deref)//*p
 //          {
@@ -554,8 +554,8 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
                          i = get_index_of_id(arg->idname);
                          change = 1;
                     }
+                    }
                     }*/
-          }
 #ifdef SHOW_FLOW_DEBUG
           if(i != -1)//***************************
           {
@@ -1080,10 +1080,13 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
      return actvar_list;
 }
 
-void free_all()//free all memory
+void free_all(struct var_list *all_var_lists)//free all memory
 {
      int i;
      for(i = 0 ; i < g_block_num ; i++)//
           var_list_free_bynode(var_out[i].head);
+     for(i = 0 ; i < s_expr_num ; i++)
+          var_list_free_bynode(all_var_lists[i].head);
+     free(all_var_lists);
      free(var_out);
 }
