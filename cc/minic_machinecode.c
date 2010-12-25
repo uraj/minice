@@ -148,7 +148,7 @@ static inline void insert_cond_dp_code(enum dp_op_type dp_op, int dest, enum con
 	insert_code(new_code);
 }
 
-static inline void insert_mem_code(enum mem_op_type mem_op, int dest, struct mach_arg arg1, struct mach_arg arg2, unsigned int arg3, int offset, enum shift_type shift, char write_back)
+static inline void insert_mem_code(enum mem_op_type mem_op, int dest, struct mach_arg arg1, struct mach_arg arg2, unsigned int arg3, int offset, enum shift_type shift, enum index_type indexed)
 {
 	struct mach_code new_code;
 	new_code.op_type = MEM;
@@ -159,7 +159,7 @@ static inline void insert_mem_code(enum mem_op_type mem_op, int dest, struct mac
 	new_code.arg3 = arg3;
 	new_code.offset = offset;
 	new_code.shift = shift;
-	new_code.write_back = write_back;
+	new_code.indexed = indexed;
 	insert_code(new_code);	
 }
 
@@ -284,9 +284,27 @@ static int prepare_temp_var_inmem()//gen addr at first
 	code_table_list[func_index].table[code_index].arg3 = offset_from_sp;
 }
 
+static void enter_func_push()
+{
+	/* 
+	   push fp	; so that the param index should begin from 4
+	   mov fp, sp
+	   push lr
+	*/
+	push_param(FP);
+	cur_sp -= WORD;
+	gen_mov_rsrd_code(FP, SP);
+	push_param(LR);
+}
+
+static void leave_func_pop()
+{
+	pop_param_to_reg(LR);
+	pop_param_to_reg(FP);
+}
+
 static void callee_save_push()
 {
-	
 	int used_reg[32];
 	memset(used_calle_reg, 0, sizeof(int));
 	int idx;
@@ -298,7 +316,10 @@ static void callee_save_push()
 	for(idx = 17; idx <= 25; idx ++)
 	{
 		if(used_reg[idx] == 1)
+		{
 			push_param(idx);
+			cur_sp += WORD;
+		}
 	}
 }
 
@@ -315,7 +336,10 @@ static void callee_save_pop()
 	for(idx = 25; idx >= 17; idx --)
 	{
 		if(used_reg[idx] == 1)
+		{
 			pop_param_to_reg(idx);
+			cur_sp -= WORD;
+		}
 	}
 }
 
@@ -445,8 +469,7 @@ static inline void push_param(int reg_num)
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = WORD;
 	cur_sp += WORD;//just in case
-	insert_dp_code(SUB, SP, tmp_sp, tmp_offset, 1, NO);
-	insert_mem_code(STW, reg_num, tmp_sp, null, null, 0, NO);	
+	insert_mem_code(STW, reg_num, tmp_sp, tmp_offset, null, -1, NO, PREW);	
 }
 
 static inline void pop_param_to_reg(int reg_num)
@@ -456,8 +479,7 @@ static inline void pop_param_to_reg(int reg_num)
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = WORD;
 	cur_sp -= WORD;
-	insert_mem_code(LDW, reg_num, tmp_sp, null, null, 0, NO);
-	insert_dp_code(ADD, SP, tmp_sp, tmp_offset, 1, NO);
+	insert_mem_code(LDW, reg_num, tmp_sp, tmp_offset, null, 1, NO, POST);
 }
 
 static inline void pop_param(int param_num) 
@@ -2147,46 +2169,47 @@ static void gen_per_code(struct triargexpr * expr)
                 ++arglist_num_mark;
 				break;
 			}
+
         case BigImm:
-        {
-            int reg;
-            uint32_t src = expr->arg1.imme;
-            struct mach_arg mach_src, mach_base;
-            mach_src.type = Mach_Imm;
-            mach_base.type = Mach_Reg;
-            if(dest_flag == Arg_reg)
-                reg = dest_info->reg_addr;
-            else                /* dest_flag == Arg_Mem */
-                reg = gen_tempreg(NULL, 0);
-            if((~src) <= 0x1ff)
-                insert_dp_code(MVN, reg, mach_src, null, 0, NO);
-            else
-            {
-                int lsb = 0;
-                while((src >> lsb) & 1 == 0)
-                    ++lsb;
-                mach_src.imme = (src >> lsb) & 0x1ff;
-                insert_dp_code(MOV, reg, mach_src, null, 32-lsb, RR);
-                lsb += 9;
-                
-                mach_base.reg = reg;
-                while(lsb < 32)
-                {
-                    while(lsb < 32 && ((src >> lsb) & 1) == 0)
-                        ++lsb;
-                    if(lsb >= 32)
-                        break;
-                    mach_src.imme = (src >> lsb) & 0x1ff;
-                    insert_dp_code(OR, reg, mach_base, mach_src, 32-lsb, RR);
-                    lsb += 9;
-                }
-            }
-            if(dest_flag == Arg_Mem)
-            {
-                store_var(dest_info, reg);
-                restore(reg);
-            }
-        }
+			{
+				int reg;
+				uint32_t src = expr->arg1.imme;
+				struct mach_arg mach_src, mach_base;
+				mach_src.type = Mach_Imm;
+				mach_base.type = Mach_Reg;
+				if(dest_flag == Arg_reg)
+					reg = dest_info->reg_addr;
+				else                /* dest_flag == Arg_Mem */
+					reg = gen_tempreg(NULL, 0);
+				if((~src) <= 0x1ff)
+					insert_dp_code(MVN, reg, mach_src, null, 0, NO);
+				else
+				{
+					int lsb = 0;
+					while((src >> lsb) & 1 == 0)
+						++lsb;
+					mach_src.imme = (src >> lsb) & 0x1ff;
+					insert_dp_code(MOV, reg, mach_src, null, 32-lsb, RR);
+					lsb += 9;
+
+					mach_base.reg = reg;
+					while(lsb < 32)
+					{
+						while(lsb < 32 && ((src >> lsb) & 1) == 0)
+							++lsb;
+						if(lsb >= 32)
+							break;
+						mach_src.imme = (src >> lsb) & 0x1ff;
+						insert_dp_code(OR, reg, mach_base, mach_src, 32-lsb, RR);
+						lsb += 9;
+					}
+				}
+				if(dest_flag == Arg_Mem)
+				{
+					store_var(dest_info, reg);
+					restore(reg);
+				}
+			}
         
 		case Return:
 			{
@@ -2211,14 +2234,9 @@ static void gen_per_code(struct triargexpr * expr)
                 }
                 else            /* arg1_flag == Arg_Imm */
                     gen_mov_rsim_code(0, expr->arg1.imme);
-                struct mach_arg mach_base, mach_offset;
-                mach_base.type = Mach_Reg;
-                mach_base.reg = FP;
-                mach_offset.type = Mach_Imm;
-                mach_offset.imme = -4;
 
-                /* get saved LR in stack */
-                insert_mem_code(LDW, LR, mach_base, mach_offset, 0, NO, 0);
+				callee_save_pop();
+				leave_func();
                 insert_jump_code(LR);
 				break;
 			}
@@ -2266,6 +2284,7 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 	new_active_var_array();
 	alloc_reg = reg_alloc(active_var_array, cur_table -> exprnum, cur_ref_var_num, max_reg_num);//current now
 	reset_reg_number();//reset the reg number
+	enter_func();
 	callee_save_push();
 	prepare_temp_var_inmem();//alloc mem for temp var in stack	
 	struct triargexpr_list * tmp_node = cur_table -> head;
@@ -2273,6 +2292,5 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 	{
 		struct triargexpr * expr = tmp_node -> entity; 
 	}
-	callee_save_pop();
 }
 

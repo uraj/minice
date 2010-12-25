@@ -81,6 +81,13 @@ enum shift_type
 	RR		/* roll right */
 };
 
+enum index_type
+{
+	PRENW = 0,	/* pre indexed not write back register */
+	PREW,	/* pre indexed write back register */
+	POST	/* post indexed */
+}
+
 struct mach_code//mach means machine
 {
 	enum mach_op_type op_type;
@@ -115,7 +122,7 @@ struct mach_code//mach means machine
 		char offset;								/* 1 is +, -1 is - and 0 is no*//* used in mem */
 	};
 
-	char write_back;							/* 1 => write_back, 2 => not write_back */ 
+	enum index_type indexed;							/* 1 => write_back, 2 => not write_back */ 
 	enum shift_type shift;					/* used in data-processing and memory-access*/
 };
 
