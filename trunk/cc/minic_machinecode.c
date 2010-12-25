@@ -1917,87 +1917,48 @@ static void gen_per_code(struct triargexpr * expr)
         case Plusplus:                   /* ++ */
         case Minusminus:                 /* -- *//*优先级高于二元或赋值操作*/
 			{
-				/*如果操作数在内存之中，先申请一个临时寄存器，将数据load进去，然后操作，在回写到内存之中*/
-				int arg1_reg_index;
+                 /*
+                   自加自减。步骤：
+                   1、获得arg1的寄存器，在内存的话要申请临时寄存器装入；
+                   2、如果dest在寄存器，使用MOV指令；否则store；
+                   3、将arg1自加或自减；
+                   4、如果arg1在内存，写回内存，恢复临时寄存器。
+                  */
+                 int arg1_reg , dest_reg;
 				int stride = get_stride_from_index(arg1_index);
-				if(arg1_flag == Arg_Mem)//can't be immd
-				{
-					/* load tempreg */;
-					arg1_reg_index = gen_tempreg(NULL , 0);//申请临时寄存器
-					load_var(arg1_info, arg1_reg_index);
-				}
-				else if(arg1_flag == Arg_Reg)
-				{
-					arg1_reg_index = arg1_info->reg_addr;
-					reg_dpt[arg1_reg_index].dirty = 1;
-				}
+                int width = get_width_from_index(arg1_index);
+                dest_reg = dest_info->reg_addr;
+
+                /*获得arg1的寄存器，在内存的话要申请临时寄存器装入*/
+                if(arg1_flag == Arg_Reg)
+                     arg1_reg = arg1_info->reg_addr;
+                else if(arg1_flag == Arg_Mem)//can't be immd
+                {
+                     arg1_reg = gen_tempreg(&dest_reg , 1);
+                     load_var(arg1_info , arg1_reg);
+                }
+
+                /*如果dest在寄存器，使用MOV指令；否则store；*/
+                if(dest_flag == Arg_Reg)//MOV dest_reg , arg1_reg
+                     gen_mov_rsrd_code(dest_reg , arg1_reg);
+                else//STW/STB arg1_reg , [fp-] , dest_info->mem_addr
+                     gen_mem_rri_code(store , arg1_reg , FP , -1 , dest_info->mem_addr , width);
+                
 				/*操作数据*/
 				/*ADD/SUB arg1_reg , arg1_reg , #stride*/
 				enum dp_op_type dp_op;
-				struct mach_arg arg1 , arg2;
-				enum shift_type shift = NO;
 				if(expr->op == Plusplus)
 					dp_op = ADD;
 				else
 					dp_op = SUB;
-				i
-				/* add or sub tempreg, tempreg, 1 */;
-				if(dest_index != -1)/*be used later*//******************** can be optimized *******************/
-				{
-					if(dest_flag == Arg_Reg)
-					{
-						/* mov tempreg => dest reg*/;
-						/*MOV dest_reg , arg1_reg*/
-						enum dp_op_type dp_op;
-						struct mach_arg arg1 , arg2;
-						enum shift_type shift = NO;
-						int dest_reg_index = (get_info_from_index(dest_index))->reg_addr;
-						reg_dpt[dest_reg_index].dirty = 1;
-						arg1.type = Mach_Reg;
-						arg1.reg = arg1_reg_index;
-						int i_arg3 = 0;
-						insert_dp_code(dp_op, dest_reg_index  , arg1, null, i_arg3, shift);
-					}
-					else
-					{
-						/* str */;
-						int except[1];
-						int wide;//byte OR word
-						enum mem_op_type mem_op;
-						struct mach_arg arg1 , arg2 , arg3;
-						int offset = -1;
-						enum shift_type shift = NO;
-						except[0] = arg1_reg_index;
-						int dest_reg_index = gen_tempreg(except , 1);//申请一个临时寄存器
-
-						/*MOV dest_reg , arg1_reg*/
-						arg1.type = Mach_Reg;
-						arg1.reg = arg1_reg_index;
-						arg2.type = Unused;
-						int i_arg3 = 0;
-						insert_dp_code(dp_op , dest_reg_index  , arg1 , arg2, i_arg3 , shift);
-
-						/*STB/STW dest_reg , [fp-] , dest_addr*/
-
-						if(wide == 1)
-							mem_op = STB;
-						else
-							mem_op = STW;
-						arg1.type = Mach_Reg;
-						arg1.reg = FP;
-						arg2.type = Mach_Imm;
-						arg2.imme = (get_info_from_index(dest_index))->mem_addr;
-						arg3.type = Unused;
-						insert_mem_code(mem_op , dest_reg_index , arg1 , arg2 , arg3 , offset , shift, 0);
-
-						restore_tempreg(dest_reg_index);
-					}
-				}
-
-				/* restore for arg1 */;
+				gen_dp_rri_code(dp_op , arg1_reg , arg1_reg , stride);
+                
+				/*如果arg1在内存，写回内存，恢复临时寄存器*/;
 				if(arg1_flag == Arg_Mem)
-					restore_tempreg(arg1_reg_index);
-
+                {
+                     store_var(arg1_info , arg1_reg);
+                     restore_tempreg(arg1_reg);
+                }
 				break;
 			}
         case TrueJump:
