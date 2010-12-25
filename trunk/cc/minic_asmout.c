@@ -49,6 +49,55 @@ static void mach_arg_out(struct mach_arg marg1, struct mach_arg marg2, int marg3
     return;
 }
 
+static void mach_mem_arg_out(struct mach_arg marg1, int offset, struct mach_arg marg2, int marg3, enum shift_type shift, FILE *out_buf)
+{
+    if(marg1.type != Unused)
+    {
+        if(marg1.type == Mach_Reg)
+        {
+            fprintf(out_buf, " [r%d", marg1.reg);
+            if(offset == -1)
+                 fprintf(out_buf, "-]");
+            else if(offset == 1)
+                 fprintf(out_buf, "+]");
+            else
+                 fprintf(out_buf, "]");
+        }
+        else
+        {
+            printf("Wrong: mach_arg_out()\n");
+            exit(1);
+        }
+    }
+    if(marg2.type != Unused)
+    {
+        if(marg2.type == Mach_Reg)
+            fprintf(out_buf, ", r%d", marg2.reg);
+        else if(marg2.type == Mach_Imm)
+            fprintf(out_buf, ", #%d", marg2.imme);
+        else
+        {
+            printf("Wrong: mach_arg_out()\n");
+            exit(1);
+        }
+    }
+    if(marg3 != 0)
+    {
+        switch(shift)
+        {
+            case LL:
+                fprintf(out_buf, " << #%d", marg3);
+            case LR:
+                fprintf(out_buf, " >> #%d", marg3);
+            case AR:
+                fprintf(out_buf, " |> #%d", marg3);
+            case RR:
+                fprintf(out_buf, "<>%d", marg3);
+        }
+    }
+    fprintf(out_buf, "\n");
+    return;
+}
 
 void mcode_out(const struct mach_code * mcode, FILE * out_buf)
 {
@@ -117,26 +166,7 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
             if(mcode->indexed == 1)
                 fprintf(out_buf, ".w");
             fprintf(out_buf, "\tr%d", mcode->dest);
-            if(mcode->offset == 0)
-                fprintf(out_buf, " [r%d], #%d\n", mcode->arg1.reg, mcode->arg3);
-            else
-            {    
-                if(mcode->indexed == 2)
-                {
-                    
-                    if(mcode->offset == 1)
-                        fprintf(out_buf, " [r%d+], #%d\n", mcode->arg1.reg, mcode->arg3);
-                    else if(mcode->offset == -1)
-                        fprintf(out_buf, " [r%d-], #%d\n", mcode->arg1.reg, mcode->arg3);
-                }
-                else if(mcode->indexed == 1)
-                {
-                    if(mcode->offset == 1)
-                        fprintf(out_buf, " [r%d]+, #%d\n", mcode->arg1.reg, mcode->arg3);
-                    else if(mcode->offset == -1)
-                        fprintf(out_buf, " [r%d]-, #%d\n", mcode->arg1.reg, mcode->arg3);
-                }
-            }
+			mach_mem_arg_out(mcode->arg1, mcode->offset, mcode->arg2, mcode->arg3, mcode->shift, out_buf);
             break;
         case BRANCH:
             switch(mcode->branch_op)
