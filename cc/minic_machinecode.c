@@ -1,6 +1,7 @@
 #include "minic_machinecode.h"
 #include "minic_varmapping.h"
 #include "minic_regalloc.h"
+#include "minic_typedef.h"
 #include <stdio.h>
 #define INITIAL_MACH_CODE_SIZE 100
 #define MAX_LABEL_NAME_LEN 20
@@ -46,11 +47,11 @@ static int ref_g_var_num;
 static char * global_var_label;
 
 static struct triargtable * cur_table;
-static value_info * cur_func_info;
+static struct value_info * cur_func_info;
 static int cur_var_id_num;
 static int cur_ref_var_num;
 static int cur_func_index;
-static var_list * active_var_array; 
+static struct var_list * active_var_array; 
 
 /* may only use bp sp lr and pc, so there is 29 registers can be used*/
 static const int max_reg_num = 23;
@@ -93,7 +94,7 @@ static inline void set_cur_function(int func_index)
 static inline void leave_cur_function()
 {
 	free(global_var_label_offset);
-	free(g_var_dpt);
+	free(g_var_dpt);//error
 	free(global_var_label);
 }
 /*************************** initial end *******************************/
@@ -167,7 +168,7 @@ static inline void insert_cmp_code(struct mach_arg arg1, struct mach_arg arg2)
 {
 	struct mach_code new_code;
 	new_code.op_type = CMP;
-	new_code.cmp_op = CMPSUB.A;
+	new_code.cmp_op = CMPSUB_A;
 	new_code.arg1 = arg1;
 	new_code.arg2 = arg2;
 	insert_code(new_code);
@@ -200,8 +201,171 @@ static inline void insert_buncond_code(char * dest_label, char link)
 	new_code.dest_label = dest_label;
 	insert_code(new_code);
 }
-
 /*************************** insert code over *************************/
+
+
+/*******************************一些更加细致的指令生成代码***********************************/
+/*MOV rd , rs*/
+static inline void gen_mov_rsrd_code(int rd , int rs)
+{
+     struct mach_arg src_arg;
+     src_arg.type = Mach_Reg;
+     src_arg.reg = rs;
+     reg_dpt[rd].dirty = 1;
+     insert_dp_code(MOV , rd , src_arg , null , 0 , NO);
+}
+
+/*MOV rd , #imme*/
+static inline void gen_mov_rsim_code(int rd , int imme)
+{
+     struct mach_arg src_arg;
+     src_arg.type = Mach_Imm;
+     src_arg.imme = imme;
+     reg_dpt[rd].dirty = 1;
+     insert_dp_code(MOV , rd , src_arg , null , 0 , NO);
+}
+
+/*MOV rd , rs << #imme*/
+static inline void gen_mov_lshft_code(int rd , int rs , int imme)
+{
+     struct mach_arg src_arg;
+     src_arg.type = Mach_Reg;
+     src_arg.reg = rs;
+     reg_dpt[rd].dirty = 1;
+     insert_dp_code(MOV , rd , src_arg , null , imme , LL);
+}
+
+/*RSUB rd , rs1 , #imme*/
+static inline void gen_rsub_rri_code(int rd , int rs1 , int imme)
+{
+     struct mach_arg arg1 , arg2;
+     arg1.type = Mach_Reg;
+     arg1.reg = rs1;
+     arg2.type = Mach_Imm;
+     arg2.imme = imme;
+     reg_dpt[rd].dirty = 1;
+     insert_dp_code(RSUB , rd , arg1, arg2, 0 , NO);
+}
+
+/*MEM rd , [rs1(off)] , rs2*/
+static inline void gen_mem_rrr_code(enum mem type , int rd , int rs1 , int off , int rs2 , int width)//**************
+{
+     enum mem_op_type mem_op;
+     if(type == load)
+     {
+          if(width == 1)
+               mem_op = LDB;
+          else
+               mem_op = LDW;
+     }
+     else
+     {
+          if(width == 1)
+               mem_op = STB;
+          else
+               mem_op = STW;
+     }
+     struct mach_arg arg1 , arg2;
+     arg2.type = arg1.type = Mach_Reg;
+     arg1.reg = rs1;
+     arg2.reg = rs2;
+     insert_mem_code(mem_op , rd , arg1 , arg2 , 0 , off , NO, 0);
+     if(type == load)
+          reg_dpt[rd].dirty = 1;
+}
+
+/*LDB/LDW rd , [rs1(off)] , rs2<<imme*/
+static inline void gen_mem_lshft_code(enum mem type , int rd, int rs1, int off, int rs2, int imme, int width)
+{
+     enum mem_op_type mem_op;
+     if(type == load)
+     {
+          if(width == 1)
+               mem_op = LDB;
+          else
+               mem_op = LDW;
+     }
+     else
+     {
+          if(width == 1)
+               mem_op = STB;
+          else
+               mem_op = STW;
+     }
+     struct mach_arg arg1 , arg2;
+     arg2.type = arg1.type = Mach_Reg;
+     arg1.reg = rs1;
+     arg2.reg = rs2;
+     insert_mem_code(mem_op , rd , arg1 , arg2 , imme , off , LL, 0);
+     if(type == load)
+          reg_dpt[rd].dirty = 1;
+}
+
+/*LDB/LDW rd , [rs(off)] , #imme*/
+static inline void gen_mem_rri_code(enum mem type , int rd , int rs1 , int off , int imme , int width)
+{
+     enum mem_op_type mem_op;
+     if(type == load)
+     {
+          if(width == 1)
+               mem_op = LDB;
+          else
+               mem_op = LDW;
+     }
+     else
+     {
+          if(width == 1)
+               mem_op = STB;
+          else
+               mem_op = STW;
+     }
+     struct mach_arg arg1 , arg2;
+     arg1.type = Mach_Reg;
+     arg2.type = Mach_Imm;
+     arg1.reg = rs1;
+     arg2.imme = imme;
+     insert_mem_code(mem_op , rd , arg1 , arg2 , 0 , off , NO, 0);
+     if(type == load)
+          reg_dpt[rd].dirty = 1;
+}
+
+/*LDB/LDW/STB/STW rd , [rs]*/
+static inline void gen_mem_rr_code(enum mem type , int rd, int rs1, int width)
+{
+     enum mem_op_type mem_op;
+     if(type == load)
+     {
+          if(width == 1)
+               mem_op = LDB;
+          else
+               mem_op = LDW;
+     }
+     else
+     {
+          if(width == 1)
+               mem_op = STB;
+          else
+               mem_op = STW;
+     }
+     struct mach_arg arg1;
+     arg1.type = Mach_Reg;
+     arg1.reg = rs1;
+     insert_mem_code(mem_op , rd , arg1 , null , 0 , 0 , NO, 0);
+     if(type == load)
+          reg_dpt[rd].dirty = 1;
+}
+
+/*OP rd , rs , #imme*/
+static inline void gen_dp_rri_code(enum dp_op_type op , int rd , int rs , int imme)
+{
+     struct mach_arg arg1 , arg2;
+     arg2.type = Mach_Imm;
+     arg2.imme = imme;
+     arg1.type = Mach_Reg;
+     arg1.reg = rs;
+     reg_dpt[rd] = 1;
+     insert_dp_code(op, rd, arg1, arg2, 0, NO);
+}
 
 
 /****************** deal with global var begin ************************/
@@ -249,7 +413,7 @@ static int prepare_temp_var_inmem()//gen addr at first
 			{
 				if(index < cur_var_id_num)
 				{
-					struct value_info * id_info = get_valueinfo_byno(index);
+                     struct value_info * id_info = get_valueinfo_byno(cur_func_info->func_symt ,  index);
 					if(id_info -> type -> type == Array)
 					{
 						int size = id_info -> size;
@@ -632,10 +796,10 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 						tmp_sp.reg = SP;
 						tmp_offset.type = Mach_Imm;			
 						tmp_offset.imme = shadow_sp_offset[index];	
-						insert_dp_code(SUB, SP, tmp_sp, tmp_offset, 0, NO);
+						insert_dp_code(SUB, SP, tmp_sp, tmp_offset, 0, NO);//******************************push
 						if(width == BYTE)
-							insert_mem_code(STB, index, SP, null, 0, NO, 0);
-						else insert_mem_code(STW, index, SP, null, 0, NO, 0);
+                             insert_mem_code(STB, index, SP, null, 0, 0, NO, 0);
+						else insert_mem_code(STW, index, SP, null, 0, 0, NO, 0);
 
 						shadow_reg_dpt[index] = reg_dpt[index];
 						reg_dpt[index].content = REG_TEMP;
@@ -710,7 +874,7 @@ static inline void check_reg(int reg_num)//must deal with dirty and has_refed be
 	}
 }
 
-static inline enum arg_flag mach_prepare_arg(int arg_index, struct var_info * arg_info, int arg_type)/* arg_type : 0=>dest, 1=>normal *///ref_global_var!!!
+static inline enum Arg_Flag mach_prepare_arg(int arg_index, struct var_info * arg_info, int arg_type)/* arg_type : 0=>dest, 1=>normal *///ref_global_var!!!
 {
 	enum Arg_Flag flag;	
 	if(is_global(arg_index))
@@ -736,12 +900,12 @@ static inline enum arg_flag mach_prepare_arg(int arg_index, struct var_info * ar
 	return flag;
 }
 
-static enum Arg_Flag mach_prepare_index(int index , struct var_info **arg_info , int arg_type)
+static inline enum Arg_Flag mach_prepare_index(int index , struct var_info **arg_info , int arg_type)
 {
      if(index == -2)
           return Arg_Imm;
      (*arg_info) = get_info_from_index(index);
-     return mach_prepare_arg(index , arg_info , arg_type);
+     return mach_prepare_arg(index , (*arg_info) , arg_type);
 }
 
 /************************ prepare arg end ********************************/
@@ -857,179 +1021,16 @@ static inline enum Arg_Flag get_argflag(struct triarg *arg , struct var_info *ar
      return Arg_Mem;
 }
 
-/*******************************一些更加细致的指令生成代码***********************************/
-/*MOV rd , rs*/
-static inline void gen_mov_rsrd_code(int rd , int rs)
-{
-     struct mach_arg src_arg;
-     src_arg.type = Mach_Reg;
-     src_arg.reg = rs;
-     reg_dpt[rd] = 1;
-     insert_dp_code(MOV , rd , src_arg , null , 0 , NO);
-}
-
-/*MOV rd , #imme*/
-static inline void gen_mov_rsim_code(int rd , int imme)
-{
-     struct mach_arg src_arg;
-     src_arg.type = Mach_Imm;
-     src_arg.imme = imme;
-     reg_dpt[rd] = 1;
-     insert_dp_code(MOV , rd , src_arg , null , 0 , NO);
-}
-
-/*MOV rd , rs << #imme*/
-static inline void gen_mov_lshft_code(int rd , int rs , int imme)
-{
-     struct mach_arg src_arg , ;
-     src_arg.type = Mach_Reg;
-     src_arg.reg = rs;
-     reg_dpt[rd] = 1;
-     insert_dp_code(MOV , rd , src_arg , imme , 0 , LL);
-}
-
-/*RSUB rd , rs1 , #imme*/
-static inline void gen_rsub_rri_code(int rd , int rs1 , int imme)
-{
-     struct mach_arg arg1 , arg2;
-     arg1.type = Mach_Reg;
-     arg1.reg = rs1;
-     arg2.type = Mach_Imm;
-     arg2.imme = imme;
-     reg_dpt[rd] = 1;
-     insert_dp_code(RSUB , rd , arg1, arg2, 0 , NO);
-}
-
-/*MEM rd , [rs1(off)] , rs2*/
-static inline void gen_mem_rrr_code(enum mem type , int rd , int rs1 , int off , int rs2 , int width)//**************
-{
-     enum mem_op_type mem_op;
-     if(type == load)
-     {
-          if(width == 1)
-               mem_op = LDB;
-          else
-               mem_op = LDW;
-     }
-     else
-     {
-          if(width == 1)
-               mem_op = STB;
-          else
-               mem_op = STW;
-     }
-     struct mach_arg arg1 , arg2;
-     arg2.type = arg1.type = Mach_Reg;
-     arg1.reg = rs1;
-     arg2.reg = rs2;
-     insert_mem_code(mem_op , rd , arg1 , arg2 , 0 , off , NO, 0);
-     if(type == load)
-          reg_dpt[rd] = 1;
-}
-
-/*LDB/LDW rd , [rs1(off)] , rs2<<imme*/
-static inline void gen_mem_lshft_code(enum mem type , int rd, int rs1, int off, int rs2, int imme, int width)
-{
-     enum mem_op_type mem_op;
-     if(type == load)
-     {
-          if(width == 1)
-               mem_op = LDB;
-          else
-               mem_op = LDW;
-     }
-     else
-     {
-          if(width == 1)
-               mem_op = STB;
-          else
-               mem_op = STW;
-     }
-     struct mach_arg arg1 , arg2;
-     arg2.type = arg1.type = Mach_Reg;
-     arg1.reg = rs1;
-     arg2.reg = rs2;
-     insert_mem_code(mem_op , rd , arg1 , arg2 , imme , off , LL, 0);
-     if(type == load)
-          reg_dpt[rd] = 1;
-}
-
-/*LDB/LDW rd , [rs(off)] , #imme*/
-static inline void gen_mem_rri_code(enum mem type , int rd , int rs1 , int off , int imme , int width)
-{
-     enum mem_op_type mem_op;
-     if(type == load)
-     {
-          if(width == 1)
-               mem_op = LDB;
-          else
-               mem_op = LDW;
-     }
-     else
-     {
-          if(width == 1)
-               mem_op = STB;
-          else
-               mem_op = STW;
-     }
-     struct mach_arg arg1 , arg2;
-     arg1.type = Mach_Reg;
-     arg2.type = Mach_Imm;
-     arg1.reg = rs1;
-     arg2.imme = imme;
-     insert_mem_code(mem_op , rd , arg1 , arg2 , 0 , off , NO, 0);
-     if(type == load)
-          reg_dpt[rd] = 1;
-}
-
-/*LDB/LDW/STB/STW rd , [rs]*/
-static inline void gen_mem_rr_code(enum mem type , int rd, int rs1, int width)
-{
-     enum mem_op_type mem_op;
-     if(type == load)
-     {
-          if(width == 1)
-               mem_op = LDB;
-          else
-               mem_op = LDW;
-     }
-     else
-     {
-          if(width == 1)
-               mem_op = STB;
-          else
-               mem_op = STW;
-     }
-     struct mach_arg arg1;
-     arg1.type = Mach_Reg;
-     arg1.reg = rs1;
-     insert_mem_code(mem_op , rd , arg1 , null , 0 , 0 , NO, 0);
-     if(type == load)
-          reg_dpt[rd] = 1;
-}
-
-/*OP rd , rs , #imme*/
-static inline void gen_dp_rri_code(enum dp_op_type op , int rd , int rs , int imme)
-{
-     struct mach_reg arg1 , arg2;
-     arg2.type = Mach_Imm;
-     arg2.imme = imme;
-     arg1.type = Mach_Reg;
-     arg1.reg = rs;
-     reg_dpt[rd] = 1;
-     insert_dp_code(op, rd, arg1, arg2, 0, NO);
-}
-
 /*******************************************针对三元式的代码生成函数***********************************************/
 /*前一个比较数是立即数的话，将两个比较数互换，并且改变运算符。如果发现两个都是立即数，返回0；否则，返回1*/
 static inline int prtrtm_cond_expr(struct triargexpr *cond_expr)
 {
-     if(cond_expr->arg1.type == Imm_Arg)
+     if(cond_expr->arg1.type == Arg_Imm)
      {
           struct triarg temp_arg;
-          memcpy(&temp_arg , &(cond_expr->arg1));//temp = arg1
-          memcpy((&cond_expr->arg1) , &(cond_expr->arg2));//arg1 = arg2
-          memcpy((&cond_expr->arg2) , &temp_arg);//arg2 = arg1
+          memcpy(&temp_arg , &(cond_expr->arg1) , sizeof(struct triarg));//temp = arg1
+          memcpy((&cond_expr->arg1) , &(cond_expr->arg2) , sizeof(struct triarg));//arg1 = arg2
+          memcpy((&cond_expr->arg2) , &temp_arg , sizeof(struct triarg));//arg2 = arg1
           /*Eq<->Neq, Ge<->Nge, Le<->Nle*/
           switch(cond_expr->op)
           {
@@ -1042,7 +1043,7 @@ static inline int prtrtm_cond_expr(struct triargexpr *cond_expr)
           default :break;
           }
      }
-     if(cond_expr->arg1.type == Imm_Arg)
+     if(cond_expr->arg1.type == Arg_Imm)
      {
           fprinf(stderr , "Triarg Expression Error!\n    ");
           print_triargexpr(*cond_expr);
@@ -1180,7 +1181,7 @@ static inline void gen_cj_expr(struct triargexpr *expr)
      else
      {
           struct var_info *arg1_info = get_info_from_index(arg1_index);
-          struct Arg_Flag arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);//**不可能是立即数而且被引用了，肯定有map_id
+          enum Arg_Flag arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);//**不可能是立即数而且被引用了，肯定有map_id
           /*生成CMPSUB.A expr->arg1 , #0。先生成临时三元式Neq expr->arg1 , #0*/
           struct triargexpr cond_expr;
           cond_expr.op = Neq;
@@ -1297,7 +1298,7 @@ static gen_array_code(enum mem type, struct triargexpr *expr, int dest_reg)
                //MEM dest_reg , [fp-] , addr_reg
                gen_mov_lshft_code(addr_reg , arg2_reg , width_shift);
                gen_dp_rri_code(ADD , addr_reg , addr_reg , arg1_info->mem_addr);
-               gen_mem_rrr_code(type , FP , -1 , addr_reg);
+               gen_mem_rrr_code(type , dest_reg , FP , -1 , addr_reg , 1 << width_shift);
           }
      }
      else
@@ -1319,7 +1320,7 @@ static gen_array_code(enum mem type, struct triargexpr *expr, int dest_reg)
           }
           except[1] = arg1_reg;
           //MEM dest_reg , [arg1_reg+] , arg2_reg
-          gen_mem_rrr_code(dest_reg , arg1_reg , 1 , arg2_reg);
+          gen_mem_rrr_code(type , dest_reg , arg1_reg , 1 , arg2_reg , 1 << width_shift);
      }
      for(i = temp_reg_size ; i >= 0 ; i--)//恢复所有临时寄存器，注意顺序。
           restore_reg(temp_reg[i]);

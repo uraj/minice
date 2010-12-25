@@ -18,7 +18,7 @@
 #include "minic_regalloc.h"
 //#define DEBUG
 //#define SHOWBNF
-#define SHOWLOCALCODE
+//#define SHOWLOCALCODE
 #define SHOWCODE
 
 const size_t MAXIDLEN = 31; /* 31 is the minimum length supported by compilers according to ANCI C standard */
