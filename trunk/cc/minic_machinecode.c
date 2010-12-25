@@ -1082,11 +1082,14 @@ static inline void gen_cmp_code(struct triargexpr *cond_expr , int *restore_reg)
           <2>arg2是寄存器或内存的话先把它左移，然后移入目的寄存器里，利用fp寄存器变址寻址。
   4、恢复所有临时寄存器，注意顺序。
 */
-static gen_array_code(enum mem type , struct var_info *arg1_info , struct var_info *arg2_info , struct triargexpr *expr ,  int dest_reg)
+static gen_array_code(enum mem type, struct triargexpr *expr, int dest_reg)
 {
      int width_shift = 2;
-     enum Arg_Flag arg1_flag = get_argflag(&(expr->arg1) , arg1_info);
-     enum Arg_Flag arg2_flag = get_argflag(&(expr->arg2) , arg2_info);
+     struct var_info *arg1_info , *arg2_info;
+     int arg1_index = get_index_of_arg(&(expr->arg1));
+     int arg2_index = get_index_of_arg(&(expr->arg2));
+     enum Arg_Flag arg1_flag = mach_prepare_index(arg1_index , &arg1_info , 1);
+     enum Arg_Flag arg2_flag = mach_prepare_index(arg2_index , &arg2_info , 1);
      /*计算指针寻址的步长*/
      if(get_stride_from_index(arg1_info->index) == 1)
           width_shift = 0;
@@ -1187,19 +1190,25 @@ static gen_array_code(enum mem type , struct var_info *arg1_info , struct var_in
 
 /*
   解除引用。步骤如下：
-  1、计算寻址步长；
-  2、针对arg1的下面几种情况，不同操作：
+  1、如果该三元式是引用，需要在load之前将所有该指针可能指向的变量存入内存；如果该三元式是定值，在store之后将所有该指针可能指向的变量存入寄存器；
+  2、计算寻址步长；
+  3、针对arg1的下面几种情况，不同操作：
       a)局部数组首地址。寄存器相对寻址；
       b)其他情况都可以将地址统一装到目的寄存器中，寄存器间接寻址。
           装入地址方式：
               a)全局变量。如果在寄存器内则不操作；没有的话，调用函数获得地址；
               b)其他，包括指针型ident、三元式编号临时变量。如果在寄存器内则不操作；没有的话，直接从内存装入。
-  3、恢复临时寄存器。
+  4、恢复临时寄存器。
  */
-static gen_deref_code(enum mem type , struct var_info *arg1_info , struct triargexpr *expr ,  int dest_reg)
+static gen_deref_code(enum mem type , struct triargexpr *expr , int dest_reg)
 {
+     struct triargexpr_list *expr_node = cur_table->index_to_list[expr->index];
+     if(type == load)
+          flush_pointer_entity(store , expr_node->pointer_entity);
      int width_shift = 2;
-     enum Arg_Flag arg1_flag = get_argflag(&(expr->arg1) , arg1_info);
+     int arg1_index = get_index_of_arg(&(expr->arg1));
+     struct var_info *arg1_info;
+     enum Arg_Flag arg1_flag = mach_prepare_arg(arg1_index , &arg1_info , 1);
      int temp_reg = -1 , arg1_reg;
      /*计算指针寻址的步长*/
      if(get_stride_from_index(arg1_info->index) == 1)
@@ -1226,6 +1235,31 @@ static gen_deref_code(enum mem type , struct var_info *arg1_info , struct triarg
           if(arg1_flag != Arg_Reg)
                restore_reg(temp_reg);
      }
+     if(type == store)
+          flush_pointer_entity(load , expr_node->pointer_entity);
+}
+
+/**/
+static void gen_assign_expr_code(int expr_num , int arg2_reg)
+{
+     struct var_info *arg1_info;
+     int dest_index = get_index_of_temp(expr_num);
+     if(dest_index < 0)
+          return;
+     enum Arg_Flag arg1_flag = mach_prepare_index(dest_index , arg1_info , 0);
+     
+     /*
+       <1>arg1是寄存器，MOV；
+       <2>arg1是内存，store；
+      */
+     if(arg1_flag == Arg_Reg)//arg1是寄存器
+          gen_mov_rsrd_code(arg1_info->reg_addr , arg2_reg);
+     else
+     {
+          int rd = arg2_info->reg_addr;
+          dest_reg = rd;
+          store_var(arg1_info , rd);
+     }
 }
 
 /*生成代码过程中，要多次在变量间赋值，expr的作用是根据运算类型判断是否对临时寄存器做其他操作*/
@@ -1240,24 +1274,54 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
            <5>arg1和arg2都是内存，先将arg2导入临时寄存器，然后将临时寄存器的值存入内存。
        2、如果arg1是三元式编号，还要看一下它对应的三元式是否是*p或者a[i]，如果是的话，还要对内存操作。
       */
-     if(arg1 == NULL || arg2 == NULL)
-          return;
-     int arg1_index = get_index_of_arg(arg1);
-     int arg2_index = get_index_of_arg(arg2);
+     const int nothing = 0 , assign = 1 , uminus = 2;
+     int expr_flag;
+     if(expr == NULL)
+          expr_flag = nothing;
+     else
+     {
+          if(expr->op == Uminus)
+               expr_flag = uminus;
+          else if(expr->op == Assign)
+               expr_flag = assign;
+     }
+     
+     int arg1_index = get_index_of_arg(arg1);//
+     int arg2_index = get_index_of_arg(arg2);//立即数、
+     //int dest_index = get_index_of_temp(expr->index);
+     
      if(arg1_index < 0)
+     {
+          if(expr_flag == nothing)
+               return;
+          else if(expr_flag == assign)
+          {
+               struct triarg arg;
+               arg.type = ExprArg;
+               arg.expr = expr->index;
+               gen_assign_arg_code(&arg , arg2);
+               return;
+          }
           return;
+     }
      
      struct var_info *arg1_info = get_info_from_index(arg1_index);
      struct var_info *arg2_info = get_info_from_index(arg2_index);
+     //struct var_info *dest_info = get_info_from_index(dest_index);
+     
+     enum Arg_Flag arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 0);
+     enum Arg_Flag arg2_flag = mach_prepare_arg(arg2_index, arg2_info, 1);
+     //enum Arg_Flag dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
+
      int dest_reg = arg1_info->reg_addr;
      int temp_reg = -1;
      
-     if(arg2->type == ImmArg)//arg2是立即数
+     if(arg2_flag == Arg_Imm)//arg2是立即数
      {
           int imme = arg2->imme;
-          if(expr != NULL && expr->op == Uminus)//一元减
+          if(expr_flag == uminus)//一元减
                imme = 0 - imme;
-          if(arg1_info->reg_addr >= 0)//arg1在寄存器
+          if(arg1_flag == Arg_Reg)//arg1在寄存器
                gen_mov_rsim_code(dest_reg , arg2->imme);
           else
           {
@@ -1268,11 +1332,11 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
                //restore_reg(imme_reg);
           }
      }
-     else if(arg1_info->reg_addr >= 0)//arg1是寄存器
+     else if(arg1_flag == Arg_Reg)//arg1是寄存器
      {
-          if(arg2_info->reg_addr >= 0)//arg2是寄存器
+          if(arg2_flag == Arg_Reg)//arg2是寄存器
           {
-               if(expr != NULL && expr->op == Uminus)
+               if(expr_flag == uminus)
                     gen_rsub_rri_code(arg1_info->reg_addr , arg2_info->reg_addr , 0);
                else
                     gen_mov_rsrd_code(arg1_info->reg_addr , arg2_info->reg_addr);
@@ -1280,17 +1344,17 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
           else
           {
                store_var(arg2_info , arg1_info->reg_addr);
-               if(expr != NULL && expr->op == Uminus)
+               if(expr_flag == uminus)
                     gen_rsub_rri_code(arg1_info->reg_addr , arg1_info->reg_addr , 0);
           }
      }
      else
      {
-          if(arg2_info->reg_addr >= 0)
+          if(arg2_flag == Arg_Reg)
           {
                int rd = arg2_info->reg_addr;
                dest_reg = rd;
-               if(expr != NULL && expr->op == Uminus)
+               if(expr_flag == uminus)
                {
                     int except[1];
                     except[0] = rd;
@@ -1307,25 +1371,23 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
                int rd = gen_tempreg(NULL , 0);
                dest_reg = rd;
                load_var(arg2_info , rd);
-               if(expr != NULL && expr->op == Uminus)
+               if(expr_flag == uminus)
                     gen_rsub_rri_code(rd , rd , 0);
                store_var(arg1_info , rd);
           }
      }
 
-     struct triargexpr_list *last_expr_node = cur_table->index_to_list[arg1->expr];
-     struct triargexpr *last_expr = temp_expr_node->entity;
-     if(last_expr->op == Subscript)
+     if(expr_flag == assign)
      {
-          struct var_info *last1_info = get_info_from_index(get_index_of_arg(&(last_expr->arg1)));
-          struct var_info *last2_info = get_info_from_index(get_index_of_arg(&(last_expr->arg2)));
-          gen_array_code(store , last1_info , last2_info , last_expr , dest_reg);
+          struct triargexpr_list *last_expr_node = cur_table->index_to_list[arg1->expr];
+          struct triargexpr *last_expr = temp_expr_node->entity;
+          if(last_expr->op == Subscript)
+               gen_array_code(store , last_expr , dest_reg);
+          else if(last_expr->op == Deref)
+               gen_deref_code(store , last_expr , dest_reg);
+          gen_assign_expr_code(expr->index , dest_reg);
      }
-     else if(last_expr->op == Deref)
-     {
-          struct var_info *last1_info = get_info_from_index(get_index_of_arg(&(last_expr->arg1)));
-          gen_deref_code(store , last1_info , last_expr , dest_reg);
-     }
+     
      restore_reg(temp_reg);
 }
 
@@ -1548,7 +1610,13 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, char var_info * dest
 	}
 }
 
-
+static enum Arg_Flag mach_prepare_index(int index , struct var_info **arg_info , int arg_type)
+{
+     if(index == -2)
+          return Arg_Imm;
+     (*arg_info) = get_info_from_index(index);
+     return mach_prepare_arg(index , arg_info , arg_type);
+}
 
 static void gen_per_code(struct triargexpr * expr)
 {
@@ -1562,13 +1630,13 @@ static void gen_per_code(struct triargexpr * expr)
 	{
 		case Assgin:
 			{
-				arg1_index = get_index_of_arg(expr -> arg1);
+                 arg1_index = get_index_of_arg(&(expr -> arg1));
 				arg1_info = get_info_from_index(arg1_index);
 				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 0);
 				
 				if(expr -> arg2.type != ImmArg)
 				{
-					arg2_index = get_index_of_arg(expr -> arg2);
+                     arg2_index = get_index_of_arg(&(expr -> arg2));
 					arg2_info = get_info_from_index(arg2_index);
 					arg2_flag = mach_prepare_arg(arg2_index, arg2_info, 1);
 				}
@@ -1955,10 +2023,17 @@ static void gen_per_code(struct triargexpr * expr)
 
         case Subscript:                  /* [] */
 			{
+                 dest_index = get_index_of_temp(expr -> index);
+                 if(dest_index == -1)
+                      return;
+                 dest_info = get_info_from_index(dest_index);
+                 dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
+
                  int dest_reg;
                  int except[2];
                  except[0] = arg1_info->reg_addr;
                  except[1] = arg2_info->reg_addr;
+                 
                  if(dest_flag == Arg_Reg)
                       dest_reg = dest_info->reg_addr;
                  else if(dest_flag == Arg_Mem)
@@ -1978,14 +2053,11 @@ static void gen_per_code(struct triargexpr * expr)
 
 		case Deref:                      /* '*' */
 			{
-                 
-                 int width_shift = 2;
-                 /*计算指针寻址的宽度*/
-                 struct symbol_table *cur_symtable = cur_func_info->func_symt;
-                 struct value_info *array_info = get_valueinfo_byno(cur_symtable , arg1_info->index);
-                 if(array_info->type->type == Pointer || array_info->type->type == Array)
-                      if(array_info->type->base_type->type == Char)
-                           width_shift = 0;
+                 dest_index = get_index_of_temp(expr -> index);
+                 if(dest_index == -1)
+                      return;
+                 dest_info = get_info_from_index(dest_index);
+                 dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
 
                  /*获得目的寄存器；*/
                  int rd;
