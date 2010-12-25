@@ -6,7 +6,7 @@
 #include <stdlib.h>
 //#define POINTER_DEBUG	/*Use to debug in out*/
 //#define FUNC_DEBUG
-//#define TRANS_DEBUG		/*Use to debug trans*/	//almost right
+//#define TRANS_DEBUG		/*Use to debug trans*/	//must be uncommented with POINTER_DEBUG
 //#define ENTITY_DEBUG	/*Use to debug entity list*/
 static int cur_var_id_num;
 static struct var_list *** pointer_in;
@@ -21,6 +21,7 @@ struct entity_type//only needed in this file
 	char ispointer;//-1 flush tag; 0 not pointer; 1 is pointer; 2 is array; 3 is modified pointer
 };
 
+#ifdef POINTER_DEBUG
 static void print_list(struct var_list ** old_list)
 {
 	int index;
@@ -31,6 +32,7 @@ static void print_list(struct var_list ** old_list)
 	}
 	printf("\n");
 }
+#endif
 
 static inline void set_cur_function(int function_index)
 {
