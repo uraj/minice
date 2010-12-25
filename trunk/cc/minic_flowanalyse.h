@@ -44,5 +44,5 @@ extern struct var_list *var_list_inter(struct var_list *inter , struct var_list 
 /*analyse*/
 extern int get_max_func_varlist();
 extern struct var_list *analyse_actvar(int *expr_num , int func_index);//活跃变量分析
-extern void free_all();//free all memory
+extern void free_all(struct var_list *all_var_lists);//free all memory
 #endif

@@ -454,9 +454,6 @@ static void prepare_temp_var_inmem()//gen addr at first
 				{
 					get_arglist_rank(cur_func_info -> func_symt, index);//MARK TAOTAOTHERIPPER
 				}
-				else
-				{
-				}
 				tmp_v_info = get_info_from_index(index);
 				if(get_width_from_index(index) == BYTE)
 					offset_from_sp ++;
@@ -2325,7 +2322,6 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 	//printf("%d\n", var_list_size);
 	//printf("%d\n", cur_ref_var_num);
 	alloc_reg = reg_alloc(active_var_array, var_list_size, cur_ref_var_num, max_reg_num);//current now
-	//free_active_list TAOTAOTHERIPPER MARK
 	recover_triargexpr(block_head);		
 	reset_reg_number();//reset the reg number
 	enter_func_push();
@@ -2338,5 +2334,7 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 		gen_per_code(expr);
 		tmp_node = tmp_node -> next;
 	}
+	free_all(active_var_array);
+	leave_cur_function();
 }
 
