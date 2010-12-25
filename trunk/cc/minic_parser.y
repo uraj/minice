@@ -16,6 +16,7 @@
 #include "minic_flowanalyse.h"
 #include "minic_aliasanalyse.h"
 #include "minic_regalloc.h"
+#include "minic_machinecode.h"
 //#define DEBUG
 //#define SHOWBNF
 //#define SHOWLOCALCODE
@@ -622,18 +623,16 @@ int main(int argc, char* argv[])
 	yyparse();
 	fclose(yyin);
 	free_global_table();/*there should be an extra tmp table, and g_table_list_size is set in this*/
-	int i = 0 , j , curfun_expr_num;
-    struct var_list *curfun_actvar_lists;
+	new_code_table_list();	
+	int i = 0 ;//, j , curfun_expr_num;
+    //struct var_list *curfun_actvar_lists;
     struct value_info *cur_func_info;
 	for(i = 0; i < g_table_list_size; i++)
 	{
 		printf("%s\n", table_list[i] -> funcname);
 		cur_func_info = symt_search(simb_table ,table_list[i] -> funcname);
 		curr_table = cur_func_info->func_symt;
-		struct basic_block * b_head = make_fd(i);
-		pointer_analyse(i);	
-		curfun_actvar_lists = analyse_actvar(&curfun_expr_num , i);
-        recover_triargexpr(b_head);
+		gen_machine_code(i);
 		/*here is the register allotting and the assemble codes generating*/
 
 	    /*
@@ -652,8 +651,8 @@ int main(int argc, char* argv[])
         }
         printf("varlist ends.\n");
 		*/
-        free(curfun_actvar_lists);
 	}
+	free_code_table_list();
     syms_delete(parm_stack);
     syms_delete(type_stack);
     symt_delete(curr_table);
