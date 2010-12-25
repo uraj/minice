@@ -1112,7 +1112,7 @@ static inline void gen_cmp_code(struct triargexpr *cond_expr , int *restore_reg)
                     else
                          except[j] = cond_arg_info[j]->reg_addr;
                }
-               arg_reg_index[i] = gen_tempreg(except[2] , 2);
+               arg_reg_index[i] = gen_tempreg(except , 2);
                restore_reg[restore_reg_index--] = arg_reg_index[i];
           }
      }
@@ -1357,7 +1357,7 @@ static gen_deref_code(enum mem type , struct triargexpr *expr , int dest_reg)
      int width_shift = 2;
      int arg1_index = get_index_of_arg(&(expr->arg1));
      struct var_info *arg1_info;
-     enum Arg_Flag arg1_flag = mach_prepare_arg(arg1_index , &arg1_info , 1);
+     enum Arg_Flag arg1_flag = mach_prepare_index(arg1_index , &arg1_info , 1);
      int temp_reg = -1 , arg1_reg;
      /*计算指针寻址的步长*/
      if(get_stride_from_index(arg1_info->index) == 1)
@@ -1395,7 +1395,7 @@ static void gen_assign_expr_code(int expr_num , int arg2_reg)
      int dest_index = get_index_of_temp(expr_num);
      if(dest_index < 0)
           return;
-     enum Arg_Flag arg1_flag = mach_prepare_index(dest_index , arg1_info , 0);
+     enum Arg_Flag arg1_flag = mach_prepare_index(dest_index , &arg1_info , 0);
      
      /*
        <1>arg1是寄存器，MOV；
@@ -1538,7 +1538,8 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
 
 void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * dest_info, enum Arg_Flag dest_flag)
 {
-	int dest_reg, tmp_mark = 0, tmp_inner_mark = 0;
+     int dest_reg, tmp_mark = 0, tmp_inner_mark = 0 , arg1_index;
+     struct var_info *arg1_info;
 	if(dest_flag == Arg_Reg)
 		dest_reg = dest_info -> reg_addr;
 	else
@@ -1553,9 +1554,9 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 		arg1_info = get_info_from_index(arg1_index);
 		load_pointer(arg1_index, dest_reg, 0, 0);
 	}
-	else(expr -> arg1.type == ExprArg)
+	else if(expr -> arg1.type == ExprArg)
 	{
-		struct triargexpr refed_expr = cur_table[expr -> arg1.expr];
+         struct triargexpr refed_expr = cur_table[(expr->arg1).expr];
 		switch(refed_expr.op)
 		{
 			case Subscript:
@@ -1673,9 +1674,9 @@ static void gen_per_code(struct triargexpr * expr)
 {
 	check_is_jump_dest(expr -> index);
 
-	struct int dest_index, arg1_index, arg2_index;
+	int dest_index, arg1_index, arg2_index;
 	struct var_info * dest_info, * arg1_info, * arg2_info; 
-	enum arg_flag dest_flag, arg1_flag, arg2_flag;
+	enum Arg_Flag dest_flag, arg1_flag, arg2_flag;
 
 	switch(expr -> op)
 	{
