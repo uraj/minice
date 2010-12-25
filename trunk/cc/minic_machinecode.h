@@ -87,7 +87,7 @@ enum index_type
 	PRENW = 0,	/* pre indexed not write back register */
 	PREW,	/* pre indexed write back register */
 	POST	/* post indexed */
-}
+};
 
 struct mach_code//mach means machine
 {
