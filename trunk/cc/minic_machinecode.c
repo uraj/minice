@@ -707,6 +707,11 @@ static inline enum arg_flag mach_prepare_arg(int arg_index, struct var_info * ar
 
 
 /******************** flush pointer entity beg ***************************/
+static void flush_global_var()
+{
+	
+}
+
 static void flush_pointer_entity(struct var_list * entity_list)
 {
 	struct var_info * v_info;
@@ -1995,14 +2000,14 @@ static void gen_per_code(struct triargexpr * expr)
                     vinfo = get_info_from_index(focus->var_map_index);
                     if(vinfo->reg_addr >= 4 && vinfo->reg_addr <= 15)
                     {
-                        ;       /* push into stack */
+                        gen_mem_rri_code(load, vinfo -> reg_addr, FP, -1, caller_save_index - saved_reg_count * WORD, WORD);
                         saved_reg[saved_reg_count++] = vinfo->reg_addr;
                     }
                 }
                 insert_buncond_code(expr->arg1.idname, 1);
                 /* restore caller save */
                 for(--saved_reg_count; saved_reg_count >=0; --saved_reg_count)
-                    ;           /* resotre */
+                    gen_mem_rri_code(store, saved_reg[saved_reg_count], FP, -1, caller_save_index - saved_reg_count * WORD, WORD);           /* resotre */
 			}
 
 		case Arglist:
