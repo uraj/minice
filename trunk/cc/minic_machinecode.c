@@ -1,3 +1,4 @@
+#include "minic_asmout.h"
 #include "minic_machinecode.h"
 #include "minic_basicblock.h"
 #include "minic_flowanalyse.h"
@@ -1711,10 +1712,15 @@ static void gen_per_code(struct triargexpr * expr)
 			{
 				dest_index = get_index_of_temp(expr -> index);
 				if(dest_index == -1)
-					return;
-				dest_info = get_info_from_index(dest_index);
-
-				dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
+				{
+					if(expr -> op != Plusplus && expr -> op != Minusminus)
+						return;
+				}
+				else
+				{
+					dest_info = get_info_from_index(dest_index);
+					dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
+				}
 
 				if(expr -> op == Ref)
 				{
@@ -2296,6 +2302,13 @@ static void reset_reg_number()//
      }
 }
 
+static void print_mach_code(int func_index)
+{
+	int index;
+	for(index = 0; index < code_table_list[func_index].code_num; index++)
+		asm_out(&code_table_list[func_index].table[index], stdout);
+}
+
 void new_code_table_list()
 {
 	code_table_list = calloc(g_table_list_size, sizeof(struct mach_code_table)); 
@@ -2312,6 +2325,7 @@ void free_code_table_list()
 	}
 	free(code_table_list);
 }
+
 
 void gen_machine_code(int func_index)//Don't forget NULL at last
 {

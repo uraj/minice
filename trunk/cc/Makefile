@@ -2,9 +2,11 @@ CFLAGS=-c
 CFLAGS+=-g
 CFLAGS+=-Wall
 OBJPREFIX=./objs/
-MINIC_OBJS=minic_ast.o minic_parser.tab.o minic_typetree.o minic_symtable.o minic_symfunc.o minic_typedef.h minic_scanner.o minic_astcheck.o minic_triargexpr.o minic_triargtable.o minic_basicblock.o minic_varmapping.o minic_flowanalyse.o minic_aliasanalyse.o minic_regalloc.o minic_machinecode.o
+MINIC_OBJS=minic_ast.o minic_parser.tab.o minic_typetree.o minic_symtable.o minic_symfunc.o minic_typedef.h minic_scanner.o minic_astcheck.o minic_triargexpr.o minic_triargtable.o minic_basicblock.o minic_varmapping.o minic_flowanalyse.o minic_aliasanalyse.o minic_regalloc.o minic_machinecode.o minic_asmout.o
 minicc:$(MINIC_OBJS)
 	gcc $(MINIC_OBJS) -o minicc -lfl
+minic_asmout.o: minic_asmout.h minic_asmout.c
+	gcc minic_asmout.c $(CFLAGS) -o $@
 minic_machinecode.o:minic_machinecode.h minic_machinecode.c
 	gcc minic_machinecode.c $(CFLAGS) -o $@
 minic_flowanalyse.o:minic_flowanalyse.h minic_flowanalyse.c
