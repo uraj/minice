@@ -8,6 +8,7 @@
 #include <string.h>
 #define INITIAL_MACH_CODE_SIZE 100
 #define MAX_LABEL_NAME_LEN 20
+#define TOTAL_REG_NUM 32
 #define SP 29
 #define FP 27
 #define LR 30
@@ -38,7 +39,6 @@ struct Reg_Dpt
 
 static struct ralloc_info alloc_reg;
 static struct Reg_Dpt reg_dpt[32];//register discription
-static int map_to_reg[32];//将分配的寄存器编号映射成真实寄存器号
 static int cur_var_id_num;
 static int cur_sp;
 static int total_label_num;//set zero in new_code_table_list 
@@ -762,13 +762,24 @@ static inline void store_global_var(struct var_info * g_v_info, int reg_num)
 
 
 /************************** get temp reg begin ***********************/
+static int is_reg_disabled(int regnum)
+{
+	if((regnum >= 4 && regnum <= 15) ||
+			(regnum >= 17 && regnum <= 26) ||
+			(regnum == 28))
+		return 0;
+	return 1;
+}
+
 static int gen_tempreg(int * except, int size)//general an temp reg for the var should be in memory
 {
 	int outlop, index, ex;
 	for(outlop = 0; outlop < 5; outlop ++)
 	{
-		for(index = max_reg_num - 1; index >= 0; index --)//look for empty
+		for(index = TOTAL_REG_NUM - 1; index >= 0; index --)//look for empty
 		{
+			if(is_reg_disabled(index))
+				continue;
 			for(ex = 0; ex < size; ex ++)
 			{
 				if(index == except[ex])
@@ -907,11 +918,13 @@ static void flush_global_var()
 {
 	int index;
 	struct var_info * v_info;
-	for(index = 0; index < max_reg_num; index ++)
+	for(index = 0; index < TOTAL_REG_NUM; index ++)
 	{
+		if(is_reg_disabled(index))
+			continue;
 		v_info = get_info_from_index(reg_dpt[index].content);
 		if(is_global(reg_dpt[index].content) && reg_dpt[index].dirty)
-			store(v_info, index);
+			store_var(v_info, index);
 	}
 }
 
@@ -919,8 +932,10 @@ static void reload_global_var()
 {
 	int index;
 	struct var_info * v_info;
-	for(index = 0; index < max_reg_num; index ++)
+	for(index = 0; index < TOTAL_REG_NUM; index ++)
 	{
+		if(is_reg_disabled(index))
+			continue;
 		v_info = get_info_from_index(reg_dpt[index].content);
 		if(is_global(reg_dpt[index].content) && reg_dpt[index].dirty)
 		{
@@ -936,10 +951,12 @@ static void flush_pointer_entity(enum mem type, struct var_list * entity_list)
 	int index;	
 	if(entity_list == NULL)
 		return;
-	else if(entity -> head == NULL)
+	else if(entity_list -> head == NULL)
 	{
-		for(index = 0; index < max_reg_num; index ++)
+		for(index = 0; index < TOTAL_REG_NUM; index ++)
 		{
+			if(is_reg_disabled(index))
+				continue;
 			v_info = get_info_from_index(reg_dpt[index].content);
 			if(is_id_var(reg_dpt[index].content) && reg_dpt[index].dirty)
 			{
@@ -959,12 +976,14 @@ static void flush_pointer_entity(enum mem type, struct var_list * entity_list)
 		tmp = entity_list -> head;
 		while(tmp != entity_list -> tail -> next)
 		{
-			for(index = 0; index < max_reg_num; index ++)
+			for(index = 0; index < TOTAL_REG_NUM; index ++)
 			{
-				if(reg_dpt[index].content = tmp -> var_map_index)
+				if(is_reg_disabled(index))
+					continue;
+				if(reg_dpt[index].content == tmp -> var_map_index)
 				{
 					v_info = get_info_from_index(tmp -> var_map_index);
-					struct value_info * array_info = get_info_from_index(tmp -> var_map_index);
+					struct value_info * array_info = get_valueinfo_byno(cur_func_info -> func_symt, tmp -> var_map_index);
 					if(reg_dpt[index].dirty && array_info -> type -> type != Array)
 					{
 						if(type == load)
