@@ -1575,7 +1575,7 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 						tmp_arg_flag = Arg_Imm;
 					else
 					{
-						tmp_arg_index = get_index_of_arg(refed_expr.arg2);
+						tmp_arg_index = get_index_of_arg(&refed_expr.arg2);
 						tmp_arg_info = get_info_from_index(tmp_arg_index);
 						tmp_arg_flag = mach_prepare_arg(tmp_arg_index, tmp_arg_info, 1);
 					}
@@ -1605,7 +1605,7 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 								load_var(tmp_arg_info, array_offset.reg);
 							}
 						}
-						if(get_stride_with_index(id_index) == WORD)
+						if(get_stride_from_index(id_index) == WORD)
 							insert_dp_code(ADD, dest_reg, array_head, array_offset, 2, LL);
 						else insert_dp_code(ADD, dest_reg, array_head, array_offset, 0, NO);
 						if(tmp_inner_mark == 1)
@@ -1644,9 +1644,9 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 							for array load_pointer
 							for other load
 					 */
-					int p_index = get_index_of_arg(refed_expr.arg1);
+					int p_index = get_index_of_arg(&refed_expr.arg1);
 					struct var_info * p_info = get_info_from_index(p_index);
-					int p_flag = mach_prepare_arg(p_index, id_info, 1);
+					enum Arg_Flag p_flag = mach_prepare_arg(p_index, p_info, 1);
 					if(p_flag == Arg_Reg)//the temp array head can't be in reg
 						gen_mov_rsrd_code(dest_reg, alloc_reg.result[p_index]);
 					else
@@ -1666,7 +1666,7 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 	if(tmp_mark == 1)
 	{
 		store_var(dest_info, dest_reg);
-		restore(dest_reg);
+		restore_tempreg(dest_reg);
 	}
 }
 
@@ -1843,12 +1843,13 @@ static void gen_per_code(struct triargexpr * expr)
 				if(arg1_flag == Arg_Mem)
 				{
 					if(is_array(arg1_index))
-						load_pointer(arg1_index, tempreg1);
+						load_pointer(arg1_index, tempreg1, 0, 0);
 					else
 						load_var(arg1_info, tempreg1);
 				}
 				else if(arg1_flag == Arg_Imm)//Only one Imm
 				{
+					struct mach_arg tmp_arg1;
 					tmp_arg1.type = Mach_Imm;
 					tmp_arg1.imme = expr -> arg1.imme;
 					insert_dp_code(MOV, tempreg1, null, tmp_arg1, 0, NO);
@@ -1857,12 +1858,13 @@ static void gen_per_code(struct triargexpr * expr)
 				if(arg2_flag == Arg_Mem)
 				{
 					if(is_array(arg1_index))
-						load_pointer(arg2_index, tempreg2);
+						load_pointer(arg2_index, tempreg2, 0, 0);
 					else
 						load_var(arg2_info, tempreg2);
 				}
 				else if(arg2_flag == Arg_Imm)//Only one Imm
 				{
+					struct mach_arg tmp_arg2;
 					tmp_arg2.type = Mach_Imm;
 					tmp_arg2.imme = expr -> arg1.imme;
 					insert_dp_code(MOV, tempreg2, null, tmp_arg2, 0, NO);
@@ -1880,15 +1882,24 @@ static void gen_per_code(struct triargexpr * expr)
 					case Mul:
 						op_type = MUL;
 						break;
+					default:
+						fprintf(stderr, "error when gen plus sub and mul\n");
+						break;
 				}
+
+				struct mach_arg binary_arg1, binary_arg2;
+				binary_arg2.type = binary_arg1.type = Arg_Reg;
+				binary_arg1.reg = tempreg1;
+				binary_arg2.reg = tempreg2;
+				
 				if(dest_flag == Arg_Reg)
 				{
 					reg_dpt[dest_info -> reg_addr].dirty = 1;
 					if(get_stride_from_index(arg1_index) == WORD)//only add and sub
-						insert_dp_code(op_type, dest_info -> reg_addr, tempreg1, tempreg2, 2, LL);
+						insert_dp_code(op_type, dest_info -> reg_addr, binary_arg1, binary_arg2, 2, LL);
 					else if(get_stride_from_index(arg2_index) == WORD)//only add
-						insert_dp_code(op_type, dest_info -> reg_addr, tempreg2, tempreg1, 2, LL);
-					else insert_dp_code(op_type, dest_info -> reg_addr, tempreg1, tempreg2, 0, NO);
+						insert_dp_code(op_type, dest_info -> reg_addr, binary_arg2, binary_arg1, 2, LL);
+					else insert_dp_code(op_type, dest_info -> reg_addr, binary_arg1, binary_arg2, 0, NO);
 				}
 				else
 				{
@@ -1899,10 +1910,10 @@ static void gen_per_code(struct triargexpr * expr)
 						tempdest = tempreg2;
 					else tempdest = gen_tempreg(except, ex_size);
 					if(get_stride_from_index(arg1_index) == WORD)//only add and sub
-						insert_dp_code(op_type, tempdest, tempreg1, tempreg2, 2, LL);
+						insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 2, LL);
 					else if(get_stride_from_index(arg2_index) == WORD)//only add
-						insert_dp_code(op_type, tempdest, tempreg2, tempreg1, 2, LL);
-					else insert_dp_code(op_type, tempdest, tempreg1, tempreg2, 0, NO);	
+						insert_dp_code(op_type, tempdest, binary_arg2, binary_arg1, 2, LL);
+					else insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 0, NO);	
 					store_var(dest_info, tempdest);
 					if(!mark1 && !mark2)
 						restore_tempreg(tempdest);
@@ -2121,12 +2132,12 @@ static void gen_per_code(struct triargexpr * expr)
                 arglist_num_mark = 0;
                 flush_global_var();//MARK TAOTAOTHERIPPER
 				/* caller save */
-                struct var_list_node * focus = expr->arg2.func_actvar_list.head;
+                struct var_list_node * focus = expr -> arg2.func_actvar_list -> head;
                 struct var_info * vinfo = NULL;
                 char saved_reg[32];
                 int saved_reg_count = 0;
                 int i;
-                while(focus != NULL && focus != expr->arg2.func_actvar_list.tail)
+                while(focus != NULL && focus != expr -> arg2.func_actvar_list -> tail)
                 {
                     vinfo = get_info_from_index(focus->var_map_index);
                     if(vinfo->reg_addr >= 4 && vinfo->reg_addr <= 15)
@@ -2144,7 +2155,10 @@ static void gen_per_code(struct triargexpr * expr)
 				if(dest_index != -1)//The r0 won't be changed during the restore above	
 				{
 					if(dest_flag == Arg_Reg)
+					{
 						gen_mov_rsrd_code(dest_info -> reg_addr, 0);
+						reg_dpt[dest_info -> reg_addr].dirty = 1;
+					}
 					else
 						store_var(dest_info, 0);
 				}
@@ -2207,7 +2221,7 @@ static void gen_per_code(struct triargexpr * expr)
 				else
 				{
 					int lsb = 0;
-					while((src >> lsb) & 1 == 0)
+					while(((src >> lsb) & 1) == 0)
 						++lsb;
 					mach_src.imme = (src >> lsb) & 0x1ff;
 					insert_dp_code(MOV, reg, mach_src, null, 32-lsb, RR);
@@ -2230,6 +2244,9 @@ static void gen_per_code(struct triargexpr * expr)
 					store_var(dest_info, reg);
 					restore_tempreg(reg);
 				}
+				else
+					reg_dpt[dest_info -> reg_addr].dirty = 1;
+
 				break;
 			}
         
