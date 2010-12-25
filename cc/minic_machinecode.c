@@ -2306,7 +2306,7 @@ static void print_mach_code(int func_index)
 {
 	int index;
 	for(index = 0; index < code_table_list[func_index].code_num; index++)
-		asm_out(&code_table_list[func_index].table[index], stdout);
+		mcode_out(&code_table_list[func_index].table[index], stdout);
 }
 
 void new_code_table_list()
