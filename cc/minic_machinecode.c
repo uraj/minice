@@ -2163,7 +2163,7 @@ static void gen_per_code(struct triargexpr * expr)
 		
 		case Funcall:                    /* () */
 			{
-
+                arglist_num_mark = 0;
                 flush_global_var();//MARK TAOTAOTHERIPPER
 				/* caller save */
                 struct var_list_node * focus = expr->arg2.func_actvar_list.head;
@@ -2189,12 +2189,10 @@ static void gen_per_code(struct triargexpr * expr)
 				if(dest_index != -1)//The r0 won't be changed during the restore above	
 				{
 					if(dest_flag == Arg_Reg)
-						gen_mov_rdrs_code(dest_info -> reg_addr, 0);
+						gen_mov_rsrd_code(dest_info -> reg_addr, 0);
 					else
 						store_var(dest_info, 0);
 				}
-
-                arglist_num_mark = 0;
 			}
 
 		case Arglist:
@@ -2245,7 +2243,7 @@ static void gen_per_code(struct triargexpr * expr)
 				struct mach_arg mach_src, mach_base;
 				mach_src.type = Mach_Imm;
 				mach_base.type = Mach_Reg;
-				if(dest_flag == Arg_reg)
+				if(dest_flag == Arg_Reg)
 					reg = dest_info->reg_addr;
 				else                /* dest_flag == Arg_Mem */
 					reg = gen_tempreg(NULL, 0);
@@ -2275,31 +2273,17 @@ static void gen_per_code(struct triargexpr * expr)
 				if(dest_flag == Arg_Mem)
 				{
 					store_var(dest_info, reg);
-					restore(reg);
+					restore_tempreg(reg);
 				}
+				break;
 			}
         
 		case Return:
 			{
 				if(arg1_flag == Arg_Reg)
-                {
-                    if(arg1_info->reg_addr != 0)
-                    {
-                        /* if arg1 in r0 can be optimized */;
-                        /* mov arg1, r0 */;
-                        struct mach_arg mach_src;
-                        mach_src.type = Mach_Reg;
-                        mach_src.reg = arg1_info->reg_addr;
-                        insert_dp_code(MOV, 0, null, mach_src, 0, NO);
-                    }
-                }
+					gen_mov_rsrd_code(0, arg1_info -> reg_addr);
 				else if(arg1_flag == Arg_Mem)
-                {
-                    /* lod r0, arg1 */;
-                    mach_base.type = Mach_Reg;
-                    mach_base.reg = FP;
-                    load_var(arg1_info, 0);
-                }
+                    store_var(arg1_info, 0);
                 else            /* arg1_flag == Arg_Imm */
                     gen_mov_rsim_code(0, expr->arg1.imme);
 
