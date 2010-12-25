@@ -1771,6 +1771,8 @@ static void gen_per_code(struct triargexpr * expr)
 				if(expr -> arg1.type != ImmArg)
 				{
                      arg1_index = get_index_of_arg(&(expr -> arg1));
+                     if(arg1_index < 0)
+                          break;
 					arg1_info = get_info_from_index(arg1_index);
 					arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
 				}
@@ -2253,12 +2255,15 @@ static void gen_per_code(struct triargexpr * expr)
         
 		case Return:
 			{
-				if(arg1_flag == Arg_Reg)
-					gen_mov_rsrd_code(0, arg1_info -> reg_addr);
-				else if(arg1_flag == Arg_Mem)
-                    store_var(arg1_info, 0);
-                else            /* arg1_flag == Arg_Imm */
-                    gen_mov_rsim_code(0, expr->arg1.imme);
+                 if(arg1_index != -3)
+                 {
+                      if(arg1_flag == Arg_Reg)
+                           gen_mov_rsrd_code(0, arg1_info -> reg_addr);
+                      else if(arg1_flag == Arg_Mem)
+                           store_var(arg1_info, 0);
+                      else            /* arg1_flag == Arg_Imm */
+                           gen_mov_rsim_code(0, expr->arg1.imme);
+                 }
 
 				flush_global_var();
 				callee_save_pop();

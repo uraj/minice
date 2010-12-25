@@ -280,6 +280,8 @@ struct value_info * new_valueinfo(char *name)
 
 struct value_info *get_valueinfo_byno(struct symbol_table *cur, int no)//get value_info by no
 {
+     if(no < 0)
+          return NULL;
      struct symbol_table *whole = simb_table;
      if(cur == NULL)
      {
