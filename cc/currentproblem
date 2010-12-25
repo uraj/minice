@@ -56,3 +56,4 @@ new:
 10.flush global var before leaving func//Done
 11.Mov out param from r0~r3
 12.Use pre indexed load store in gen_tempreg
+13.Bug in binary arith 

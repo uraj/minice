@@ -436,10 +436,10 @@ static void prepare_temp_var_inmem()//gen addr at first
 		if(index < cur_var_id_num || alloc_reg.result[index] == -1)
 		{
 			if(!is_global(index))
-			{
+			{	
 				if(index < cur_var_id_num)
 				{
-                     struct value_info * id_info = get_valueinfo_byno(cur_func_info->func_symt ,  index);
+					struct value_info * id_info = get_valueinfo_byno(cur_func_info->func_symt ,  index);
 					if(id_info -> type -> type == Array)
 					{
 						int size = id_info -> type -> size;
@@ -454,13 +454,13 @@ static void prepare_temp_var_inmem()//gen addr at first
 						tmp_v_info -> mem_addr = cur_sp + offset_from_sp;	
 						continue;
 					}
+					if(is_arglist_byno(cur_func_info -> func_symt, index))
+					{
+						if
+						get_arglist_rank(cur_func_info -> func_symt, index);//MARK TAOTAOTHERIPPER
+					}
 				}
-
-				if(is_arglist_byno(cur_func_info -> func_symt, index))
-				{
-					get_arglist_rank(cur_func_info -> func_symt, index);//MARK TAOTAOTHERIPPER
-				}
-				tmp_v_info = get_info_from_index(index);
+				tmp_v_info = get_info_from_index(index);	
 				if(get_width_from_index(index) == BYTE)
 					offset_from_sp ++;
 				else
