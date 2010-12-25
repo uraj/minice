@@ -1070,7 +1070,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
 #endif
 #ifdef SHOWACTVAR
                print_triargexpr(*(temp_expr->entity));
-               printf("(%d) active varible:" , temp_expr->entity->index);
+               printf("\t[%d]active varible:" , temp_expr->entity->index);
                var_list_print(actvar_list + act_list_index -1);
 #endif
                temp_expr = temp_expr->prev;

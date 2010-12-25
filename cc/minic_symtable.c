@@ -119,7 +119,7 @@ static void var_no_update(struct symbol_table *t , struct value_info *value)//wh
      }
      t->myid[t->id_num] = value;
      value->no = g_var_id_num;
-//     printf("%s->%d\n" , t->myid[t->id_num]->name , value->no);
+     printf("%s->%d\n" , t->myid[t->id_num]->name , value->no);
      t->id_num ++;
      g_var_id_num ++;
 }

@@ -921,6 +921,7 @@ static inline enum Arg_Flag mach_prepare_arg(int arg_index, struct var_info * ar
 
 static inline enum Arg_Flag mach_prepare_index(int index , struct var_info **arg_info , int arg_type)
 {
+     (*arg_info) = NULL;
      if(index == -2)
           return Arg_Imm;
      (*arg_info) = get_info_from_index(index);
@@ -1048,6 +1049,14 @@ static inline enum Arg_Flag get_argflag(struct triarg *arg , struct var_info *ar
      if(arg_info->reg_addr >= 0)
           return Arg_Reg;
      return Arg_Mem;
+}
+
+static int get_reg_addr(struct var_info *info , enum Arg_Flag arg_flag)
+{
+     if(arg_flag != Arg_Reg)
+          return -1;
+     else
+          return info->reg_addr;
 }
 
 /*******************************************针对三元式的代码生成函数***********************************************/
@@ -1249,7 +1258,7 @@ static inline void gen_cj_expr(struct triargexpr *expr)
           <2>arg2是寄存器或内存的话先把它左移，然后移入目的寄存器里，利用fp寄存器变址寻址。
   4、恢复所有临时寄存器，注意顺序。
 */
-static void gen_array_code(enum mem type, struct triargexpr *expr, struct var_info *dest_info)
+static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_info *dest_info, enum Arg_Flag dest_flag, int imme)
 {
      int width_shift = 2;
      struct var_info *arg1_info , *arg2_info;
@@ -1258,12 +1267,14 @@ static void gen_array_code(enum mem type, struct triargexpr *expr, struct var_in
      enum Arg_Flag arg1_flag = mach_prepare_index(arg1_index , &arg1_info , 1);
      enum Arg_Flag arg2_flag = mach_prepare_index(arg2_index , &arg2_info , 1);
      /*计算指针寻址的步长*/
-     if(get_stride_from_index(arg1_info->index) == 1)
+     if(get_stride_from_index(arg1_index) == 1)
           width_shift = 0;
      
      /*获得arg2的寄存器*/
-     int arg1_reg = arg1_info->reg_addr;
-     int arg2_reg = arg2_info->reg_addr;
+     int arg1_reg = get_reg_addr(arg1_info , arg1_flag);
+     int arg2_reg = get_reg_addr(arg2_info , arg2_flag);
+     int dest_reg = get_reg_addr(dest_info , dest_flag);
+
      int temp_reg[4] , temp_reg_size = -1 , i;
      for(i = 0 ; i < 4 ; i++)
           temp_reg[i] = -1;
@@ -1272,19 +1283,30 @@ static void gen_array_code(enum mem type, struct triargexpr *expr, struct var_in
      except[1] = arg1_reg;
      except[2] = arg2_reg;
      except[3] = -1;
-     if(arg2_flag == Arg_Reg)
-          arg2_reg = arg2_info->reg_addr;
-     else if(arg2_flag == Arg_Mem)
+     
+     if(dest_flag != Arg_Reg)
      {
-          arg2_reg = gen_tempreg(except , 4);
-          temp_reg[++ temp_reg_size] = arg2_reg;
-          int arg2_width = get_width_from_index(arg2_info->index);
+          dest_reg = gen_tempreg(except , 4);
+          if(type == store)
+          {
+               if(dest_flag == Arg_Imm)
+                    gen_mov_rsim_code(dest_reg , imme);
+               else
+                    load_var(dest_info , dest_reg);
+          }
+     }
+     except[0] = dest_reg;
+     
+     if(arg2_flag == Arg_Mem)
+     {
+          temp_reg[++ temp_reg_size] = arg2_reg = gen_tempreg(except , 4);
+          int arg2_width = get_width_from_index(arg2_index);
           gen_mem_rri_code(load , arg2_reg , FP , -1 , arg2_info->mem_addr , arg2_width);
      }
      except[2] = arg2_reg;
      
      /*寻址载入目的数；*/
-     if(is_global(arg1_info->index) == 1)//arg1是全局数组
+     if(is_global(arg1_index) == 1)//arg1是全局数组
      {
           if(arg1_flag == Arg_Reg)//如果arg1在寄存器内，这意味着进入函数的时候数组首地址已经被放到了该寄存器里面，直接使用该寄存器寻址；
           {
@@ -1298,7 +1320,7 @@ static void gen_array_code(enum mem type, struct triargexpr *expr, struct var_in
                arg1_reg = gen_tempreg(except , 4);
                temp_reg[++ temp_reg_size] = arg1_reg;
                except[1] = arg1_reg;
-               load_pointer(arg1_info->index , arg1_reg , 0 , -1);//将全局变量首地址载入临时寄存器
+               load_pointer(arg1_index , arg1_reg , 0 , -1);//将全局变量首地址载入临时寄存器
                
                if(arg2_flag == Arg_Imm)//MEM dest_reg , [arg1_reg+] , expr->arg2.imme
                     gen_mem_rri_code(type , dest_reg , arg1_reg , 1 , expr->arg2.imme , 1 << width_shift);
@@ -1306,13 +1328,13 @@ static void gen_array_code(enum mem type, struct triargexpr *expr, struct var_in
                     gen_mem_rrr_code(type , dest_reg , arg1_reg , 1 , arg2_reg , 1 << width_shift);
           }
      }
-     else if(is_array(arg1_info->index) == 1)//arg1是局部数组
+     else if(is_array(arg1_index) == 1)//arg1是局部数组
      {
-          if(arg2_flag == Arg_Imm)//MEM dest_reg , [fp-] , arg2_info->mem_addr + expr->arg2.imme << width_shift
+          if(arg2_flag == Arg_Imm)//MEM dest_reg , [fp-] , arg1_info->mem_addr + expr->arg2.imme << width_shift
           {
-               int fp_off = arg2_info->mem_addr;
-               fp_off += expr->arg2.imme << width_shift;
-               gen_mem_rri_code(type , dest_reg , FP , fp_off , -1 , 1 << width_shift);
+               int fp_off = arg1_info->mem_addr;
+               fp_off -= (expr->arg2.imme << width_shift);
+               gen_mem_rri_code(type , dest_reg , FP , -1 , fp_off , 1 << width_shift);
           }
           else//arg2是寄存器或内存的话先把它左移，然后移入寄存器里，利用fp寄存器变址寻址
           {
@@ -1345,15 +1367,19 @@ static void gen_array_code(enum mem type, struct triargexpr *expr, struct var_in
           {
                arg1_reg = gen_tempreg(except , 4);
                temp_reg[++ temp_reg_size] = arg1_reg;
-               int arg1_width = get_width_from_index(arg1_info->index);
+               int arg1_width = get_width_from_index(arg1_index);
                gen_mem_rri_code(load , arg1_reg , FP , -1 , arg1_info->mem_addr , arg1_width);
           }
           except[1] = arg1_reg;
           //MEM dest_reg , [arg1_reg+] , arg2_reg
           gen_mem_rrr_code(type , dest_reg , arg1_reg , 1 , arg2_reg , 1 << width_shift);
      }
+     if(dest_flag == Arg_Mem)
+          store_var(dest_info , dest_reg);
+
      for(i = temp_reg_size ; i >= 0 ; i--)//恢复所有临时寄存器，注意顺序。
           restore_tempreg(temp_reg[i]);
+     return dest_reg;
 }
 
 /*
@@ -1368,7 +1394,7 @@ static void gen_array_code(enum mem type, struct triargexpr *expr, struct var_in
               b)其他，包括指针型ident、三元式编号临时变量。如果在寄存器内则不操作；没有的话，直接从内存装入。
   4、恢复临时寄存器。
  */
-static void gen_deref_code(enum mem type , struct triargexpr *expr , int dest_reg)
+static int gen_deref_code(enum mem type, struct triargexpr *expr, struct var_info *dest_info, enum Arg_Flag dest_flag, int imme)
 {
      struct triargexpr_list *expr_node = cur_table->index_to_list[expr->index];
      flush_pointer_entity(store , expr_node->pointer_entity);
@@ -1376,34 +1402,59 @@ static void gen_deref_code(enum mem type , struct triargexpr *expr , int dest_re
      int arg1_index = get_index_of_arg(&(expr->arg1));
      struct var_info *arg1_info;
      enum Arg_Flag arg1_flag = mach_prepare_index(arg1_index , &arg1_info , 1);
-     int temp_reg = -1 , arg1_reg;
+     int arg1_reg = get_reg_addr(arg1_info , arg1_flag);
+     int dest_reg = get_reg_addr(dest_info , dest_flag);
+     
      /*计算指针寻址的步长*/
-     if(get_stride_from_index(arg1_info->index) == 1)
+     if(get_stride_from_index(arg1_index) == 1)
           width_shift = 0;
 
-     int arg1_is_g = is_global(arg1_info->index);
-     int arg1_is_array = is_array(arg1_info->index);
+     int temp_reg[2] , temp_reg_size = -1 , i;
+     for(i = 0 ; i < 2 ; i++)
+          temp_reg[i] = -1;
+     int except[2];
+     except[0] = dest_reg;
+     except[1] = arg1_reg;
+     if(dest_flag != Arg_Reg)
+     {
+          dest_reg = gen_tempreg(except , 2);
+          if(type == store)
+          {
+               if(dest_flag == Arg_Imm)
+                    gen_mov_rsim_code(dest_reg , imme);
+               else
+                    load_var(dest_info , dest_reg);
+          }
+     }
+     except[0] = dest_reg;
+     
+     int arg1_is_g = is_global(arg1_index);
+     int arg1_is_array = is_array(arg1_index);
      if(arg1_is_array == 1 && arg1_is_g != 1)//是局部数组，LDB/LDW dest_reg , [fp-] , arg1_info->mem_addr
           gen_mem_rri_code(load , dest_reg , FP , -1 , arg1_info->mem_addr , 1 << width_shift);
      else
      {
           if(arg1_flag != Arg_Reg)//不在寄存器的一定要分配寄存器
           {
-               temp_reg = arg1_reg = gen_tempreg(&dest_reg , 1);
+               temp_reg[++temp_reg_size] = arg1_reg = gen_tempreg(&dest_reg , 1);
                if(arg1_is_g == 1)//全局数组
-                    load_pointer(arg1_info->index , arg1_reg , 0 , -1);//将全局数组首地址载入临时寄存器
+                    load_pointer(arg1_index , arg1_reg , 0 , -1);//将全局数组首地址载入临时寄存器
                else//LDW arg1_reg , [fp-] , arg1_info->mem_addr
                     gen_mem_rri_code(load , arg1_reg , FP , -1 , arg1_info->mem_addr , 4);
           }
-          else
-               arg1_reg = arg1_info->reg_addr;
+          
           //MEM dest_reg , [arg1_reg]
           gen_mem_rr_code(type , dest_reg , arg1_reg , 1 << width_shift);
-          if(arg1_flag != Arg_Reg)
-               restore_tempreg(temp_reg);
      }
+     if(dest_flag == Arg_Mem)
+          store_var(dest_info , dest_reg);
+     
+     for(i = temp_reg_size ; i >= 0 ; i--)//恢复所有临时寄存器，注意顺序。
+          restore_tempreg(temp_reg[i]);
      if(type == store)
           flush_pointer_entity(load , expr_node->pointer_entity);
+
+     return dest_reg;
 }
 
 /*将一个寄存器的值赋给一个三元式编号*/
@@ -1457,8 +1508,34 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
      {
           if(expr_flag == nothing)
                return;
-          else if(expr_flag == assign)
+          else if(expr_flag == assign)//如果是赋值语句而arg1的index<0，说明他是个没有被引用的三元式编号变量，要考虑数组或指针实体赋值
           {
+               if(arg1->type == ExprArg)
+               {
+                    struct triargexpr_list *last_expr_node = cur_table->index_to_list[arg1->expr];
+                    struct triargexpr *last_expr = last_expr_node->entity;
+                    
+                    if(last_expr->op == Subscript)
+                    {
+                         struct var_info *arg2_info = NULL;
+                         enum Arg_Flag arg2_flag = mach_prepare_index(arg2_index, &arg2_info, 1);
+                         int dest_reg = gen_array_code(store , last_expr , arg2_info , arg2_flag , arg2->imme);
+                         gen_assign_expr_code(expr->index , dest_reg);
+                         if(arg2_flag != Arg_Reg)
+                              restore_tempreg(dest_reg);
+                         return;
+                    }
+                    else if(last_expr->op == Deref)
+                    {
+                         struct var_info *arg2_info = NULL;
+                         enum Arg_Flag arg2_flag = mach_prepare_index(arg2_index, &arg2_info, 1);
+                         int dest_reg = gen_deref_code(store , last_expr , arg2_info , arg2_flag , arg2->imme);
+                         gen_assign_expr_code(expr->index , dest_reg);
+                         if(arg2_flag != Arg_Reg)
+                              restore_tempreg(dest_reg);
+                         return;
+                    }
+               }
                struct triarg arg;
                arg.type = ExprArg;
                arg.expr = expr->index;
@@ -1538,15 +1615,6 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
 
      if(expr_flag == assign)
      {
-          if(arg1->type == ExprArg)
-          {
-               struct triargexpr_list *last_expr_node = cur_table->index_to_list[arg1->expr];
-               struct triargexpr *last_expr = last_expr_node->entity;
-               if(last_expr->op == Subscript)
-                    gen_array_code(store , last_expr , dest_reg);
-               else if(last_expr->op == Deref)
-                    gen_deref_code(store , last_expr , dest_reg);
-          }
           gen_assign_expr_code(expr->index , dest_reg);
      }
      
@@ -1696,7 +1764,6 @@ static void gen_per_code(struct triargexpr * expr)
 	enum Arg_Flag dest_flag, arg1_flag, arg2_flag;
 
 #ifdef MACH_DEBUG
-    printf("预处理三元式：");
     print_triargexpr(*expr);
 #endif
 	switch(expr -> op)
@@ -1793,9 +1860,6 @@ static void gen_per_code(struct triargexpr * expr)
 			break;
 	}
 
-#ifdef MACH_DEBUG
-    printf("代码生成......");
-#endif
 	switch(expr -> op)
 	{
 		case Assign:                     /* =  */
@@ -2075,25 +2139,25 @@ static void gen_per_code(struct triargexpr * expr)
                  dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
 
                  /*编号变量在内存中的话要申请临时寄存器*/
-                 int dest_reg;
+                 /*int dest_reg;
                  int except[2];
                  except[0] = arg1_info->reg_addr;
                  except[1] = arg2_info->reg_addr;
                  if(dest_flag == Arg_Reg)
                       dest_reg = dest_info->reg_addr;
                  else if(dest_flag == Arg_Mem)
-                      dest_reg = gen_tempreg(except , 2);
+                 dest_reg = gen_tempreg(except , 2);*/
 
                  /*调用函数生成代码*/
-                 gen_array_code(load , expr , dest_reg);
+                 gen_array_code(load , expr , dest_info , dest_flag , 0);
 
                  /*如果编号变量在内存中，要写回内存并且恢复临时寄存器*/
-                 if(dest_flag == Arg_Mem)
+                 /*if(dest_flag == Arg_Mem)
                  {
-                      /*(1)回写内存；(2)恢复临时寄存器*/
+                      (1)回写内存；(2)恢复临时寄存器
                       store_var(dest_info , dest_reg);
                       restore_tempreg(dest_reg);
-                 }
+                      }*/
 				break;	
 			}
 
@@ -2118,24 +2182,24 @@ static void gen_per_code(struct triargexpr * expr)
                  dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
 
                  /*编号变量在内存中的话要申请临时寄存器*/
-                 int rd;
+                 /*int rd;
                  rd = dest_info->reg_addr;
                  int except[2];
                  except[0] = rd;
                  except[1] = arg1_info->reg_addr;
                  if(dest_flag != Arg_Reg)
                       rd = gen_tempreg(except , 2);
-                 except[0] = rd;
+                      except[0] = rd;*/
 
                  /*生成代码*/
-                 gen_deref_code(load , expr , rd);
+                 gen_deref_code(load , expr , dest_info , dest_flag , 0);
                  
                  /*目的数在内存的话要先写回内存；恢复临时寄存器。*/
-                 if(dest_flag == Arg_Mem)
+                 /*if(dest_flag == Arg_Mem)
                  {
                       store_var(dest_info , rd);
                       restore_tempreg(rd);
-                 }
+                      }*/
 				break;
 			}
 		
@@ -2283,9 +2347,6 @@ static void gen_per_code(struct triargexpr * expr)
 		default:
 			break;
 	}
-#ifdef MACH_DEBUG
-    printf("生成完毕......\n\n");
-#endif
 
 }
 

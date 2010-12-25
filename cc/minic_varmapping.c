@@ -201,7 +201,7 @@ int is_global(int index)/* global or const str */
 
 int is_id_var(int index)
 {
-	if(index < cur_var_id_num)
+	if(index < cur_var_id_num && index >= 0)
 		return 1;
 	else return 0;
 }

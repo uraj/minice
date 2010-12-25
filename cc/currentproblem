@@ -56,4 +56,6 @@ new:
 10.flush global var before leaving func//Done
 11.Mov out param from r0~r3
 12.Use pre indexed load store in gen_tempreg
-13.Bug in binary arith 
+
+13.ident的var_info中的index和mem_addr没有初始化
+14.有一些没有出现在活跃变量中，但却拥有map_id的三元式编号变量。（有可能是varmapping里面的问题？）
