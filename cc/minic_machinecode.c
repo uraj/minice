@@ -709,7 +709,27 @@ static inline enum arg_flag mach_prepare_arg(int arg_index, struct var_info * ar
 /******************** flush pointer entity beg ***************************/
 static void flush_global_var()
 {
-	
+	int index;
+	for(index = 0; index < max_reg_num; index ++)
+	{
+		v_info = get_info_from_index(alloc_reg[index].content);
+		if(is_global(alloc_reg[index].content) && alloc_reg[index].dirty)
+			store(v_info, index);
+	}
+}
+
+static void reload_global_var()
+{
+	int index;
+	for(index = 0; index < max_reg_num; index ++)
+	{
+		v_info = get_info_from_index(alloc_reg[index].content);
+		if(is_global(alloc_reg[index].content) && alloc_reg[index].dirty)
+		{
+			load(v_info, index);
+			alloc_reg[index].dirty = 0;
+		}
+	}
 }
 
 static void flush_pointer_entity(struct var_list * entity_list)
@@ -1990,7 +2010,8 @@ static void gen_per_code(struct triargexpr * expr)
 		case Funcall:                    /* () */
 			{
                 arglist_num_mark = 0;
-                /* caller save */
+                flush_global_var();//MARK TAOTAOTHERIPPER
+				/* caller save */
                 struct var_list_node * focus = expr->arg2.func_actvar_list.head;
                 struct var_info * vinfo = NULL;
                 char saved_reg[32];
@@ -2008,6 +2029,7 @@ static void gen_per_code(struct triargexpr * expr)
                 /* restore caller save */
                 for(--saved_reg_count; saved_reg_count >=0; --saved_reg_count)
                     gen_mem_rri_code(store, saved_reg[saved_reg_count], FP, -1, caller_save_index - saved_reg_count * WORD, WORD);           /* resotre */
+				reload_global_var();//MARK TAOTAOTHERIPPER
 			}
 
 		case Arglist:
