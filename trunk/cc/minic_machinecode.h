@@ -30,6 +30,7 @@ enum dp_op_type
 {
 	AND = 0,
 	SUB,
+    RSUB,
 	ADD,
 	OR,
     XOR,
@@ -135,7 +136,7 @@ struct mach_code_table
 extern int g_table_list_size; 
 extern struct mach_code_table * code_table_list;
 extern struct triargtable ** table_list;
-extern struct symbol_table ** simb_table;  
+extern struct symbol_table * simb_table;  
 
 extern void gen_machine_code(int func_index);
 extern void new_code_table_list();
