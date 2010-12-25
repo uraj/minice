@@ -1076,7 +1076,6 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                temp_expr = temp_expr->prev;
           }
      }
-     free_all();
      return actvar_list;
 }
 
