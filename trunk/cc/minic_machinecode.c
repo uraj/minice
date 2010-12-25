@@ -1251,14 +1251,15 @@ static void gen_array_code(enum mem type, struct triargexpr *expr, int dest_reg)
           width_shift = 0;
      
      /*获得arg2的寄存器*/
-     int arg1_reg , arg2_reg;
+     int arg1_reg = arg1_info->reg_addr;
+     int arg2_reg = arg2_info->reg_addr;
      int temp_reg[4] , temp_reg_size = -1 , i;
      for(i = 0 ; i < 4 ; i++)
           temp_reg[i] = -1;
      int except[4];
      except[0] = dest_reg;
-     except[1] = arg1_info->reg_addr;
-     except[2] = arg2_info->reg_addr;
+     except[1] = arg1_reg;
+     except[2] = arg2_reg;
      except[3] = -1;
      if(arg2_flag == Arg_Reg)
           arg2_reg = arg2_info->reg_addr;
