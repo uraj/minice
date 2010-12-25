@@ -2115,7 +2115,7 @@ static void gen_per_code(struct triargexpr * expr)
                  except[0] = rd;
 
                  /*生成代码*/
-                 gen_deref_code(load , expr , dest_reg);
+                 gen_deref_code(load , expr , rd);
                  
                  /*目的数在内存的话要先写回内存；恢复临时寄存器。*/
                  if(dest_flag == Arg_Mem)
