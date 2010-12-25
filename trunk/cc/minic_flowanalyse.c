@@ -472,6 +472,8 @@ static inline int is_mapid_available(int map_id)
 {
      if(map_id == -1)
           return 0;
+     if(is_global(map_id) == 1)
+          return 1;
      if(is_array(map_id) == 1)
           return 0;
      return 1;
@@ -881,7 +883,12 @@ static void make_change_list(int num1 , int num2 , struct var_list *dest)
           var_list_append(dest , num2);
 }
 
-struct var_list *analyse_actvar(int *expr_num , int *max_f_varlist , int func_index)//活跃变量分析
+int get_max_func_varlist()
+{
+     return sg_max_func_varlist;
+}
+
+struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分析
 {
      initial_func_var(func_index);//通过函数index获得当前函数信息，以便后续使用
      malloc_active_var();//活跃变量分析相关的数组空间分配
@@ -1068,7 +1075,6 @@ struct var_list *analyse_actvar(int *expr_num , int *max_f_varlist , int func_in
                temp_expr = temp_expr->prev;
           }
      }
-     (*max_f_varlist) = sg_max_func_varlist;
      free_all();
      return actvar_list;
 }
