@@ -6,6 +6,8 @@
 #define INITIALFUNCSIZE 30
 #define INITIALCODESIZE 100//should be ajusted to triargexpr.h
 
+struct subexpr_info;
+
 struct triargtable
 {
 	char * funcname;

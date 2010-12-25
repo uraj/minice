@@ -1,11 +1,6 @@
-#ifdef UNICORE
-void __minic_print(int arg)
-{
-    return;
-}
-#else
-#include <stdio.h>
-#endif
+
+void __minic_print(int arg);
+
 void quicksort(int * beg, int * end)
 {
     if(end <= beg)
@@ -149,14 +144,9 @@ int main()
     a[97] = 351;
     a[98] = 205;
     a[99] = 276;
-    quicksort(a, a + 50);
-#ifdef UNICORE
+    quicksort(a, a + 99);
     for(j = 0; j < 100; ++j)
         __minic_print(a[j]);
-#else
-    for(j= 0; j < 100; ++j)
-        printf("%d\n", a[j]);
-#endif
     return 0;
 }
 
