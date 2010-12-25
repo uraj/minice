@@ -1249,7 +1249,7 @@ static inline void gen_cj_expr(struct triargexpr *expr)
           <2>arg2是寄存器或内存的话先把它左移，然后移入目的寄存器里，利用fp寄存器变址寻址。
   4、恢复所有临时寄存器，注意顺序。
 */
-static void gen_array_code(enum mem type, struct triargexpr *expr, int dest_reg)
+static void gen_array_code(enum mem type, struct triargexpr *expr, struct var_info *dest_info)
 {
      int width_shift = 2;
      struct var_info *arg1_info , *arg2_info;
@@ -2070,7 +2070,7 @@ static void gen_per_code(struct triargexpr * expr)
                  /*三元式编号的准备工作*/
                  dest_index = get_index_of_temp(expr -> index);
                  if(dest_index == -1)
-                      return;
+                      break;
                  dest_info = get_info_from_index(dest_index);
                  dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
 
@@ -2113,7 +2113,7 @@ static void gen_per_code(struct triargexpr * expr)
                  /*三元式编号的准备工作*/
                  dest_index = get_index_of_temp(expr -> index);
                  if(dest_index == -1)
-                      return;
+                      break;
                  dest_info = get_info_from_index(dest_index);
                  dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
 

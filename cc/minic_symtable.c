@@ -453,3 +453,10 @@ int get_arglist_rank(struct symbol_table *table , int arg_index)//给定一个�
      get_arg_interval(table , &start , &end);
      return arg_index - start + 1;
 }
+
+int get_param_counts(struct symbol_table *table)
+{
+     if(table == NULL)
+          return -1;
+     return (table->arg_no_max) - (table->arg_no_min);
+}

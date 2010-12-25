@@ -112,5 +112,5 @@ extern int get_localvar_num(struct symbol_table *table);//获得该符号表（�
 extern int get_globalvar_num();//获得该程序的全局变量个数，前提是已经完成了语法分析
 extern int get_localstr_num(struct symbol_table *table);//获得该符号表（函数）的常量字符串个数，前提是已经完成了语法分析
 extern int get_globalstr_num();//获得该程序的常量字符串个数，前提是已经完成了语法分析
-
+extern int get_param_counts(struct symbol_table *table);//获得当前函数参数个数
 #endif
