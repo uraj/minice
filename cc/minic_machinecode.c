@@ -1163,12 +1163,12 @@ static inline void gen_cj_expr(struct triargexpr *expr)
           {
                switch(cond_expr->op)
                {
-               case Eq :cond_type = EQ;break;
-               case Neq:cond_type = NE;break;
-               case Ge :cond_type = SG;break;
-               case Nge:cond_type = EL;break;
-               case Le :cond_type = SL;break;
-               case Nle:cond_type = EG;break;
+               case Eq :cond_type = Mach_EQ;break;
+               case Neq:cond_type = Mach_NE;break;
+               case Ge :cond_type = Mach_SG;break;
+               case Nge:cond_type = Mach_EL;break;
+               case Le :cond_type = Mach_SL;break;
+               case Nle:cond_type = Mach_EG;break;
                default :break;
                }
           }
@@ -1176,12 +1176,12 @@ static inline void gen_cj_expr(struct triargexpr *expr)
           {
                switch(cond_expr->op)
                {
-               case Eq :cond_type = NE;break;
-               case Neq:cond_type = EQ;break;
-               case Ge :cond_type = EL;break;
-               case Nge:cond_type = SG;break;
-               case Le :cond_type = EG;break;
-               case Nle:cond_type = SL;break;
+               case Eq :cond_type = Mach_NE;break;
+               case Neq:cond_type = Mach_EQ;break;
+               case Ge :cond_type = Mach_EL;break;
+               case Nge:cond_type = Mach_SG;break;
+               case Le :cond_type = Mach_EG;break;
+               case Nle:cond_type = Mach_SL;break;
                default :break;
                }
           }
@@ -1197,8 +1197,8 @@ static inline void gen_cj_expr(struct triargexpr *expr)
           /*生成CMPSUB.A expr->arg1 , #0。先生成临时三元式Neq expr->arg1 , #0*/
           struct triargexpr cond_expr;
           cond_expr.op = Neq;
-          memcpy(&(cond_expr.arg1) , &(expr->arg1));//cond_expr.arg1 = expr->arg1
-          cond_expr.arg2.type = Imm_Arg;
+          memcpy(&(cond_expr.arg1) , &(expr->arg1) , sizeof(struct triarg));//cond_expr.arg1 = expr->arg1
+          cond_expr.arg2.type = ImmArg;
           cond_expr.arg1.imme = 0;
           int restore_reg[2] , i;
           gen_cmp_code(&cond_expr , restore_reg);
@@ -1208,9 +1208,9 @@ static inline void gen_cj_expr(struct triargexpr *expr)
           char *dest_label_name = gen_new_label(label_num);
           enum condition_type cond_type;
           if(expr->op == TrueJump)
-               cond_type = NE;
+               cond_type = Mach_NE;
           else
-               cond_type = EQ;
+               cond_type = Mach_EQ;
           insert_bcond_code(dest_label_name , cond_type);
           
           for(i = 0 ; i < 2 ; i ++)/*恢复临时寄存器*/
@@ -1380,7 +1380,7 @@ static gen_deref_code(enum mem type , struct triargexpr *expr , int dest_reg)
           else
                arg1_reg = arg1_info->reg_addr;
           //MEM dest_reg , [arg1_reg]
-          gen_mem_rr_code(type , dest_reg , arg1_reg);
+          gen_mem_rr_code(type , dest_reg , arg1_reg , 1 << width_shift);
           if(arg1_flag != Arg_Reg)
                restore_reg(temp_reg);
      }
@@ -1404,11 +1404,7 @@ static void gen_assign_expr_code(int expr_num , int arg2_reg)
      if(arg1_flag == Arg_Reg)//arg1是寄存器
           gen_mov_rsrd_code(arg1_info->reg_addr , arg2_reg);
      else
-     {
-          int rd = arg2_info->reg_addr;
-          dest_reg = rd;
-          store_var(arg1_info , rd);
-     }
+          store_var(arg1_info , arg2_reg);
 }
 
 /*生成代码过程中，要多次在变量间赋值，expr的作用是根据运算类型判断是否对临时寄存器做其他操作*/
@@ -1448,7 +1444,7 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
                struct triarg arg;
                arg.type = ExprArg;
                arg.expr = expr->index;
-               gen_assign_arg_code(&arg , arg2);
+               gen_assign_arg_code(&arg , arg2 , NULL);
                return;
           }
           return;
@@ -1529,7 +1525,7 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
      if(expr_flag == assign)
      {
           struct triargexpr_list *last_expr_node = cur_table->index_to_list[arg1->expr];
-          struct triargexpr *last_expr = temp_expr_node->entity;
+          struct triargexpr *last_expr = last_expr_node->entity;
           if(last_expr->op == Subscript)
                gen_array_code(store , last_expr , dest_reg);
           else if(last_expr->op == Deref)
@@ -1540,7 +1536,7 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
      restore_reg(temp_reg);
 }
 
-void gen_ref_code(struct triargexpr * expr, int dest_index, char var_info * dest_info, enum Arg_Flag dest_flag)
+void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * dest_info, enum Arg_Flag dest_flag)
 {
 	int dest_reg, tmp_mark = 0, tmp_inner_mark = 0;
 	if(dest_flag == Arg_Reg)
