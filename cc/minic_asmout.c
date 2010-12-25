@@ -41,6 +41,8 @@ static void mach_arg_out(struct mach_arg marg1, struct mach_arg marg2, int marg3
                 fprintf(out_buf, " |> #%d", marg3);
             case RR:
                 fprintf(out_buf, "<>%d", marg3);
+            default:
+                ;
         }
     }
     fprintf(out_buf, "\n");
@@ -60,6 +62,9 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
                     break;
                 case SUB:
                     fprintf(out_buf, "\tsub\tr%d", mcode->dest);
+                    break;
+                case RSUB:
+                    fprintf(out_buf, "\trsb\tr%d", mcode->dest);
                     break;
                 case ADD:
                     fprintf(out_buf, "\tadd\tr%d", mcode->dest);
@@ -97,24 +102,41 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
             switch(mcode->mem_op)
             {
                 case LDW:
-                    fprintf(out_buf, "\tldw\tr%d", mcode->dest);
+                    fprintf(out_buf, "\tldw");
                     break;
                 case STW:
-                    fprintf(out_buf, "\tldw\tr%d", mcode->dest);
+                    fprintf(out_buf, "\tstw\tr%d", mcode->dest);
                     break;
                 case LDB:
-                    fprintf(out_buf, "\tldw\tr%d", mcode->dest);
+                    fprintf(out_buf, "\tldb\tr%d", mcode->dest);
                     break;
                 case STB:
-                    fprintf(out_buf, "\tldw\tr%d", mcode->dest);
+                    fprintf(out_buf, "\tstb\tr%d", mcode->dest);
                     break;
             }
-            if(mcode->offset == 1)
-                fprintf(out_buf, " [r%d+], #%d\n", mcode->arg1.reg, mcode->arg3);
-            else if(mcode->offset == -1)
-                fprintf(out_buf, " [r%d-], #%d\n", mcode->arg1.reg, mcode->arg3);
+            if(mcode->indexed == 1)
+                fprintf(out_buf, ".w");
+            fprintf(out_buf, "\tr%d", mcode->dest);
+            if(mcode->offset == 0)
+                fprintf(out_buf, " [r%d], #%d\n", mcode->arg1.reg, mcode->arg3);
             else
-                fprintf(out_buf, " [r%d], #%d\n", mcode->arg1.reg);
+            {    
+                if(mcode->indexed == 2)
+                {
+                    
+                    if(mcode->offset == 1)
+                        fprintf(out_buf, " [r%d+], #%d\n", mcode->arg1.reg, mcode->arg3);
+                    else if(mcode->offset == -1)
+                        fprintf(out_buf, " [r%d-], #%d\n", mcode->arg1.reg, mcode->arg3);
+                }
+                else if(mcode->indexed == 1)
+                {
+                    if(mcode->offset == 1)
+                        fprintf(out_buf, " [r%d]+, #%d\n", mcode->arg1.reg, mcode->arg3);
+                    else if(mcode->offset == -1)
+                        fprintf(out_buf, " [r%d]-, #%d\n", mcode->arg1.reg, mcode->arg3);
+                }
+            }
             break;
         case BRANCH:
             switch(mcode->branch_op)
