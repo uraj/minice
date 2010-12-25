@@ -74,11 +74,11 @@ static inline void store_global_var(struct var_info * g_v_info, int reg_num);
 static int gen_tempreg(int * except, int size);
 static inline void restore_tempreg(int temp_reg);
 
-static inline void itoa(int i, char * a, int radix)
+/*static void itoa(int i, char * a, int radix)
 {
     sprintf(a, "%d", i);
     return;
-}
+}*/
 
 /****************************** initial begin ***************************/
 static inline void set_cur_function(int func_index)
@@ -402,7 +402,7 @@ static inline char * gen_new_var_offset(int offset)//need free later
 	char label_name[MAX_LABEL_NAME_LEN];
 	strcpy(label_name, global_var_label);
 	char label_num_name[MAX_LABEL_NAME_LEN];
-	itoa(offset, label_num_name, 10);
+	sprintf(label_num_name, "%d", offset);
 	strcat(label_name, label_num_name);
 	return strdup(label_name);
 }
@@ -551,7 +551,7 @@ static inline char * gen_new_label(int label_num)
 {
 	char label_name[MAX_LABEL_NAME_LEN] = ".L";
 	char label_num_name[MAX_LABEL_NAME_LEN];
-	itoa(label_num, label_num_name, 10);
+	sprintf(label_num_name, "%d", label_num);
 	strcat(label_name, label_num_name);
 	return strdup(label_name);//but need to free later
 }
@@ -2313,9 +2313,12 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 {
 	set_cur_function(func_index);
 	int var_list_size;
+	struct basic_block * block_head = make_fd(i);
+	pointer_analyse(i);	
 	struct var_list * active_var_array = analyse_actvar(&var_list_size, func_index);//活跃变量分析
 	alloc_reg = reg_alloc(active_var_array, var_list_size, cur_ref_var_num, max_reg_num);//current now
 	//free_active_list TAOTAOTHERIPPER MARK
+	recover_triargexpr(block_head);		
 	reset_reg_number();//reset the reg number
 	enter_func_push();
 	callee_save_push();
