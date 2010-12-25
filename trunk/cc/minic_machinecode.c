@@ -1,4 +1,7 @@
 #include "minic_machinecode.h"
+#include "minic_basicblock.h"
+#include "minic_flowanalyse.h"
+#include "minic_aliasanalyse.h"
 #include "minic_varmapping.h"
 #include "minic_regalloc.h"
 #include "minic_typedef.h"
@@ -2313,8 +2316,8 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 {
 	set_cur_function(func_index);
 	int var_list_size;
-	struct basic_block * block_head = make_fd(i);
-	pointer_analyse(i);	
+	struct basic_block * block_head = make_fd(func_index);
+	pointer_analyse(func_index);	
 	struct var_list * active_var_array = analyse_actvar(&var_list_size, func_index);//活跃变量分析
 	alloc_reg = reg_alloc(active_var_array, var_list_size, cur_ref_var_num, max_reg_num);//current now
 	//free_active_list TAOTAOTHERIPPER MARK

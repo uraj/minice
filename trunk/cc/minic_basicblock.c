@@ -102,17 +102,15 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 				break;	
 			case Uplus:                      /* +  */
 			case Plusplus:                   /* ++ */
-			case Minusminus:                 /* -- */
-				/*
+			case Minusminus:                 /* -- *///MARK TAOTAOTHERIPPER
 				//this optimizing shall be opened later
 				{
 					struct triarg tmp_arg;
 					tmp_arg = unary_search(table, &table[i]);
 					if(tmp_arg.type == ExprArg)
 						insert_tempvar(tmp_arg.type);
+					break;
 				}
-				break;
-				*/
 		
 
 			case Ref:                        /* &  */
