@@ -1193,7 +1193,7 @@ static inline void gen_cj_expr(struct triargexpr *expr)
      else
      {
           struct var_info *arg1_info = get_info_from_index(arg1_index);
-          enum Arg_Flag arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);//**不可能是立即数而且被引用了，肯定有map_id
+          mach_prepare_arg(arg1_index, arg1_info, 1);//**不可能是立即数而且被引用了，肯定有map_id
           /*生成CMPSUB.A expr->arg1 , #0。先生成临时三元式Neq expr->arg1 , #0*/
           struct triargexpr cond_expr;
           cond_expr.op = Neq;
@@ -1232,7 +1232,7 @@ static inline void gen_cj_expr(struct triargexpr *expr)
           <2>arg2是寄存器或内存的话先把它左移，然后移入目的寄存器里，利用fp寄存器变址寻址。
   4、恢复所有临时寄存器，注意顺序。
 */
-static gen_array_code(enum mem type, struct triargexpr *expr, int dest_reg)
+static void gen_array_code(enum mem type, struct triargexpr *expr, int dest_reg)
 {
      int width_shift = 2;
      struct var_info *arg1_info , *arg2_info;
@@ -1335,7 +1335,7 @@ static gen_array_code(enum mem type, struct triargexpr *expr, int dest_reg)
           gen_mem_rrr_code(type , dest_reg , arg1_reg , 1 , arg2_reg , 1 << width_shift);
      }
      for(i = temp_reg_size ; i >= 0 ; i--)//恢复所有临时寄存器，注意顺序。
-          restore_reg(temp_reg[i]);
+          restore_tempreg(temp_reg[i]);
 }
 
 /*
@@ -1350,7 +1350,7 @@ static gen_array_code(enum mem type, struct triargexpr *expr, int dest_reg)
               b)其他，包括指针型ident、三元式编号临时变量。如果在寄存器内则不操作；没有的话，直接从内存装入。
   4、恢复临时寄存器。
  */
-static gen_deref_code(enum mem type , struct triargexpr *expr , int dest_reg)
+static void gen_deref_code(enum mem type , struct triargexpr *expr , int dest_reg)
 {
      struct triargexpr_list *expr_node = cur_table->index_to_list[expr->index];
      flush_pointer_entity(store , expr_node->pointer_entity);
@@ -1382,7 +1382,7 @@ static gen_deref_code(enum mem type , struct triargexpr *expr , int dest_reg)
           //MEM dest_reg , [arg1_reg]
           gen_mem_rr_code(type , dest_reg , arg1_reg , 1 << width_shift);
           if(arg1_flag != Arg_Reg)
-               restore_reg(temp_reg);
+               restore_tempreg(temp_reg);
      }
      if(type == store)
           flush_pointer_entity(load , expr_node->pointer_entity);
@@ -1533,7 +1533,7 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
           gen_assign_expr_code(expr->index , dest_reg);
      }
      
-     restore_reg(temp_reg);
+     restore_tempreg(temp_reg);
 }
 
 void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * dest_info, enum Arg_Flag dest_flag)
