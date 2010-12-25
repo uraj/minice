@@ -148,7 +148,7 @@ static inline void insert_cond_dp_code(enum dp_op_type dp_op, int dest, enum con
 	insert_code(new_code);
 }
 
-static inline void insert_mem_code(enum mem_op_type mem_op, int dest, struct mach_arg arg1, struct mach_arg arg2, unsigned int arg3, int offset, enum shift_type shift)
+static inline void insert_mem_code(enum mem_op_type mem_op, int dest, struct mach_arg arg1, struct mach_arg arg2, unsigned int arg3, int offset, enum shift_type shift, char write_back)
 {
 	struct mach_code new_code;
 	new_code.op_type = MEM;
@@ -159,6 +159,7 @@ static inline void insert_mem_code(enum mem_op_type mem_op, int dest, struct mac
 	new_code.arg3 = arg3;
 	new_code.offset = offset;
 	new_code.shift = shift;
+	new_code.write_back = write_back;
 	insert_code(new_code);	
 }
 
@@ -285,6 +286,7 @@ static int prepare_temp_var_inmem()//gen addr at first
 
 static void callee_save_push()
 {
+	
 	int used_reg[32];
 	memset(used_calle_reg, 0, sizeof(int));
 	int idx;
@@ -374,7 +376,7 @@ static inline void load_pointer(int var_index, int reg_num, int imm_offset, int 
 		struct mach_arg address;
 		address.type = Mach_Label;
 		address.label = gen_new_var_offset(id_offset);
-		insert_mem_code(LDW, reg_num, address, null, 0, 0, NO);
+		insert_mem_code(LDW, reg_num, address, null, 0, 0, NO, 0);
 		if(imm_offset != 0)
 		{
 			struct mach_arg imm_arg;
@@ -497,7 +499,7 @@ static inline void load_temp_var(struct var_info * t_v_info, int reg_num)
 	if(width == BYTE)
 		tmp_mem_op = LDB;
 	else tmp_mem_op = LDW;
-	insert_mem_code(tmp_mem_op, reg_num, tmp_fp, tmp_offset, null, -1, NO);
+	insert_mem_code(tmp_mem_op, reg_num, tmp_fp, tmp_offset, null, -1, NO, 0);
 }
 
 static inline void store_temp_var(struct var_info * t_v_info, int reg_num)
@@ -512,7 +514,7 @@ static inline void store_temp_var(struct var_info * t_v_info, int reg_num)
 	if(width == BYTE)
 		tmp_mem_op = STB;
 	else tmp_mem_op = STW;	
-	insert_mem_code(tmp_mem_op, reg_num, tmp_fp, tmp_offset, null, -1, NO);
+	insert_mem_code(tmp_mem_op, reg_num, tmp_fp, tmp_offset, null, -1, NO, 0);
 }
 
 static inline void load_global_var(struct var_info * g_v_info, int reg_num)
@@ -522,10 +524,10 @@ static inline void load_global_var(struct var_info * g_v_info, int reg_num)
 	struct mach_arg address;
 	address.type = Mach_Label;
 	address.label = gen_new_var_offset(offset);
-	insert_mem_code(LDW, reg_num, address, null, null, 0, NO);
+	insert_mem_code(LDW, reg_num, address, null, null, 0, NO, 0);
 	if(tmp_info -> type -> type == Char)
-		insert_mem_code(STB, reg_num, reg_num, null, null, 0, NO);
-	else insert_mem_code(STW, reg_num, reg_num, null, null, 0, NO);
+		insert_mem_code(STB, reg_num, reg_num, null, null, 0, NO, 0);
+	else insert_mem_code(STW, reg_num, reg_num, null, null, 0, NO, 0);
 }
 
 static inline void store_global_var(struct var_info * g_v_info, int reg_num)
@@ -536,10 +538,10 @@ static inline void store_global_var(struct var_info * g_v_info, int reg_num)
 	struct mach_arg address;
 	address.type = Mach_Label;
 	address.label = gen_new_var_offset(offset);
-	insert_mem_code(LDW, tmp_reg_num, address, null, null, 0, NO);
+	insert_mem_code(LDW, tmp_reg_num, address, null, null, 0, NO, 0);
 	if(tmp_info -> type -> type == Char)
-		insert_mem_code(STB, reg_num, tmp_reg_num, null, null, 0, NO);
-	else insert_mem_code(STW, reg_num, tmp_reg_num, null, null, 0, NO);
+		insert_mem_code(STB, reg_num, tmp_reg_num, null, null, 0, NO, 0);
+	else insert_mem_code(STW, reg_num, tmp_reg_num, null, null, 0, NO, 0);
 	restore_tempreg(tmp_reg_num);
 }
 /**************************** load store var end *****************************/
@@ -602,8 +604,8 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 						tmp_offset.imme = shadow_sp_offset[index];	
 						insert_dp_code(SUB, SP, tmp_sp, tmp_offset, 0, NO);
 						if(width == BYTE)
-							insert_mem_code(STB, index, SP, null, 0, NO);
-						else insert_mem_code(STW, index, SP, null, 0, NO);
+							insert_mem_code(STB, index, SP, null, 0, NO, 0);
+						else insert_mem_code(STW, index, SP, null, 0, NO, 0);
 
 						shadow_reg_dpt[index] = reg_dpt[index];
 						reg_dpt[index].content = REG_TEMP;
@@ -649,9 +651,9 @@ static inline void restore_tempreg(int temp_reg)
 		tmp_offset.type = Mach_Imm;	
 		tmp_offset.imme = shadow_sp_offset[index];	
 		if(width == BYTE)
-			insert_mem_code(LDB, index, SP, null, 0, NO);
-		else insert_mem_code(LDW, index, SP, null, 0, NO);
-		insert_dp_code(ADD, SP, tmp_sp, tmp_offset, 0, NO);
+			insert_mem_code(LDB, index, SP, null, 0, NO, 0);
+		else insert_mem_code(LDW, index, SP, null, 0, NO, 0);
+		insert_dp_code(ADD, SP, tmp_sp, tmp_offset, 0, NO, 0);
 	}
 	else
 	{
@@ -872,7 +874,7 @@ static inline void gen_mem_rrr_code(enum mem type , int rd , int rs1 , int off ,
      arg2.type = arg1.type = Mach_Reg;
      arg1.reg = rs1;
      arg2.reg = rs2;
-     insert_mem_code(mem_op , rd , arg1 , arg2 , 0 , off , NO);
+     insert_mem_code(mem_op , rd , arg1 , arg2 , 0 , off , NO, 0);
      if(type == load)
           reg_dpt[rd] = 1;
 }
@@ -899,7 +901,7 @@ static inline void gen_mem_lshft_code(enum mem type , int rd, int rs1, int off, 
      arg2.type = arg1.type = Mach_Reg;
      arg1.reg = rs1;
      arg2.reg = rs2;
-     insert_mem_code(mem_op , rd , arg1 , arg2 , imme , off , LL);
+     insert_mem_code(mem_op , rd , arg1 , arg2 , imme , off , LL, 0);
      if(type == load)
           reg_dpt[rd] = 1;
 }
@@ -927,7 +929,7 @@ static inline void gen_mem_rri_code(enum mem type , int rd , int rs1 , int off ,
      arg2.type = Mach_Imm;
      arg1.reg = rs1;
      arg2.imme = imme;
-     insert_mem_code(mem_op , rd , arg1 , arg2 , 0 , off , NO);
+     insert_mem_code(mem_op , rd , arg1 , arg2 , 0 , off , NO, 0);
      if(type == load)
           reg_dpt[rd] = 1;
 }
@@ -953,7 +955,7 @@ static inline void gen_mem_rr_code(enum mem type , int rd, int rs1, int width)
      struct mach_arg arg1;
      arg1.type = Mach_Reg;
      arg1.reg = rs1;
-     insert_mem_code(mem_op , rd , arg1 , null , 0 , 0 , NO);
+     insert_mem_code(mem_op , rd , arg1 , null , 0 , 0 , NO, 0);
      if(type == load)
           reg_dpt[rd] = 1;
 }
@@ -1866,7 +1868,7 @@ static void gen_per_code(struct triargexpr * expr)
 						arg2.type = Mach_Imm;
 						arg2.imme = (get_info_from_index(dest_index))->mem_addr;
 						arg3.type = Unused;
-						insert_mem_code(mem_op , dest_reg_index , arg1 , arg2 , arg3 , offset , shift);
+						insert_mem_code(mem_op , dest_reg_index , arg1 , arg2 , arg3 , offset , shift, 0);
 
 						restore_tempreg(dest_reg_index);
 					}
@@ -2145,7 +2147,7 @@ static void gen_per_code(struct triargexpr * expr)
                 mach_offset.imme = -4;
 
                 /* get saved LR in stack */
-                insert_mem_code(LDW, LR, mach_base, mach_offset, 0, NP);
+                insert_mem_code(LDW, LR, mach_base, mach_offset, 0, NO, 0);
                 insert_jump_code(LR);
 				break;
 			}
