@@ -21,6 +21,8 @@
 #define REG_UNUSED -1
 #define REG_TEMP -2
 
+#define MACH_DEBUG 0
+
 enum Arg_Flag
 {
 	Arg_Imm,
@@ -1457,13 +1459,9 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
           return;
      }
      
-     struct var_info *arg1_info = get_info_from_index(arg1_index);
-     struct var_info *arg2_info = get_info_from_index(arg2_index);
-     //struct var_info *dest_info = get_info_from_index(dest_index);
-     
-     enum Arg_Flag arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 0);
-     enum Arg_Flag arg2_flag = mach_prepare_arg(arg2_index, arg2_info, 1);
-     //enum Arg_Flag dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
+     struct var_info *arg1_info, *arg2_info;
+     enum Arg_Flag arg1_flag = mach_prepare_index(arg1_index, &arg1_info, 0);
+     enum Arg_Flag arg2_flag = mach_prepare_index(arg2_index, &arg2_info, 1);
 
      int dest_reg = arg1_info->reg_addr;
      int temp_reg = -1;
@@ -1531,12 +1529,15 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
 
      if(expr_flag == assign)
      {
-          struct triargexpr_list *last_expr_node = cur_table->index_to_list[arg1->expr];
-          struct triargexpr *last_expr = last_expr_node->entity;
-          if(last_expr->op == Subscript)
-               gen_array_code(store , last_expr , dest_reg);
-          else if(last_expr->op == Deref)
-               gen_deref_code(store , last_expr , dest_reg);
+          if(arg1->type == ExprArg)
+          {
+               struct triargexpr_list *last_expr_node = cur_table->index_to_list[arg1->expr];
+               struct triargexpr *last_expr = last_expr_node->entity;
+               if(last_expr->op == Subscript)
+                    gen_array_code(store , last_expr , dest_reg);
+               else if(last_expr->op == Deref)
+                    gen_deref_code(store , last_expr , dest_reg);
+          }
           gen_assign_expr_code(expr->index , dest_reg);
      }
      
@@ -1685,31 +1686,12 @@ static void gen_per_code(struct triargexpr * expr)
 	struct var_info * dest_info, * arg1_info, * arg2_info; 
 	enum Arg_Flag dest_flag, arg1_flag, arg2_flag;
 
+#ifdef MACH_DEBUG
+    printf("预处理三元式：");
+    print_triargexpr(*expr);
+#endif
 	switch(expr -> op)
 	{
-/*		case Assgin:
-			{
-                 arg1_index = get_index_of_arg(&(expr -> arg1));
-				arg1_info = get_info_from_index(arg1_index);
-				arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 0);
-				
-				if(expr -> arg2.type != ImmArg)
-				{
-                     arg2_index = get_index_of_arg(&(expr -> arg2));
-					arg2_info = get_info_from_index(arg2_index);
-					arg2_flag = mach_prepare_arg(arg2_index, arg2_info, 1);
-				}
-				else
-					arg2_flag = Arg_Imm;
-
-				dest_index = get_index_of_temp(expr -> index);//can be optimized
-				if(dest_index != -1)//the value has been used
-				{
-					dest_info = get_info_from_index(dest_index);	
-					dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
-                    }
-				break;
-                }*/
 		case Ref:						/* &  */
 		case Plus:                       /* +  */
 		case Minus:                      /* -  */	
@@ -1795,7 +1777,9 @@ static void gen_per_code(struct triargexpr * expr)
 			break;
 	}
 
-
+#ifdef MACH_DEBUG
+    printf("代码生成......");
+#endif
 	switch(expr -> op)
 	{
 		case Assign:                     /* =  */
@@ -2274,6 +2258,10 @@ static void gen_per_code(struct triargexpr * expr)
 		default:
 			break;
 	}
+#ifdef MACH_DEBUG
+    printf("生成完毕......\n\n");
+#endif
+
 }
 
 static void reset_reg_number()//
