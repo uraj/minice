@@ -3,7 +3,7 @@
 
 #include "minic_ast.h"
 #include "minic_typetree.h"
-#inlcude "minic_flowanalyse.h"
+#include "minic_flowanalyse.h"
 
 enum triarg_type { IdArg = 0, ImmArg, ExprArg };
 
