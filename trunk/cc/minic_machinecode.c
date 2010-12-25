@@ -841,6 +841,7 @@ static inline enum Arg_Flag get_argflag(struct triarg *arg , struct var_info *ar
      return Arg_Mem;
 }
 
+/*******************************一些更加细致的指令生成代码***********************************/
 /*MOV rd , rs*/
 static inline void gen_mov_rsrd_code(int rd , int rs)
 {
@@ -1003,6 +1004,7 @@ static inline void gen_dp_rri_code(enum dp_op_type op , int rd , int rs , int im
      insert_dp_code(op, rd, arg1, arg2, 0, NO);
 }
 
+/*******************************************针对三元式的代码生成函数***********************************************/
 /*前一个比较数是立即数的话，将两个比较数互换，并且改变运算符。如果发现两个都是立即数，返回0；否则，返回1*/
 static inline int prtrtm_cond_expr(struct triargexpr *cond_expr)
 {
@@ -1309,7 +1311,7 @@ static gen_array_code(enum mem type, struct triargexpr *expr, int dest_reg)
 
 /*
   解除引用。步骤如下：
-  1、如果该三元式是引用，需要在load之前将所有该指针可能指向的变量存入内存；如果该三元式是定值，在store之后将所有该指针可能指向的变量存入寄存器；
+  1、如果该三元式是引用，需要在load之前将所有该指针可能指向的变量存入内存；如果该三元式是定值，在store之前要将所有该指针可能指向的变量存入内存，之后将所有该指针可能指向的变量存入寄存器；
   2、计算寻址步长；
   3、针对arg1的下面几种情况，不同操作：
       a)局部数组首地址。寄存器相对寻址；
@@ -1322,8 +1324,7 @@ static gen_array_code(enum mem type, struct triargexpr *expr, int dest_reg)
 static gen_deref_code(enum mem type , struct triargexpr *expr , int dest_reg)
 {
      struct triargexpr_list *expr_node = cur_table->index_to_list[expr->index];
-     if(type == load)
-          flush_pointer_entity(store , expr_node->pointer_entity);
+     flush_pointer_entity(store , expr_node->pointer_entity);
      int width_shift = 2;
      int arg1_index = get_index_of_arg(&(expr->arg1));
      struct var_info *arg1_info;
@@ -2044,22 +2045,35 @@ static void gen_per_code(struct triargexpr * expr)
 
         case Subscript:                  /* [] */
 			{
+                 /*
+                   数组下标引用代码：c = a[i]
+                   1、三元式编号的准备工作；
+                   2、编号变量在内存中的话要申请临时寄存器；
+                   3、调用函数生成代码；
+                   4、如果编号变量在内存中，要写回内存并且恢复临时寄存器。
+                  */
+                 
+                 /*三元式编号的准备工作*/
                  dest_index = get_index_of_temp(expr -> index);
                  if(dest_index == -1)
                       return;
                  dest_info = get_info_from_index(dest_index);
                  dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
 
+                 /*编号变量在内存中的话要申请临时寄存器*/
                  int dest_reg;
                  int except[2];
                  except[0] = arg1_info->reg_addr;
                  except[1] = arg2_info->reg_addr;
-                 
                  if(dest_flag == Arg_Reg)
                       dest_reg = dest_info->reg_addr;
                  else if(dest_flag == Arg_Mem)
                       dest_reg = gen_tempreg(except , 2);
+
+                 /*调用函数生成代码*/
                  gen_array_code(load , arg1_info , arg2_info , expr , dest_reg);
+
+                 /*如果编号变量在内存中，要写回内存并且恢复临时寄存器*/
                  if(dest_flag == Arg_Mem)
                  {
                       /*(1)回写内存；(2)恢复临时寄存器*/
@@ -2074,13 +2088,22 @@ static void gen_per_code(struct triargexpr * expr)
 
 		case Deref:                      /* '*' */
 			{
+                 /*
+                   解除引用的三元式引用代码：a = (*p)
+                   1、三元式编号的准备工作；
+                   2、编号变量在内存中的话要申请临时寄存器；
+                   3、调用函数生成代码；
+                   4、如果编号变量在内存中，要写回内存并且恢复临时寄存器。
+                  */
+
+                 /*三元式编号的准备工作*/
                  dest_index = get_index_of_temp(expr -> index);
                  if(dest_index == -1)
                       return;
                  dest_info = get_info_from_index(dest_index);
                  dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
 
-                 /*获得目的寄存器；*/
+                 /*编号变量在内存中的话要申请临时寄存器*/
                  int rd;
                  rd = dest_info->reg_addr;
                  int except[2];
@@ -2090,6 +2113,7 @@ static void gen_per_code(struct triargexpr * expr)
                       rd = gen_tempreg(except , 2);
                  except[0] = rd;
 
+                 /*生成代码*/
                  gen_deref_code(load , arg1_info , expr , dest_reg);
                  
                  /*目的数在内存的话要先写回内存；恢复临时寄存器。*/
@@ -2098,7 +2122,6 @@ static void gen_per_code(struct triargexpr * expr)
                       store_var(dest_info , rd);
                       restore_reg(rd);
                  }
-                 
 				break;
 			}
 		
