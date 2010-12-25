@@ -53,7 +53,6 @@ static struct value_info * cur_func_info;
 static int cur_var_id_num;
 static int cur_ref_var_num;
 static int cur_func_index;
-static struct var_list * active_var_array; 
 
 /* may only use bp sp lr and pc, so there is 29 registers can be used*/
 static const int max_reg_num = 23;
@@ -85,7 +84,7 @@ static inline void set_cur_function(int func_index)
 	cur_ref_var_num = get_ref_var_num();//the varmapping is always right during this file
 	cur_func_index = func_index;
 	
-	int string_num;//get string num from the symtable
+	int string_num = get_localstr_num(cur_func_info -> func_symt);//get string num from the symtable
 	global_var_label_offset = calloc(g_global_id_num + string_num, sizeof(int));//need free
 	ref_g_var_num = 0;
 	global_var_label = gen_new_label(total_label_num ++);//as the head element of the global var
@@ -842,6 +841,7 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 			}
 		}
 	}
+	exit(1);
 }
 
 static inline void restore_tempreg(int temp_reg)
@@ -1628,7 +1628,7 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 									offset_reg = gen_tempreg(&dest_reg, 1);
 									load_var(tmp_arg_info, offset_reg);
 								}
-								load_pointer(arg1_index, dest_reg, 0, offset_reg);
+								load_pointer(id_index, dest_reg, 0, offset_reg);
 								if(tmp_inner_mark == 1)
 									restore_tempreg(offset_reg);
 							}
@@ -2306,8 +2306,8 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 {
 	set_cur_function(func_index);
 	int var_list_size;
-	struct var_list * active_list = analyse_actvar(&var_list_size, func_index);//活跃变量分析
-	alloc_reg = reg_alloc(active_list, var_list_size, cur_ref_var_num, max_reg_num);//current now
+	struct var_list * active_var_array = analyse_actvar(&var_list_size, func_index);//活跃变量分析
+	alloc_reg = reg_alloc(active_var_array, var_list_size, cur_ref_var_num, max_reg_num);//current now
 	//free_active_list TAOTAOTHERIPPER MARK
 	reset_reg_number();//reset the reg number
 	enter_func_push();
