@@ -51,4 +51,4 @@ new:
 5.Ref//Done
 6.deal with array in triargexpr with binary op
 7.How can we make sure that temp array head always marked in mem after register allocation
-8.Does an array head has stride field?
+8.Optimize push param
