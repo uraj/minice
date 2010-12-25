@@ -20,7 +20,7 @@
 //#define DEBUG
 //#define SHOWBNF
 //#define SHOWLOCALCODE
-#define SHOWCODE
+//#define SHOWCODE
 
 const size_t MAXIDLEN = 31; /* 31 is the minimum length supported by compilers according to ANCI C standard */
 
