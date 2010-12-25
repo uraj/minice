@@ -105,13 +105,13 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
                     fprintf(out_buf, "\tldw");
                     break;
                 case STW:
-                    fprintf(out_buf, "\tstw\tr%d", mcode->dest);
+                    fprintf(out_buf, "\tstw");
                     break;
                 case LDB:
-                    fprintf(out_buf, "\tldb\tr%d", mcode->dest);
+                    fprintf(out_buf, "\tldb");
                     break;
                 case STB:
-                    fprintf(out_buf, "\tstb\tr%d", mcode->dest);
+                    fprintf(out_buf, "\tstb");
                     break;
             }
             if(mcode->indexed == 1)
