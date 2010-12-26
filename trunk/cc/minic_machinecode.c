@@ -878,7 +878,7 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 					}
 					break;
 				case 3:
-					if(!is_global(reg_dpt[index].content) && ex == size)
+					if(!is_global(reg_dpt[index].content) && ex == size)//include the regs which haven't been saved
 					{
 						push_param(index);
 						shadow_reg_dpt[index] = reg_dpt[index];
@@ -904,6 +904,7 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 					}
 					break;
 				default:
+					fprintf(stderr,"error when gen tempreg.\n");
 					exit(1);
 			}
 		}
@@ -913,6 +914,11 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 
 static inline void restore_tempreg(int temp_reg)
 {
+	if(temp_reg == -1)
+	{
+		/*fprintf(stderr, "error when restore tempreg invalid temp reg\n");*/
+		return;
+	}
 	if(shadow_reg_dpt[temp_reg].content == REG_UNUSED)
 		;
 	else if(!is_global(shadow_reg_dpt[temp_reg].content) && !shadow_reg_dpt[temp_reg].dirty)
