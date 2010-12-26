@@ -41,8 +41,8 @@ new:
 30.deal with dirty and has_refed for global_var//Done
 31.deal with return in basic_block//Done
 32.deal with width//Done
-33.生成三元式的时候，需要生成一条返回语句，让所有原来跳转到-1的三元式跳转到它
-34.+1和-1需要改成立即数
+33.生成三元式的时候，需要生成一条返回语句，让所有原来跳转到-1的三元式跳转到它//Done
+34.+1和-1需要改成立即数//Done
 
 1.global_var_last_ref//uncertainty
 2.mark whether the temp var is a pointer
@@ -76,5 +76,6 @@ consider this case:
 	How about treat k as active var in (1), that is easier to modify.
 
 21.The order of Arglist
-22.Bug in binary arithmetic
-23.bug_1.c 
+22.Bug in binary arithmetic//Done
+23.bug_1.c//Done
+24.bug when generate label for global var
