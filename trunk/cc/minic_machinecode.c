@@ -830,7 +830,11 @@ static int is_reg_disabled(int regnum)
 
 static int is_reg_saved(int regnum)
 {
-	return 1;
+	if((regnum >= 4 && regnum <= 15) || regnum == 28)
+		return 1;
+	else if(used_reg[regnum] == 1)//saved callee save register
+		return 1;
+	else return 0;
 }
 
 static int gen_tempreg(int * except, int size)//general an temp reg for the var should be in memory
