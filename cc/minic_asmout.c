@@ -203,7 +203,7 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
             switch(mcode->cmp_op)
             {
                 case CMPSUB_A:
-                    fprintf(out_buf, "\tcmpsub.a\t");
+                    fprintf(out_buf, "\tcmpsub.a");
                     break;
             }
             mach_arg_out(mcode->arg1, mcode->arg2, mcode->arg3, mcode->shift, out_buf); 
