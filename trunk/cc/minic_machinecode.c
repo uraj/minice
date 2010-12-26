@@ -827,11 +827,9 @@ static inline void store_global_var(struct var_info * g_v_info, int reg_num)
 /************************** get temp reg begin ***********************/
 static int is_reg_disabled(int regnum)
 {
-	if((regnum >= 4 && regnum <= 15) ||
-			(regnum >= 17 && regnum <= 26) ||
-			(regnum == 28))
-		return 0;
-	return 1;
+	if(regnum < 4 || regnum == 16 || regnum == FP || regnum >= SP)
+		return 1;
+	return 0;
 }
 
 static int is_reg_saved(int regnum)
@@ -846,7 +844,7 @@ static int is_reg_saved(int regnum)
 static int gen_tempreg(int * except, int size)//general an temp reg for the var should be in memory
 {
 	int outlop, index, ex;
-	for(outlop = 0; outlop < 5; outlop ++)
+	for(outlop = 0; outlop < 6; outlop ++)
 	{
 		for(index = TOTAL_REG_NUM - 1; index >= 0; index --)//look for empty
 		{
@@ -1101,6 +1099,7 @@ static void flush_pointer_entity(enum mem type, struct var_list * entity_list)
 					}
 				}
 			}
+			tmp = tmp -> next;
 		}
 	}
 }
