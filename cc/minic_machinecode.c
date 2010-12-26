@@ -2113,7 +2113,7 @@ static void gen_per_code(struct triargexpr * expr)
                 /*如果dest在寄存器，使用MOV指令；否则store；*/
 				if(dest_index != -1)
 				{
-					dest_reg = dest_info->reg_addr;//MARK TAOTAOTHERIPPER dest_info = 0x0
+					dest_reg = dest_info->reg_addr;//MARK TAOTAOTHERIPPER
 					if(dest_flag == Arg_Reg)//MOV dest_reg , arg1_reg
 						gen_mov_rsrd_code(dest_reg , arg1_reg);
 					else//STW/STB arg1_reg , [fp-] , dest_info->mem_addr
