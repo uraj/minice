@@ -835,8 +835,11 @@ static int is_reg_disabled(int regnum)
 	return 1;
 }
 
-static int is_reg_callee_save(int regnum)
+static int is_reg_caller_save(int regnum)
 {
+	if((regnum >= 4 && regnum <= 15) || regnum == 28)
+		return 1;
+	return 0;
 }
 
 static int gen_tempreg(int * except, int size)//general an temp reg for the var should be in memory
@@ -1852,8 +1855,6 @@ static void gen_per_code(struct triargexpr * expr)
 		case Minusminus:                 /* -- */
 		case Uplus:                      /* +  */
 		case Uminus:                     /* -  */
-//		case Deref:						 /* *  */
-//		case Subscript:					 /* [] */
 		case BigImm:
 			{
 				dest_index = get_index_of_temp(expr -> index);
@@ -1892,9 +1893,7 @@ static void gen_per_code(struct triargexpr * expr)
 						arg1_flag = Arg_Imm;
 				}
 
-				if(expr -> arg2.type == ExprArg && expr -> arg2.expr == -1)//TAOTAOTHERIPPER MARK
-					;
-				else
+				if(expr -> op == Plus || expr -> op == Minus || expr -> op == Mul)
 				{
 					if(expr -> arg2.type != ImmArg)
 					{
