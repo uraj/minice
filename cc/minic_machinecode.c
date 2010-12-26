@@ -407,11 +407,17 @@ static inline int ref_global_var(int g_var_index)//get the global var offset, ge
 
 static inline char * gen_new_var_offset(int offset)//need free later
 {
+	if(offset < 0)
+		fprintf(stderr, "error when gen label for global var\n");
 	char label_name[MAX_LABEL_NAME_LEN];
 	strcpy(label_name, global_var_label);
-	char label_num_name[MAX_LABEL_NAME_LEN];
-	sprintf(label_num_name, "%d", offset);
-	strcat(label_name, label_num_name);
+	if(offset > 0)
+	{
+		char label_num_name[MAX_LABEL_NAME_LEN];
+		sprintf(label_num_name, "%d", offset);
+		strcat(label_name, "+");
+		strcat(label_name, label_num_name);
+	}
 	return strdup(label_name);
 }
 /******************** deal with global var end ************************/
@@ -488,16 +494,19 @@ static void prepare_temp_var_inmem()//gen addr at first
 
 	for(index = 0; index < cur_ref_var_num; index ++)//second scan, prepare data for first four params
 	{
-		if(is_id_var(index) && is_arglist_byno(cur_func_info -> func_symt, index))//only the arg in register can reach here
+		if(is_id_var(index))//only the arg in register can reach here
 		{
-			tmp_v_info = get_info_from_index(index);
-			param_rank = get_arglist_rank(cur_func_info -> func_symt, index);
-			if(param_rank > param_count - 4)
+			if(is_arglist_byno(cur_func_info -> func_symt, index))
 			{
-				if(alloc_reg.result[index] != -1)
-					gen_mov_rsrd_code(alloc_reg.result[index], (param_count - param_rank));//the arg must be active in the entrance of the function
-				else
-					store_var(tmp_v_info, (param_count - param_rank));
+				tmp_v_info = get_info_from_index(index);
+				param_rank = get_arglist_rank(cur_func_info -> func_symt, index);
+				if(param_rank > param_count - 4)
+				{
+					if(alloc_reg.result[index] != -1)
+						gen_mov_rsrd_code(alloc_reg.result[index], (param_count - param_rank));//the arg must be active in the entrance of the function
+					else
+						store_var(tmp_v_info, (param_count - param_rank));
+				}
 			}
 		}/* if the param is in r0 ~ r3, just alloc mem in stack like other local var */
 	}
@@ -928,8 +937,8 @@ static inline enum Arg_Flag mach_prepare_arg(int arg_index, struct var_info * ar
 	}
 	enum Arg_Flag flag;	
 	if(is_global(arg_index))
-		ref_global_var(arg_index);//global var prepared when first used	
-
+		ref_global_var(arg_index);//global var prepared when first used
+	
 	if(alloc_reg.result[arg_index] != -1)
 	{
 		flag = Arg_Reg;

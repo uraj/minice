@@ -70,7 +70,8 @@ int new_var_map(int func_index)
 	while(index < cur_var_id_num)//malloc var info for id
     {
 		var_info_table[index] = new_var_info();
-        var_info_table[index++]->index = map_bridge_cur_index;
+        var_info_table[index]->index = index;
+		index++;
     }
 	new_map_bridge();
 	return 1;
