@@ -154,7 +154,8 @@ int color_interfer_graph(struct adjlist ** ig, int * alloc_info, const int max_r
         memset(color, 0, sizeof(char) * max_reg);
         while(temp != NULL)
         {
-            if(alloc_info[temp->tonode] != 0)
+            if(alloc_info[temp->tonode] != 0 &&
+               alloc_info[temp->tonode] != -1)
                 color[alloc_info[temp->tonode] - 1] = 1;
             temp = temp -> next;
         }
@@ -237,12 +238,19 @@ static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** igl
 
 struct ralloc_info reg_alloc(struct var_list * vlist, int vlist_size, int var_num, const int max_reg)
 {
-    char ** igraph_m = igraph_m_construct(vlist, vlist_size, var_num);    
+    char ** igraph_m = igraph_m_construct(vlist, vlist_size, var_num);
     struct adjlist ** igraph_l = igraph_l_construct(igraph_m, var_num);
     struct ralloc_info ret;
     ret = reg_alloc_core(igraph_m, igraph_l, var_num, max_reg);//*******************8
     free_igraph_m(igraph_m, var_num);
     free_igraph_l(igraph_l, var_num);
+    /* struct ralloc_info ret; */
+    /* ret.result = malloc(var_num * sizeof(int)); */
+    /* int i; */
+    /* for(i = 0; i < var_num; ++i) */
+    /*     ret.result[i] = -1; */
+    /* ret.consume = 0; */
+    
     return ret;
 }
 
