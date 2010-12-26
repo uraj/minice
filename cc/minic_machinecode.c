@@ -79,12 +79,8 @@ static inline void load_global_var(struct var_info * g_v_info, int reg_num);
 static inline void store_global_var(struct var_info * g_v_info, int reg_num);
 static int gen_tempreg(int * except, int size);
 static inline void restore_tempreg(int temp_reg);
-
-/*static void itoa(int i, char * a, int radix)
-{
-    sprintf(a, "%d", i);
-    return;
-}*/
+static inline void load_var(struct var_info * v_info, int reg_num);
+static inline void store_var(struct var_info * v_info, int reg_num);
 
 /****************************** initial begin ***************************/
 static inline void set_cur_function(int func_index)
@@ -436,7 +432,10 @@ static void prepare_temp_var_inmem()//gen addr at first
 		if(index < cur_var_id_num || alloc_reg.result[index] == -1)
 		{
 			if(!is_global(index))
-			{	
+			{
+				int param_count = get_param_counts(cur_func_info -> func_symt);
+				int param_rank;
+				tmp_v_info = get_info_from_index(index);	
 				if(index < cur_var_id_num)
 				{
 					struct value_info * id_info = get_valueinfo_byno(cur_func_info->func_symt ,  index);
@@ -456,11 +455,17 @@ static void prepare_temp_var_inmem()//gen addr at first
 					}
 					if(is_arglist_byno(cur_func_info -> func_symt, index))
 					{
-						if
-						get_arglist_rank(cur_func_info -> func_symt, index);//MARK TAOTAOTHERIPPER
+						if(param_count >= 4)
+						{
+							param_rank = get_arglist_rank(cur_func_info -> func_symt, index);//MARK TAOTAOTHERIPPER
+							if(param_rank <= param_count - 4)
+							{
+								tmp_v_info -> mem_addr = (- param_rank) * WORD;
+								continue;
+							}
+						}
 					}
 				}
-				tmp_v_info = get_info_from_index(index);	
 				if(get_width_from_index(index) == BYTE)
 					offset_from_sp ++;
 				else
@@ -470,6 +475,14 @@ static void prepare_temp_var_inmem()//gen addr at first
 						offset_from_sp = offset_from_sp - offset_from_sp %WORD + WORD;
 				}
 				tmp_v_info -> mem_addr = cur_sp + offset_from_sp;
+				
+				if(is_id_var(index) && is_arglist_byno(cur_func_info -> func_symt, index))//only the arg in register can reach here
+				{
+					if(alloc_reg.result[index] != -1)
+						gen_mov_rsrd_code(alloc_reg.result[index], (param_count - param_rank));//the arg must be active in the entrance of the function
+					else
+						store_var(tmp_v_info, (param_count - param_rank));
+				}/* if the param is in r0 ~ r3, just alloc mem in stack like other local var */
 			}
 		}
 	}
@@ -910,12 +923,31 @@ static inline enum Arg_Flag mach_prepare_arg(int arg_index, struct var_info * ar
 			reg_dpt[arg_info -> reg_addr].dirty = 0;
 			if(is_array(arg_index) && is_global(arg_index))
 				load_pointer(arg_index, alloc_reg.result[arg_index], 0, 0);
-			else if(arg_type == 1 && is_global(arg_index))
-				load_global_var(get_info_from_index(arg_index) , alloc_reg.result[arg_index]);//if global var as arg, should load
+			else if(arg_type == 1)
+			{
+				if(is_global(arg_index))
+					load_global_var(get_info_from_index(arg_index) , alloc_reg.result[arg_index]);//if global var as arg, should load
+				else if(is_arglist_byno(cur_func_info -> func_symt, arg_index))
+				{
+					int param_count = get_param_counts(cur_func_info -> func_symt);
+					int param_rank;
+					if(param_count >= 4)
+					{
+						param_rank = get_arglist_rank(cur_func_info -> func_symt, arg_index);//MARK TAOTAOTHERIPPER
+						if(param_rank <= param_count - 4)
+						{
+							arg_info -> mem_addr = (- param_rank) * WORD;
+							load_var(get_info_from_index(arg_index), alloc_reg.result[arg_index]);
+						}
+					}
+				}
+			}
 		}
 	}
 	else
+	{
 		flag = Arg_Mem;
+	}
 	return flag;
 }
 
