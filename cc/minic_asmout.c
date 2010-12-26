@@ -204,8 +204,6 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
             {
                 case CMPSUB_A:
                     fprintf(out_buf, "\tcmpsub.a\t");
-					if(!special_reg_mach_out(mcode->dest, out_buf))
-						fprintf(out_buf, "r%d", mcode->dest);
                     break;
             }
             mach_arg_out(mcode->arg1, mcode->arg2, mcode->arg3, mcode->shift, out_buf); 
