@@ -20,7 +20,7 @@ static int get_opresult_width(const struct typetree* ttree)
         exit(1);
     }
     int width;
-    switch(ttree -> type)
+    switch(ttree->type)
     {
         case Pointer:
         case Int:
@@ -80,7 +80,7 @@ int subexpr_arithval_gen(const struct subexpr_info* subexpr)
     expr.arg2.type = ImmArg; /* assign it with 1*/
     expr.arg2.imme = 1;
     expr.index = insert_triargexpr(expr);
-    patch_list_backpatch(subexpr -> truelist, expr.index); /* if true, temp = 1 */
+    patch_list_backpatch(subexpr->truelist, expr.index); /* if true, temp = 1 */
     
     /* gen (3)*/
     expr.op = UncondJump;
@@ -95,7 +95,7 @@ int subexpr_arithval_gen(const struct subexpr_info* subexpr)
     expr.arg2.type = ImmArg;
     expr.arg2.imme = 0;
     expr.index = insert_triargexpr(expr); /* if false, temp = 0 */
-    patch_list_backpatch(subexpr -> falselist, expr.index);
+    patch_list_backpatch(subexpr->falselist, expr.index);
     
     return ret;
 }
@@ -112,18 +112,18 @@ struct subexpr_info triargexpr_gen(struct ast* root)
     
     if(root == NULL)
         exit(1);
-    if(root -> isleaf)
+    if(root->isleaf)
     {
         ret.arithtype = 1;
-        switch(root -> val -> ast_leaf_type)
+        switch(root->val->ast_leaf_type)
         {
             case Idleaf:
                 ret.subexpr_arg.type = IdArg;
-                ret.subexpr_arg.idname = strdup(root -> val -> sval);
+                ret.subexpr_arg.idname = strdup(root->val->sval);
                 break;
             case Iconstleaf:     
                 ret.subexpr_arg.type = ImmArg;
-                ret.subexpr_arg.imme = root -> val -> ival;
+                ret.subexpr_arg.imme = root->val->ival;
                 if((level != 0) && ((uint32_t)(root->val->ival) > 0x000001ff))
                 {
                     expr.op = BigImm;
@@ -156,11 +156,11 @@ struct subexpr_info triargexpr_gen(struct ast* root)
     struct subexpr_info lsub, rsub;
     int larith_index, rarith_index;
 
-    switch(root -> op)
+    switch(root->op)
     {
         case Land:
             ++level;
-            lsub = triargexpr_gen(root -> left);
+            lsub = triargexpr_gen(root->left);
             if(lsub.arithtype)
             {
                 /* gen expr "FalseJump lsub.subexpr_arg ? " */
@@ -170,7 +170,7 @@ struct subexpr_info triargexpr_gen(struct ast* root)
                 lsub.falselist = patch_list_append(lsub.falselist, expr.index);
                 lsub.truelist = NULL;
             }
-            rsub = triargexpr_gen(root -> right);
+            rsub = triargexpr_gen(root->right);
             --level;
             if(rsub.arithtype)
             {
@@ -197,7 +197,7 @@ struct subexpr_info triargexpr_gen(struct ast* root)
             
         case Lor:
             ++level;
-            lsub = triargexpr_gen(root -> left);
+            lsub = triargexpr_gen(root->left);
             if(lsub.arithtype)
             {
                 /* gen expr "TrueJump lsub.subexpr_arg ? " */
@@ -207,7 +207,7 @@ struct subexpr_info triargexpr_gen(struct ast* root)
                 lsub.truelist = patch_list_append(lsub.truelist, expr.index);
                 lsub.falselist = NULL;
             }
-            rsub = triargexpr_gen(root -> right);
+            rsub = triargexpr_gen(root->right);
             --level;
             if(rsub.arithtype)
             {
@@ -233,7 +233,7 @@ struct subexpr_info triargexpr_gen(struct ast* root)
             
         case Lnot:
             ++level;
-            lsub = triargexpr_gen(root -> left);
+            lsub = triargexpr_gen(root->left);
             --level;
             if(lsub.arithtype)
             {
@@ -263,15 +263,15 @@ struct subexpr_info triargexpr_gen(struct ast* root)
         case Nle:
         case Nge:
             ++level;
-            lsub = triargexpr_gen(root -> left);
+            lsub = triargexpr_gen(root->left);
             if(!lsub.arithtype)
                 larith_index = subexpr_arithval_gen(&lsub);
-            rsub = triargexpr_gen(root -> right);
+            rsub = triargexpr_gen(root->right);
             --level;
             if(!rsub.arithtype)
                 rarith_index = subexpr_arithval_gen(&rsub);
             
-            expr.op = root -> op;
+            expr.op = root->op;
             expr.width = 4;
             expr.stride = 1;
             expr.arg1 = lsub.subexpr_arg;
@@ -301,17 +301,17 @@ struct subexpr_info triargexpr_gen(struct ast* root)
         case Subscript:
         case Assign:
             ++level;
-            lsub = triargexpr_gen(root -> left);
+            lsub = triargexpr_gen(root->left);
             if(lsub.arithtype)
                 expr.arg1 = lsub.subexpr_arg;
             else
             {
-                if(root -> op == Subscript || root -> op == Assign)
+                if(root->op == Subscript || root->op == Assign)
                     exit(1); /* op [] must have arith type as left operand */
                 expr.arg1.type = ExprArg;
                 expr.arg1.expr = subexpr_arithval_gen(&lsub);
             } 
-            rsub = triargexpr_gen(root -> right);
+            rsub = triargexpr_gen(root->right);
             --level;
             if(rsub.arithtype)
                 expr.arg2 = rsub.subexpr_arg;
@@ -320,8 +320,8 @@ struct subexpr_info triargexpr_gen(struct ast* root)
                 expr.arg2.type = ExprArg;
                 expr.arg2.expr = subexpr_arithval_gen(&rsub);
             }
-            expr.op = root -> op;
-            expr.width = get_opresult_width(root -> ast_typetree);
+            expr.op = root->op;
+            expr.width = get_opresult_width(root->ast_typetree);
             /* ret.truelist = ret.falselist = NULL */
             ret.subexpr_arg.expr = insert_triargexpr(expr);
             ret.subexpr_arg.type = ExprArg;
@@ -330,7 +330,7 @@ struct subexpr_info triargexpr_gen(struct ast* root)
 
         case Uplus:
             ++level;
-            lsub = triargexpr_gen(root -> left);
+            lsub = triargexpr_gen(root->left);
             --level;
             return lsub;
             
@@ -340,13 +340,16 @@ struct subexpr_info triargexpr_gen(struct ast* root)
         case Ref:
         case Deref:
         case Funcall:
+            if(root->right)
+            {
+                ++level;
+                triargexpr_gen(root->right);
+                --level;
+            }
+            expr.op = root->op;
+            expr.width = get_opresult_width(root->ast_typetree);
             ++level;
-            triargexpr_gen(root -> right);
-            --level;
-            expr.op = root -> op;
-            expr.width = get_opresult_width(root -> ast_typetree);
-            ++level;
-            lsub = triargexpr_gen(root -> left);
+            lsub = triargexpr_gen(root->left);
             --level;
             if(root->op == Ref)
             {
@@ -370,7 +373,7 @@ struct subexpr_info triargexpr_gen(struct ast* root)
         case Arglist: /* generate one arg expression, but right sub must be scanned */
             /* left subtree first <=> prepare arg form left to right */
             ++level;
-            lsub = triargexpr_gen(root -> left);
+            lsub = triargexpr_gen(root->left);
             --level;
             if(lsub.arithtype)
                 expr.arg1 = lsub.subexpr_arg;
@@ -380,10 +383,10 @@ struct subexpr_info triargexpr_gen(struct ast* root)
                 expr.arg1.expr = subexpr_arithval_gen(&lsub);
             }
             ++level;
-            triargexpr_gen(root -> right);
+            triargexpr_gen(root->right);
             --level;
-            expr.op = root -> op;
-            expr.width = get_opresult_width(root -> ast_typetree);
+            expr.op = root->op;
+            expr.width = get_opresult_width(root->ast_typetree);
             expr.stride = 1;
             
             /* ret.truelist = ret.falselist = NULL */
@@ -393,7 +396,7 @@ struct subexpr_info triargexpr_gen(struct ast* root)
             break;
         case Return:
             ++level;
-            lsub = triargexpr_gen(root -> left);
+            lsub = triargexpr_gen(root->left);
             --level;
             return lsub;
         default:
@@ -407,8 +410,8 @@ static void free_patch_list(struct patch_list* root)
 {
     if(root == NULL)
         return;
-    if(root -> next)
-        free_patch_list(root -> next);
+    if(root->next)
+        free_patch_list(root->next);
     free(root);
     return;
 }
