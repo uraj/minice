@@ -803,6 +803,36 @@ static void solve_equa_ud()//求解活跃变量方程组
      free(var_in);
 }
 
+int get_max_func_varlist()
+{
+     return sg_max_func_varlist;
+}
+
+int is_active_var(int mapid)
+{
+     if(mapid >= 0)
+          return is_actvar[mapid];
+     return 0;
+}
+
+static int add_actvar_info(struct var_list *list)
+{
+     if(list == NULL)
+          return 0;
+     if(list->head == NULL)
+          return 0;
+     struct var_list_node *temp = list->head;
+     int count = 0;
+     while(temp != list->tail->next)
+     {
+          count++;
+          if(temp->var_map_index >= 0)
+               is_actvar[temp->var_map_index] = 1;
+          temp = temp->next;
+     }
+     return count;
+}
+
 static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)//get the map_index of arg,but if arg is a *p,we must do something about the pointer_entity list.Return -1 if we can't find the map_id or we find more than one idents in the pointer_entity list but dest is NULL.If pointer_entity list has only one ident,replace arg with it and return its map_id.If pointer_entity list has more than one idents and dest isn't NULL,it'll return the map_id of arg and put the pointer_entity list in dest.
 {
      if(arg->type == IdArg)
@@ -823,11 +853,11 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)/
                struct var_list *temp_point_list = temp_expr_node->pointer_entity;
                if(dest == NULL)//此arg为引用编号(temp_point_list == NULL)
                {
-                    if(temp_point_list == NULL)
+/*                    if(temp_point_list == NULL)
                          return -2;
                     if(temp_point_list->head == NULL)
                          return -2;
-                    /*                   if(temp_point_list->head == temp_point_list->tail)//只有一个元素
+                    if(temp_point_list->head == temp_point_list->tail)//只有一个元素
                     {
                          struct var_info *temp_var_info = get_info_from_index(temp_point_list->head->var_map_index);
                          if(temp_var_info->ref_point != NULL)//此指针为数组
@@ -884,33 +914,6 @@ static void make_change_list(int num1 , int num2 , struct var_list *dest)
           var_list_append(dest , num1);
      if(num2 >= 0)
           var_list_append(dest , num2);
-}
-
-int get_max_func_varlist()
-{
-     return sg_max_func_varlist;
-}
-
-int is_active_var(int mapid)
-{
-     return is_actvar[mapid];
-}
-
-static int add_actvar_info(struct var_list *list)
-{
-     if(list == NULL)
-          return 0;
-     if(list->head == NULL)
-          return 0;
-     struct var_list_node *temp = list->head;
-     int count = 0;
-     while(temp != list->tail->next)
-     {
-          count++;
-          is_actvar[temp->var_map_index] = 1;
-          temp = temp->next;
-     }
-     return count;
 }
 
 struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分析
