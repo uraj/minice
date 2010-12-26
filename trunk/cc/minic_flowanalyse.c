@@ -1079,10 +1079,10 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     act_list_index++;
                }
           after_make_actvarlist:
+               int count = add_actvar_info(actvar_list + act_list_index -1);
                if(temp_expr->entity->op == Funcall)
                {
                     temp_expr->entity->arg2.func_actvar_list = (actvar_list + act_list_index -1);
-                    int count = var_list_count(temp_expr->entity->arg2.func_actvar_list);
                     if(count > sg_max_func_varlist)
                          sg_max_func_varlist = count;
                }
