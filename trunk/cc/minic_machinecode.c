@@ -926,7 +926,6 @@ static inline void restore_tempreg(int temp_reg)
 		/*fprintf(stderr, "error when restore tempreg invalid temp reg\n");*/
 		return;
 	}
-	printf("%d\n",shadow_reg_dpt[temp_reg].content);
 	if(is_reg_saved(temp_reg) && shadow_reg_dpt[temp_reg].content == REG_UNUSED)
 		;
 	else if(is_reg_saved(temp_reg) && !is_global(shadow_reg_dpt[temp_reg].content) && !shadow_reg_dpt[temp_reg].dirty)
