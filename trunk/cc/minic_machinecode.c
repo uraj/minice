@@ -977,7 +977,7 @@ static inline enum Arg_Flag mach_prepare_arg(int arg_index, struct var_info * ar
 			reg_dpt[arg_info -> reg_addr].content = arg_index;
 			reg_dpt[arg_info -> reg_addr].dirty = 0;
 			if(is_array(arg_index) && is_global(arg_index))
-				load_pointer(arg_index, alloc_reg.result[arg_index], 0, 0);
+				load_pointer(arg_index, alloc_reg.result[arg_index], 0, -1);
 			else if(arg_type == 1)
 			{
 				if(is_global(arg_index))
@@ -1725,7 +1725,7 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 	{
 		arg1_index = get_index_of_id(expr -> arg1.idname);
 		arg1_info = get_info_from_index(arg1_index);
-		load_pointer(arg1_index, dest_reg, 0, 0);
+		load_pointer(arg1_index, dest_reg, 0, -1);
 	}
 	else if(expr -> arg1.type == ExprArg)
 	{
@@ -1825,7 +1825,7 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 					else
 					{
 						if(is_array(p_index))
-							load_pointer(p_index, dest_reg, 0, 0);
+							load_pointer(p_index, dest_reg, 0, -1);
 						else
 							load_var(p_info, dest_reg);
 					}
@@ -1995,7 +1995,7 @@ static void gen_per_code(struct triargexpr * expr)
 					mark1 = 1;
 					except[ex_size++] = tempreg1;
 					if(is_array(arg1_index))
-						load_pointer(arg1_index, tempreg1, 0, 0);
+						load_pointer(arg1_index, tempreg1, 0, -1);
 					else
 						load_var(arg1_info, tempreg1);
 				}
@@ -2006,7 +2006,7 @@ static void gen_per_code(struct triargexpr * expr)
 					mark2 = 1;
 					except[ex_size++] = tempreg2;
 					if(is_array(arg1_index))
-						load_pointer(arg2_index, tempreg2, 0, 0);
+						load_pointer(arg2_index, tempreg2, 0, -1);
 					else
 						load_var(arg2_info, tempreg2);
 				}
