@@ -14,12 +14,8 @@ int sval_set = 0;
 %}
 Char [^\\ \n\t\v\b\r\f\a]|\\[ntvbrfa\\\'\"\?]
 /* patten '\x**' not supported currently */
-
 %%
 
-"/*".*"*/" {;}
-"/*".*     {;}
-.*"*/" {;}
 [1-9][0-9]* {
     if(sval_set)
         free(yylval.tk.sval);
@@ -59,6 +55,8 @@ Char [^\\ \n\t\v\b\r\f\a]|\\[ntvbrfa\\\'\"\?]
 	sval_set = 1;
 	return SCONSTANT;
 }
+
+\/\*[^\*\/]*\*\/ {;}
 
 "void"           { return VOID; }
 "int"            { return INT; }
