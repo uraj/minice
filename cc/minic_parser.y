@@ -25,6 +25,11 @@
 
 const size_t MAXIDLEN = 31; /* 31 is the minimum length supported by compilers according to ANCI C standard */
 
+/* option switches */
+int option_show_triargexpr = 0;
+int option_show_localcode = 0;
+int option_show_ast = 0;
+
 /* provided by the scanner */
 extern int yylineno;
 extern int yylex();
@@ -200,9 +205,8 @@ function_def : function_hdr "{" function_body "}" {
 													  struct triargtable * tmp_table = new_table($1);
 													  insert_table(tmp_table);/*add new function triargtable to the list,
 																			   g_total_expr_num is modified in the function.*/
-													  #ifdef SHOWCODE
+													  if(option_show_triargexpr)
 													    print_table(tmp_table);
-													  #endif
 													  new_global_table();/*new a global table for next function*/	
                                                   }
              ;
@@ -273,9 +277,8 @@ parm_decl : type_name id {
 
 function_body : internal_decls statement_list {
                                                     
-                                                   #ifdef SHOWLOCALCODE//#ifdef SHOWCODE
+                                                   if(option_show_localcode)//#ifdef SHOWCODE
 												        print_list_header($2);
-												    #endif
 													struct taexpr_list_header * final_list = stmt_list_merge($2, return_list_append(NULL));
                                                     
 													ghead = final_list -> head;
@@ -331,11 +334,12 @@ if_stmt : IF "(" expression ")" statement %prec LOWER_THEN_ELSE {
                                                                     struct subexpr_info cond = triargexpr_gen($3);
                                                                     free_ast($3);
                                                                     $$ = if_list_merge(&cond, $5);
-                                                                    #ifdef SHOWLOCALCODE
+                                                                    if(option_show_localcode)
+                                                                    {
 																		printf("if:\n");
 																		print_list_header($$);//test
 																		printf("\n");
-                                                                    #endif
+																    }
                                                                 }
         | IF "(" expression ")" statement ELSE statement {
                                                              ast_type_check($3, simb_table, curr_table);
@@ -347,11 +351,12 @@ if_stmt : IF "(" expression ")" statement %prec LOWER_THEN_ELSE {
                                                              struct subexpr_info cond = triargexpr_gen($3);
                                                              free_ast($3);
                                                              $$ = if_else_list_merge(&cond, $5, $7);
-                                                             #ifdef SHOWLOCALCODE
+                                                             if(option_show_localcode)
+                                                             {
                                                                 printf("if_else:\n");
 																print_list_header($$);//test
 																printf("\n");
-                                                             #endif
+                                                             }
                                                          }
         ;
 
@@ -367,11 +372,12 @@ for_stmt : FOR "(" expression ";" expression ";" expression ")" statement
                                                             struct subexpr_info incr = triargexpr_gen($7);
                                                             free_ast($7);
                                                             $$ = for_list_merge(&init, &cond, &incr, $9);
-                                                            #ifdef SHOWLOCALCODE
+                                                            if(option_show_localcode)
+                                                            {
 																printf("for:\n");
 																print_list_header($$);//test
 																printf("\n");
-                                                            #endif
+                                                            }
                                                         }
          ;
 
@@ -388,11 +394,12 @@ while_stmt : WHILE "(" expression ")" statement {
 
 
 
-                                                    #ifdef SHOWLOCALCODE
+                                                    if(option_show_localcode)
+                                                    {
 														printf("while:\n");
                                                         print_list_header($$);//test
 														printf("\n");
-                                                    #endif
+                                                    }
                                                 }
 
            ;
@@ -605,14 +612,36 @@ id : IDENT {
 %%
 int main(int argc, char* argv[])
 {
-    if(argc < 2)
+    char option = 0;
+    char * filename = NULL;
+    while((option = getopt(argc, argv, "amtf:")) != -1)
     {
-        fprintf(stderr, "minicc: Need a C source file as input.\n");
+        switch(option)
+        {
+            case 'a':
+                option_show_ast = 1;
+                break;
+            case 't':
+                option_show_triargexpr = 1;
+                break;
+            case 'm':
+                option_show_localcode = 1;
+                break;
+            case 'f':
+                filename = optarg;
+                break;
+            default:
+                ;
+        }
+    }
+    if(filename == NULL)
+    {
+        fprintf(stderr, "minicc: need a C source file as input\n");
         return 1;
     }
-    else if((yyin = fopen(argv[1], "r")) == NULL)
+    else if((yyin = fopen(filename, "r")) == NULL)
     {
-        fprintf(stderr, "minicc: %s: No such file.\n", argv[1]);
+        fprintf(stderr, "minicc: %s: No such file.\n", filename);
         return 1;
     }
 	curr_table = symt_new();
