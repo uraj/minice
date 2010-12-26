@@ -1,4 +1,5 @@
-int b()
+int g_a2;
+int b(int a1, int a2, int a3, int a4, int a5)
 {
 	int k;
 	k =  k + 1;

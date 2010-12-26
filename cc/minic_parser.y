@@ -625,8 +625,8 @@ int main(int argc, char* argv[])
 	free_global_table();/*there should be an extra tmp table, and g_table_list_size is set in this*/
 	new_code_table_list();	
 	int i = 0 ;
-	for(i = 0; i < g_table_list_size; i++)
-	{
+	//for(i = 0; i < g_table_list_size; i++)
+	//{
 		printf("%s\n", table_list[i] -> funcname);
 		gen_machine_code(i);
 		/*here is the register allotting and the assemble codes generating*/
@@ -647,7 +647,7 @@ int main(int argc, char* argv[])
         }
         printf("varlist ends.\n");
 		*/
-	}
+	//}
 	free_code_table_list();
     syms_delete(parm_stack);
     syms_delete(type_stack);
