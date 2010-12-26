@@ -923,7 +923,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
      (*expr_num) = s_expr_num;//the num of expressions
 
      int i , add1 , add2 , del1 , del2 , flag_first;
-     int act_list_index = 0;
+     int act_list_index = 0 , count;
      struct var_list *actvar_list;//
      actvar_list = (struct var_list *)malloc(sizeof(struct var_list) * s_expr_num);
      for(i = 0 ; i < s_expr_num ; i++)
@@ -1079,7 +1079,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     act_list_index++;
                }
           after_make_actvarlist:
-               int count = add_actvar_info(actvar_list + act_list_index -1);
+               count = add_actvar_info(actvar_list + act_list_index -1);
                if(temp_expr->entity->op == Funcall)
                {
                     temp_expr->entity->arg2.func_actvar_list = (actvar_list + act_list_index -1);
