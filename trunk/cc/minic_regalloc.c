@@ -202,9 +202,10 @@ static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** igl
 {
     struct ralloc_info ret;
     ret.result = calloc(sizeof(int), n);
-    int * statck = malloc(n * sizeof(int));
+    int * stack = malloc(n * sizeof(int));
+    int * spill = malloc(n * sizeof(int));
     isort_elem * elem = malloc(n * sizeof(isort_elem));
-    int top = 0, left = n, i;
+    int top = 0, spillcount = 0, left = n, i;
     for(i = 0; i < n; ++i)
         if(appear[i] == 0)
         {
@@ -221,7 +222,7 @@ static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** igl
                 continue;
             if(elem[i].key < max_reg)
             {
-                statck[top++] = elem[i].val;     /* i can be placed in a reg */
+                stack[top++] = elem[i].val;     /* i can be placed in a reg */
                 delete_node(igmatrix, n, i);
                 --left;
             }
@@ -230,14 +231,19 @@ static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** igl
                 /* spill policy, maybe need a better one */
                 delete_node(igmatrix, n, elem[i].val);
                 (ret.result)[elem[i].val] = -1;
+                spill[spillcount++] = elem[i].val;
                 --left;
                 break;
             }
         }
     }
-    ret.consume = color_interfer_graph(iglist, ret.result, max_reg, statck, top);
+    free(elem);
+    ret.consume = color_interfer_graph(iglist, ret.result, max_reg, stack, top);
+    free(stack);
+    for(i = 0; ret.consume < max_reg && i < spillcount; ++i)
+        ret.result[spill[i]] = ++ret.consume;
+    free(spill);
     /* debug */
-    
     if(!check(iglist, ret.result, n))
         printf("wrong answer\n");
     /* debug end */
