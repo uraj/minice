@@ -32,10 +32,12 @@ static char ** igraph_m_construct(struct var_list * vlist, int size, int var_num
     int i;
     for(i = 0; i < size; ++i)
     {
-        if(vlist[i].head == NULL || vlist[i].head == vlist[i].tail)
+        if(vlist[i].head == NULL)
+            continue;
+        appear[vlist[i].head->var_map_index] = 1;
+        if(vlist[i].head == vlist[i].tail)
             continue;
         struct var_list_node * ofocus = vlist[i].head;
-        appear[ofocus->var_map_index] = 1;
         do
         {
             struct var_list_node * ifocus = ofocus;
@@ -43,10 +45,10 @@ static char ** igraph_m_construct(struct var_list * vlist, int size, int var_num
             {
                 ifocus = ifocus->next;
                 igraph_m[ifocus->var_map_index][ofocus->var_map_index] = 1;
-            }while(ifocus != vlist[i].tail);
+            }while(ifocus != vlist[i].tail && ifocus->next != NULL);
             ofocus = ofocus->next;
         }
-        while(ofocus != vlist[i].tail);     
+        while(ofocus != vlist[i].tail && ofocus != NULL);     
     }
     return igraph_m;
 }
