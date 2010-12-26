@@ -583,15 +583,17 @@ static void callee_save_pop()
 /******************** deal with label begin *****************************/
 static inline int check_is_jump_dest(int exprnum)//need check every expr before translate
 {
-	struct var_info * expr_info = get_info_of_temp(exprnum);
-	if(expr_info != NULL && expr_info -> label_num == -2)//means this is a dest
+	struct var_info * expr_info = get_info_of_temp_for_label(exprnum);
+	if(expr_info != NULL)
 	{
-		expr_info -> label_num = total_label_num ++;
-		insert_label_code(gen_new_label(expr_info -> label_num)); 
-		return 1;
+		if(expr_info -> label_num != -1)
+		{
+			if(expr_info -> label_num == -2)//means this is a dest
+				expr_info -> label_num = total_label_num ++;
+			insert_label_code(gen_new_label(expr_info -> label_num));
+			return 1;
+		}
 	}
-	else
-		insert_label_code(gen_new_label(expr_info -> label_num));
 	return 0;
 }
 
@@ -605,8 +607,17 @@ static inline char * gen_new_label(int label_num)
 }
 
 static inline int ref_jump_dest(int expr_id)//get the label for jump dest
-{
+{	
 	struct var_info * id_info = get_info_of_temp_for_label(expr_id);
+	if(id_info == NULL)
+	{
+		fprintf(stderr, "error when ref jump destination.\n");
+		exit(1);
+	}
+	if(id_info -> label_num == -1)
+		fprintf(stderr, "error jump to an wrong destination.\n");
+	if(id_info -> label_num == -2)
+		id_info -> label_num = total_label_num ++;
 	return id_info -> label_num;
 }
 /************************** deal with label end *************************/
@@ -2117,7 +2128,7 @@ static void gen_per_code(struct triargexpr * expr)
             
 		case UncondJump:
 				{
-					int label_num = ref_jump_dest(expr -> index);
+					int label_num = ref_jump_dest(expr -> arg1.expr);
 					char * dest_label_name = gen_new_label(label_num);
 					insert_buncond_code(dest_label_name, 0);
 					break;

@@ -539,7 +539,7 @@ static struct search_res search_block(struct basic_block * block)
 					block -> tail -> next = uncond_node;
 					uncond_node -> prev = block -> tail;
 					block -> tail = uncond_node;
-					set_expr_label_mark(tmp_res.expr_index);		
+					set_expr_label_mark(tmp_res.expr_index);
 				}
 			}
 			break;
