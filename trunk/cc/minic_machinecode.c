@@ -1183,7 +1183,8 @@ static inline void gen_cmp_code(struct triargexpr *cond_expr , int *restore_reg)
      enum Arg_Flag arg_flag[2];
      struct var_info *cond_arg_info[2];
      for(i = 0 ; i < 2 ; i ++)
-          arg_flag[i] = mach_prepare_index(cond_arg_index[i] , &(cond_arg_info[i]) , 1);
+          if(cond_arg_index[i] != -1)
+               arg_flag[i] = mach_prepare_index(cond_arg_index[i] , &(cond_arg_info[i]) , 1);
 
      int arg_reg_index[2];
      restore_reg[0] = restore_reg[1] = -1;
@@ -1246,7 +1247,7 @@ static inline void gen_cj_expr(struct triargexpr *expr)
      if(arg1_index == -1)//如果条件操作数没有map_id，说明它是个逻辑表达式。
      {
           /*先得到作为条件的三元式，生成它的代码。*/
-          struct triargexpr_list *cond_expr_node = cur_table->index_to_list[expr->index];
+          struct triargexpr_list *cond_expr_node = cur_table->index_to_list[expr->arg1.expr];
           struct triargexpr *cond_expr = cond_expr_node->entity;
           int restore_reg[2] , i;
           gen_cmp_code(cond_expr , restore_reg);
@@ -1574,11 +1575,11 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
      int arg2_index = get_index_of_arg(arg2);//立即数、
      //int dest_index = get_index_of_temp(expr->index);
      
-     if(arg1_index < 0)
+     if(is_active_var(arg1_index) == 0 && is_global(arg1_index) == 0)//既不活跃又不是全局变量，没必要赋值
      {
           if(expr_flag == nothing)
                return;
-          else if(expr_flag == assign)//如果是赋值语句而arg1的index<0，说明他是个没有被引用的三元式编号变量，要考虑数组或指针实体赋值
+          else if(expr_flag == assign)//如果是赋值语句而arg1又是三元式，并且它不活跃，，说明他是个没有被引用的三元式编号变量，要考虑数组或指针实体赋值
           {
                if(arg1->type == ExprArg)
                {
@@ -1857,7 +1858,8 @@ static void gen_per_code(struct triargexpr * expr)
 				else
 				{
 					dest_info = get_info_from_index(dest_index);
-					dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
+                    if(dest_index > 0)
+                         dest_flag = mach_prepare_arg(dest_index, dest_info, 0);
 				}
 
 				if(expr -> op == Ref)
@@ -2475,7 +2477,13 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 	reset_reg_number();//reset the reg number
 	enter_func_push();
 	callee_save_push();
-	prepare_temp_var_inmem();//alloc mem for temp var in stack	
+	prepare_temp_var_inmem();//alloc mem for temp var in stack
+#ifdef MACH_DEBUG
+    int i;
+    for(i = 0 ; i < cur_ref_var_num ; i++)
+         printf("%d->r%d\t" , i , alloc_reg.result[i]);
+    printf("\n");
+#endif
 struct triargexpr_list * tmp_node = cur_table -> head;
 	while(tmp_node != NULL)//make tail's next to be NULL
 	{
