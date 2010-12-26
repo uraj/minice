@@ -593,7 +593,7 @@ static void malloc_active_var()
      use = (struct var_list *)malloc((sizeof(struct var_list)) * g_block_num);
      def_size = (int *)malloc((sizeof(int)) * g_block_num);
      use_size = (int *)malloc((sizeof(int)) * g_block_num);
-     is_actvar = (int *)calloc(cur_ref_var_num , sizeof(int));
+     is_actvar = (int *)calloc(get_ref_var_num() , sizeof(int));
      
      int i;
      for(i = 0 ; i < g_block_num ; i++)
@@ -893,7 +893,7 @@ int get_max_func_varlist()
 
 int is_active_var(int mapid)
 {
-     return is_active[mapid];
+     return is_actvar[mapid];
 }
 
 static int add_actvar_info(struct var_list *list)
