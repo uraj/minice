@@ -26,7 +26,7 @@ static char ** new_interfer_graph_m(int n)
 
 /* get interference graph from data flow statisitc, */
 /* return adjacent matrix */
-static char ** igraph_m_construct(struct var_list * vlist, int size, int var_num)
+static char ** igraph_m_construct(struct var_list * vlist, int size, int var_num, char * appear)
 {
     char ** igraph_m = new_interfer_graph_m(var_num);
     int i;
@@ -35,6 +35,7 @@ static char ** igraph_m_construct(struct var_list * vlist, int size, int var_num
         if(vlist[i].head == NULL || vlist[i].head == vlist[i].tail)
             continue;
         struct var_list_node * ofocus = vlist[i].head;
+        appear[ofocus->var_map_index] = 1;
         do
         {
             struct var_list_node * ifocus = ofocus;
@@ -190,7 +191,7 @@ static int check(struct adjlist ** ig, int * alloc_info, int n)
     return 1;
 }
 
-static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** iglist, const int n, const int max_reg)
+static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** iglist, const int n, const int max_reg, char * appear)
 {
     struct ralloc_info ret;
     ret.result = calloc(sizeof(int), n);
@@ -198,7 +199,7 @@ static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** igl
     isort_elem * elem = malloc(n * sizeof(isort_elem));
     int top = 0, left = n, i;
     for(i = 0; i < n; ++i)
-        if(iglist[i] == NULL)
+        if(appear[i] == 0)
         {
             ret.result[i] = -1;
             left -= 1;
@@ -238,12 +239,16 @@ static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** igl
 
 struct ralloc_info reg_alloc(struct var_list * vlist, int vlist_size, int var_num, const int max_reg)
 {
-    char ** igraph_m = igraph_m_construct(vlist, vlist_size, var_num);
+    char * appear = calloc(sizeof(char), var_num);
+    
+    char ** igraph_m = igraph_m_construct(vlist, vlist_size, var_num, appear);
     struct adjlist ** igraph_l = igraph_l_construct(igraph_m, var_num);
     struct ralloc_info ret;
-    ret = reg_alloc_core(igraph_m, igraph_l, var_num, max_reg);//*******************8
+    ret = reg_alloc_core(igraph_m, igraph_l, var_num, max_reg, appear);
+    free(appear);
     free_igraph_m(igraph_m, var_num);
     free_igraph_l(igraph_l, var_num);
+
     /* struct ralloc_info ret; */
     /* ret.result = malloc(var_num * sizeof(int)); */
     /* int i; */
