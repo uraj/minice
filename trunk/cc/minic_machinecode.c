@@ -504,9 +504,15 @@ static void prepare_temp_var_inmem()//gen addr at first
 				if(param_rank > param_count - 4)
 				{
 					if(alloc_reg.result[index] != -1)
+					{
 						gen_mov_rsrd_code(alloc_reg.result[index], (param_count - param_rank));//the arg must be active in the entrance of the function
+						reg_dpt[alloc_reg.result[index]].dirty = 1;
+					}
 					else
-						store_var(tmp_v_info, (param_count - param_rank));
+					{
+						if(is_active_var(index))//may be the param is in mem because it has never been refed in the function
+							store_var(tmp_v_info, (param_count - param_rank));
+					}
 				}
 			}
 		}/* if the param is in r0 ~ r3, just alloc mem in stack like other local var */
@@ -856,6 +862,7 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 				case 0:
 					if(is_reg_saved(index) && reg_dpt[index].content == REG_UNUSED && ex == size)
 					{
+						shadow_reg_dpt[index] = reg_dpt[index];
 						reg_dpt[index].content = REG_TEMP;//-2 means tmp_reg
 						return index;
 					}
@@ -919,11 +926,12 @@ static inline void restore_tempreg(int temp_reg)
 		/*fprintf(stderr, "error when restore tempreg invalid temp reg\n");*/
 		return;
 	}
-	if(shadow_reg_dpt[temp_reg].content == REG_UNUSED)
+	printf("%d\n",shadow_reg_dpt[temp_reg].content);
+	if(is_reg_saved(temp_reg) && shadow_reg_dpt[temp_reg].content == REG_UNUSED)
 		;
-	else if(!is_global(shadow_reg_dpt[temp_reg].content) && !shadow_reg_dpt[temp_reg].dirty)
+	else if(is_reg_saved(temp_reg) && !is_global(shadow_reg_dpt[temp_reg].content) && !shadow_reg_dpt[temp_reg].dirty)
 		;
-	else if(!is_global(shadow_reg_dpt[temp_reg].content) && is_id_var(shadow_reg_dpt[temp_reg].content))	
+	else if(is_reg_saved(temp_reg) && !is_global(shadow_reg_dpt[temp_reg].content) && is_id_var(shadow_reg_dpt[temp_reg].content))	
 		load_var(get_info_from_index(shadow_reg_dpt[temp_reg].content), temp_reg);
 	else if(!is_global(shadow_reg_dpt[temp_reg].content))
 		pop_param_to_reg(temp_reg);
