@@ -26,7 +26,7 @@ static char ** new_interfer_graph_m(int n)
 
 /* get interference graph from data flow statisitc, */
 /* return adjacent matrix */
-static char ** igraph_m_construct(struct var_list * vlist, int size, int var_num, char * appear)
+static char ** igraph_m_construct(struct var_list * vlist, int size, int var_num, int * appear)
 {
     char ** igraph_m = new_interfer_graph_m(var_num);
     int i;
@@ -35,20 +35,25 @@ static char ** igraph_m_construct(struct var_list * vlist, int size, int var_num
         if(vlist[i].head == NULL)
             continue;
         appear[vlist[i].head->var_map_index] = 1;
+        appear[vlist[i].tail->var_map_index] = 1;
         if(vlist[i].head == vlist[i].tail)
             continue;
         struct var_list_node * ofocus = vlist[i].head;
-        do
+        while(ofocus != NULL)
         {
-            struct var_list_node * ifocus = ofocus;
-            do
+            appear[ofocus->var_map_index] = 1;
+            struct var_list_node * ifocus = ofocus->next;
+            while(ifocus != NULL)
             {
-                ifocus = ifocus->next;
                 igraph_m[ifocus->var_map_index][ofocus->var_map_index] = 1;
-            }while(ifocus != vlist[i].tail && ifocus->next != NULL);
+                if(ifocus == vlist[i].tail)
+                    break;
+                ifocus = ifocus->next;
+            }
+            if(ofocus->next == vlist[i].tail)
+                break;
             ofocus = ofocus->next;
         }
-        while(ofocus != vlist[i].tail && ofocus != NULL);     
     }
     return igraph_m;
 }
@@ -193,7 +198,7 @@ static int check(struct adjlist ** ig, int * alloc_info, int n)
     return 1;
 }
 
-static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** iglist, const int n, const int max_reg, char * appear)
+static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** iglist, const int n, const int max_reg, int * appear)
 {
     struct ralloc_info ret;
     ret.result = calloc(sizeof(int), n);
@@ -241,7 +246,7 @@ static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** igl
 
 struct ralloc_info reg_alloc(struct var_list * vlist, int vlist_size, int var_num, const int max_reg)
 {
-    char * appear = calloc(sizeof(char), var_num);
+    int * appear = calloc(var_num, sizeof(int));
     
     char ** igraph_m = igraph_m_construct(vlist, vlist_size, var_num, appear);
     struct adjlist ** igraph_l = igraph_l_construct(igraph_m, var_num);
