@@ -381,8 +381,11 @@ static struct basic_block * make_block(struct triargexpr_list * entrance)//gener
 static void trans_to_array()//DFS_array should be free later
 {
 	if(DFS_array != NULL)
+	{
 		free(DFS_array);//the content should be rested
-	DFS_array = malloc(sizeof(struct basic_block *) * g_block_num);
+		DFS_array = NULL;
+	}
+	DFS_array = calloc(g_block_num, sizeof(struct basic_block *));
 	int index = 0;
 	struct basic_block_list * list_node = DFS_list;
 	struct basic_block_list * tmp_node = NULL;
@@ -568,11 +571,12 @@ void recover_triargexpr(struct basic_block * block_head)
 {
 	linear_block_seq = calloc(g_block_num, sizeof(struct basic_block * ));
 	cur_linear_block_index = 0;
-	search_block(block_head);
+	
 	int index;
 	struct triargexpr_list * head = block_head -> head;
 	struct triargexpr_list * tail = block_head -> tail;
-	free(block_head);
+	
+	block_head = NULL;
 	for(index = 1; index < cur_linear_block_index; index ++)
 	{
 		tail -> next = linear_block_seq[index] -> head;
@@ -596,6 +600,7 @@ void recover_triargexpr(struct basic_block * block_head)
 #endif
 
 	free(linear_block_seq);
+	linear_block_seq = NULL;
 	free(DFS_array);
 	DFS_array = NULL;
 }
