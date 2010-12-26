@@ -405,25 +405,13 @@ while_stmt : WHILE "(" expression ")" statement {
            ;
 
 return_stmt : RETURN expression ";" {
-                                        {
-                                            //struct triargexpr ret_expr;
-                                            //ret_expr.op = Return;
-                                            $2 = new_ast(Return, 0, $2, NULL);
-                                            ast_type_check($2, simb_table, curr_table);
-                                            struct subexpr_info ret_value = triargexpr_gen($2);
-                                            $$ = return_list_append(&ret_value);
-                                            //$$ = NULL;
-                                            //ret_expr.arg1 = ret_value.subexpr_arg;
-                                            //return_list_append(&value);
-                                        }
+                                        $2 = new_ast(Return, 0, $2, NULL);
+                                        ast_type_check($2, simb_table, curr_table);
+                                        struct subexpr_info ret_value = triargexpr_gen($2);
+										$$ = return_list_append(&ret_value);
                                     }
             | RETURN ";" {
-                                 //struct triargexpr ret_expr;
-                                 //ret_expr.op = Return;
-                                 //ret_expr.arg1.type = ExprArg;
-                                 //ret_expr.arg1.expr = -1;
-                                 $$ = return_list_append(NULL);
-                                 //$$ = NULL;
+                            $$ = return_list_append(NULL);
                          }
             ;
 

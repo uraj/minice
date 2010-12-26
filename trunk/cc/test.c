@@ -11,12 +11,19 @@ int b(int a1, int a2, int a3, int a4, int a5)
 	k = a5;
 	k =  k + g_a2;
 	p = &g_a1;
-	g_a2 = g_a2 + g_a1;
+	g_a2 = g_a2 + g_a1;	
+	if(a > 1)
+	{
+		return k + 1;
+	}
+	else
+	{
+		return k;
+	}
 	while(1)
 	{
 		k= k + g_a1;
 	}
-	return k;
 }
 
 int loop()

@@ -2098,10 +2098,10 @@ static void gen_per_code(struct triargexpr * expr)
                    3、将arg1自加或自减；
                    4、如果arg1在内存，写回内存，恢复临时寄存器。
                   */
-                 int arg1_reg , dest_reg;
+				int arg1_reg , dest_reg;
 				int stride = get_stride_from_index(arg1_index);
                 int width = get_width_from_index(arg1_index);
-                dest_reg = dest_info->reg_addr;
+                dest_reg = dest_info->reg_addr;//MARK TAOTAOTHERIPPER dest_info = 0x0
 
                 /*获得arg1的寄存器，在内存的话要申请临时寄存器装入*/
                 if(arg1_flag == Arg_Reg)
@@ -2312,7 +2312,6 @@ static void gen_per_code(struct triargexpr * expr)
 				for(i = 0; i < saved_reg_count; ++i)
                     gen_mem_rri_code(store, saved_reg[saved_reg_count], FP, -1, caller_save_index - saved_reg_count * WORD, WORD);           /* resotre */
 				reload_global_var();//MARK TAOTAOTHERIPPER
-
 				if(dest_index != -1)//The r0 won't be changed during the restore above	
 				{
 					if(dest_flag == Arg_Reg)
@@ -2326,6 +2325,7 @@ static void gen_per_code(struct triargexpr * expr)
 				if(arglist_num_mark > 4)
 					pop_param(arglist_num_mark - 4);
                 arglist_num_mark = 0;
+				break;
 			}
 
 		case Arglist:
@@ -2421,7 +2421,7 @@ static void gen_per_code(struct triargexpr * expr)
                       if(arg1_flag == Arg_Reg)
                            gen_mov_rsrd_code(0, arg1_info -> reg_addr);
                       else if(arg1_flag == Arg_Mem)
-                           store_var(arg1_info, 0);
+                           load_var(arg1_info, 0);
                       else            /* arg1_flag == Arg_Imm */
                            gen_mov_rsim_code(0, expr->arg1.imme);
                  }
