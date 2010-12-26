@@ -547,7 +547,7 @@ static void leave_func_pop()
 
 static void callee_save_push()
 {
-	memset(used_reg, 0, 32 * sizeof(int));
+	memset(used_reg, 0, 32 * sizeof(char));
 	int idx;
 	for(idx = 0; idx < cur_ref_var_num; idx ++)
 	{
@@ -2476,7 +2476,7 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 	enter_func_push();
 	callee_save_push();
 	prepare_temp_var_inmem();//alloc mem for temp var in stack	
-	struct triargexpr_list * tmp_node = cur_table -> head;
+struct triargexpr_list * tmp_node = cur_table -> head;
 	while(tmp_node != NULL)//make tail's next to be NULL
 	{
 		struct triargexpr * expr = tmp_node -> entity;
