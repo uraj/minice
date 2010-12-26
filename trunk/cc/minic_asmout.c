@@ -88,7 +88,7 @@ static void mach_mem_arg_out(struct mach_arg marg1, int offset, struct mach_arg 
     {
         if(marg1.type == Mach_Reg)
         {
-            fprintf(out_buf, " [");
+            fprintf(out_buf, ", [");
 			if(!special_reg_mach_out(marg1.reg, out_buf))
 				fprintf(out_buf, "r%d", marg1.reg);
 			if(indexed != POST)
@@ -280,3 +280,10 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
     }
     return;
 }
+
+
+
+
+
+
+
