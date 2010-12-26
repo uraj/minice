@@ -573,7 +573,7 @@ struct taexpr_list_header * return_list_append(struct subexpr_info * value)
           gtriargexpr_table[ret_index].arg1.type = ImmArg;
           gtriargexpr_table[ret_index].arg1.expr = value->subexpr_arg.imme;
           return ret_header;
-     }//***************************************************************************************************
+     }
 
      if(value->subexpr_arg.type == IdArg)
      {
@@ -582,7 +582,7 @@ struct taexpr_list_header * return_list_append(struct subexpr_info * value)
          return ret_header;
      }
      
-     gtriargexpr_table[ret_index].arg1.expr = value->end + 1;
+     gtriargexpr_table[ret_index].arg1.expr = value->end;
      expr_header->tail->next = ret_list;
      ret_list->prev = expr_header->tail;
      expr_header->tail = ret_list;
