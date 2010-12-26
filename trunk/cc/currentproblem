@@ -64,3 +64,15 @@ new:
 17.gen and restore temp_reg//Done
 18.ignore unused parameter//Done
 19.error when restore temp register//Done
+20.
+consider this case:
+	k = a + 1;(1)
+	b = k + 1;(2)
+	because in (1) k is not active while a is active.
+	so the register allocation result may be:
+		a -> r7
+		k -> r7
+	whether we prepare "a" first or prepare "k" first, one of k and a will be flushed out of register r7.
+	How about treat k as active var in (1), that is easier to modify.
+
+21.The order of Arglist

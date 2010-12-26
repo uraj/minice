@@ -2291,7 +2291,6 @@ static void gen_per_code(struct triargexpr * expr)
 		
 		case Funcall:                    /* () */
 			{
-                arglist_num_mark = 0;
                 flush_global_var();//MARK TAOTAOTHERIPPER
 				/* caller save */
                 struct var_list_node * focus = expr -> arg2.func_actvar_list -> head;
@@ -2324,6 +2323,9 @@ static void gen_per_code(struct triargexpr * expr)
 					else
 						store_var(dest_info, 0);
 				}
+				if(arglist_num_mark > 4)
+					pop_param(arglist_num_mark - 4);
+                arglist_num_mark = 0;
 			}
 
 		case Arglist:
@@ -2493,16 +2495,16 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 	alloc_reg = reg_alloc(active_var_array, var_list_size, cur_ref_var_num, max_reg_num);//current now
 	recover_triargexpr(block_head);		
 	reset_reg_number();//reset the reg number
-	enter_func_push();
-	callee_save_push();
-	prepare_temp_var_inmem();//alloc mem for temp var in stack
 #ifdef MACH_DEBUG
     int i;
     for(i = 0 ; i < cur_ref_var_num ; i++)
          printf("%d->r%d\t" , i , alloc_reg.result[i]);
     printf("\n");
 #endif
-struct triargexpr_list * tmp_node = cur_table -> head;
+	enter_func_push();
+	callee_save_push();
+	prepare_temp_var_inmem();//alloc mem for temp var in stack
+	struct triargexpr_list * tmp_node = cur_table -> head;
 	while(tmp_node != NULL)//make tail's next to be NULL
 	{
 		struct triargexpr * expr = tmp_node -> entity;
