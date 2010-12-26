@@ -16,6 +16,7 @@
 #define SP 29
 #define FP 27
 #define LR 30
+#define PC 31
 #define BYTE 1
 #define WORD 4
 
@@ -47,6 +48,7 @@ static struct ralloc_info alloc_reg;
 static struct Reg_Dpt reg_dpt[32];//register discription
 static int cur_var_id_num;
 static int cur_sp;
+static int local_var_sp;
 static int total_label_num;//set zero in new_code_table_list 
 
 static struct Reg_Dpt shadow_reg_dpt[32];//use to deal with temp reg
@@ -97,6 +99,7 @@ static inline void set_cur_function(int func_index)
 	ref_g_var_num = 0;
 	global_var_label = gen_new_label(total_label_num ++);//as the head element of the global var
 	cur_sp = 0;//just point to bp
+	local_var_sp = 0;
 
 	cur_code_index = 0;
 	cur_code_bound = INITIAL_MACH_CODE_SIZE; 
@@ -145,7 +148,7 @@ static inline void insert_label_code(char * label_name)
 	insert_code(new_code);
 }
 
-static inline int insert_dp_code(enum dp_op_type dp_op, int dest, struct mach_arg arg1, struct mach_arg arg2, unsigned int arg3, enum shift_type shift)
+static inline void insert_dp_code(enum dp_op_type dp_op, int dest, struct mach_arg arg1, struct mach_arg arg2, unsigned int arg3, enum shift_type shift)
 {
 	struct mach_code new_code;
 	new_code.op_type = DP;
@@ -155,7 +158,7 @@ static inline int insert_dp_code(enum dp_op_type dp_op, int dest, struct mach_ar
 	new_code.arg2 = arg2;
 	new_code.arg3 = arg3;
     new_code.shift = shift;
-	return insert_code(new_code);
+	insert_code(new_code);
 }
 
 static inline void insert_cond_dp_code(enum dp_op_type dp_op, int dest, enum condition_type cond, struct mach_arg arg2, unsigned int arg3, int sign, enum shift_type shift)//may not be used
@@ -418,24 +421,18 @@ static void prepare_temp_var_inmem()//gen addr at first
 {
 	int index;
 	struct var_info * tmp_v_info;
-	struct mach_arg tmp_sp, tmp_offset;
-	tmp_sp.type = Mach_Reg;
-	tmp_sp.reg = SP;
-	tmp_offset.type = Mach_Imm;
-	tmp_offset.imme = 0;//will be filled back later
-
-	int code_index = insert_dp_code(SUB, SP, tmp_sp, tmp_offset, -1, NO);
-
 	int offset_from_sp = 0;//cur_sp should sp - fp
-	for(index = 0; index < cur_ref_var_num; index ++)
+	
+	int param_count = get_param_counts(cur_func_info -> func_symt);
+	int param_rank;
+	local_var_sp = cur_sp;
+	for(index = 0; index < cur_ref_var_num; index ++)//first scan allocate memory, and register it in varmapping
 	{
 		if(index < cur_var_id_num || alloc_reg.result[index] == -1)
 		{
 			if(!is_global(index))
 			{
-				int param_count = get_param_counts(cur_func_info -> func_symt);
-				int param_rank;
-				tmp_v_info = get_info_from_index(index);	
+				tmp_v_info = get_info_from_index(index);		
 				if(index < cur_var_id_num)
 				{
 					struct value_info * id_info = get_valueinfo_byno(cur_func_info->func_symt ,  index);
@@ -455,15 +452,12 @@ static void prepare_temp_var_inmem()//gen addr at first
 					}
 					if(is_arglist_byno(cur_func_info -> func_symt, index))
 					{
-						if(param_count >= 4)
+						param_rank = get_arglist_rank(cur_func_info -> func_symt, index);//MARK TAOTAOTHERIPPER	
+						if(param_rank <= param_count - 4)
 						{
-							param_rank = get_arglist_rank(cur_func_info -> func_symt, index);//MARK TAOTAOTHERIPPER
-							if(param_rank <= param_count - 4)
-							{
-								tmp_v_info -> mem_addr = (- param_rank) * WORD;
-								continue;
-							}
-						}
+							tmp_v_info -> mem_addr = (- param_rank) * WORD;
+							continue;
+						}//the first four params' stack memory is allocated in current stack frame
 					}
 				}
 				if(get_width_from_index(index) == BYTE)
@@ -474,22 +468,52 @@ static void prepare_temp_var_inmem()//gen addr at first
 					if(offset_from_sp % WORD != 0)
 						offset_from_sp = offset_from_sp - offset_from_sp %WORD + WORD;
 				}
-				tmp_v_info -> mem_addr = cur_sp + offset_from_sp;
-				
-				if(is_id_var(index) && is_arglist_byno(cur_func_info -> func_symt, index))//only the arg in register can reach here
-				{
-					if(alloc_reg.result[index] != -1)
-						gen_mov_rsrd_code(alloc_reg.result[index], (param_count - param_rank));//the arg must be active in the entrance of the function
-					else
-						store_var(tmp_v_info, (param_count - param_rank));
-				}/* if the param is in r0 ~ r3, just alloc mem in stack like other local var */
+				tmp_v_info -> mem_addr = cur_sp + offset_from_sp;	
 			}
 		}
 	}
 	offset_from_sp += (WORD * get_max_func_varlist());
-	caller_save_index = offset_from_sp;/* the callee save register should be stored from low addr to high addr */
+	caller_save_index = offset_from_sp;/* the caller save register should be stored from low addr to high addr */
 	cur_sp += offset_from_sp;
-	code_table_list[cur_func_index].table[code_index].arg3 = offset_from_sp;
+	
+	if(offset_from_sp > 0)//sub sp
+	{
+		struct mach_arg tmp_sp, tmp_offset;
+		tmp_sp.type = Mach_Reg;
+		tmp_sp.reg = SP;
+		tmp_offset.type = Mach_Imm;
+		tmp_offset.imme = offset_from_sp;
+		insert_dp_code(SUB, SP, tmp_sp, tmp_offset, 0, NO);
+	}
+
+	for(index = 0; index < cur_ref_var_num; index ++)//second scan, prepare data for first four params
+	{
+		if(is_id_var(index) && is_arglist_byno(cur_func_info -> func_symt, index))//only the arg in register can reach here
+		{
+			tmp_v_info = get_info_from_index(index);
+			param_rank = get_arglist_rank(cur_func_info -> func_symt, index);
+			if(param_rank > param_count - 4)
+			{
+				if(alloc_reg.result[index] != -1)
+					gen_mov_rsrd_code(alloc_reg.result[index], (param_count - param_rank));//the arg must be active in the entrance of the function
+				else
+					store_var(tmp_v_info, (param_count - param_rank));
+			}
+		}/* if the param is in r0 ~ r3, just alloc mem in stack like other local var */
+	}
+}
+
+static void free_temp_var_inmem()
+{
+	if((cur_sp - local_var_sp) > 0)//sub sp
+	{
+		struct mach_arg tmp_sp, tmp_offset;
+		tmp_sp.type = Mach_Reg;
+		tmp_sp.reg = SP;
+		tmp_offset.type = Mach_Imm;
+		tmp_offset.imme = cur_sp - local_var_sp;
+		insert_dp_code(ADD, SP, tmp_sp, tmp_offset, 0, NO);
+	}
 }
 
 static void enter_func_push()
@@ -500,8 +524,8 @@ static void enter_func_push()
 	   push lr
 	*/
 	push_param(FP);
-	cur_sp -= WORD;
 	gen_mov_rsrd_code(FP, SP);
+	cur_sp = 0;
 	push_param(LR);
 }
 
@@ -514,7 +538,7 @@ static void leave_func_pop()
 static void callee_save_push()
 {
 	int used_reg[32];
-	memset(used_reg, 0, sizeof(int));
+	memset(used_reg, 0, 32 * sizeof(int));
 	int idx;
 	for(idx = 0; idx < cur_ref_var_num; idx ++)
 	{
@@ -524,17 +548,14 @@ static void callee_save_push()
 	for(idx = 17; idx <= 25; idx ++)
 	{
 		if(used_reg[idx] == 1)
-		{
 			push_param(idx);
-			cur_sp += WORD;
-		}
 	}
 }
 
 static void callee_save_pop()
 {
 	int used_reg[32];
-	memset(used_reg, 0, sizeof(int));
+	memset(used_reg, 0, 32 * sizeof(int));
 	int idx;
 	for(idx = 0; idx < cur_ref_var_num; idx ++)
 	{
@@ -544,10 +565,7 @@ static void callee_save_pop()
 	for(idx = 25; idx >= 17; idx --)
 	{
 		if(used_reg[idx] == 1)
-		{
 			pop_param_to_reg(idx);
-			cur_sp -= WORD;
-		}
 	}
 }
 
@@ -2371,6 +2389,7 @@ static void gen_per_code(struct triargexpr * expr)
                  }
 
 				flush_global_var();
+				free_temp_var_inmem();
 				callee_save_pop();
 				leave_func_pop();
                 insert_jump_code(LR);

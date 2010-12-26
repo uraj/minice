@@ -111,7 +111,7 @@ static void mach_mem_arg_out(struct mach_arg marg1, int offset, struct mach_arg 
 			}
         }
 		else if(marg1.type == Mach_Label)
-			fprintf(out_buf, "%s", marg1.label);
+			fprintf(out_buf, ", %s", marg1.label);
         else
         {
             printf("Wrong: mach_arg_out()\n");
