@@ -59,8 +59,8 @@ new:
 
 13.ident的var_info中的index和mem_addr没有初始化
 14.有一些没有出现在活跃变量中，但却拥有map_id的三元式编号变量。（有可能是varmapping里面的问题？）
-15.endless loop when compile lala.c
-16.The param which not been used is always in memory.
-17.gen and restore temp_reg
-18.ignore unused parameter
-19.error when restore temp register
+15.endless loop when compile lala.c//Done
+16.The param which not been used is always in memory.//Done
+17.gen and restore temp_reg//Done
+18.ignore unused parameter//Done
+19.error when restore temp register//Done
