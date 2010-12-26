@@ -510,6 +510,7 @@ postfix_expr : id "[" expression "]" {
                                          #endif
                                      }
              | id "(" argument_list ")" {
+				 printf("lalalalal");
                                             $$ = new_ast(Funcall, 0, new_ast(Nullop, 1, NULL, new_var($1)), $3);
                                             print_ast($$);
                                             #ifdef SHOWBNF

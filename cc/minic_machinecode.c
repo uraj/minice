@@ -835,6 +835,10 @@ static int is_reg_disabled(int regnum)
 	return 1;
 }
 
+static int is_reg_callee_save(int regnum)
+{
+}
+
 static int gen_tempreg(int * except, int size)//general an temp reg for the var should be in memory
 {
 	int outlop, index, ex;
@@ -1888,7 +1892,7 @@ static void gen_per_code(struct triargexpr * expr)
 						arg1_flag = Arg_Imm;
 				}
 
-				if(expr -> arg1.type == ExprArg && expr -> arg1.expr == -1)//TAOTAOTHERIPPER MARK
+				if(expr -> arg2.type == ExprArg && expr -> arg2.expr == -1)//TAOTAOTHERIPPER MARK
 					;
 				else
 				{
@@ -2288,7 +2292,7 @@ static void gen_per_code(struct triargexpr * expr)
                 while(focus != NULL && focus != expr -> arg2.func_actvar_list -> tail)
                 {
                     vinfo = get_info_from_index(focus->var_map_index);
-                    if(vinfo->reg_addr >= 4 && vinfo->reg_addr <= 15)
+                    if((vinfo->reg_addr >= 4 && vinfo->reg_addr <= 15) || vinfo->reg_addr == 28)
                     {
                         gen_mem_rri_code(load, vinfo -> reg_addr, FP, -1, caller_save_index - saved_reg_count * WORD, WORD);
                         saved_reg[saved_reg_count++] = vinfo->reg_addr;
