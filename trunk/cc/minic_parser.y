@@ -511,6 +511,7 @@ postfix_expr : id "[" expression "]" {
                                      }
              | id "(" argument_list ")" {
                                             $$ = new_ast(Funcall, 0, new_ast(Nullop, 1, NULL, new_var($1)), $3);
+                                            print_ast($$);
                                             #ifdef SHOWBNF
                                             printf("postfix_expr : IDENT ( argument_list )\n");
                                             #endif

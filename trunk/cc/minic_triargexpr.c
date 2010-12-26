@@ -340,6 +340,9 @@ struct subexpr_info triargexpr_gen(struct ast* root)
         case Ref:
         case Deref:
         case Funcall:
+            ++level;
+            triargexpr_gen(root -> right);
+            --level;
             expr.op = root -> op;
             expr.width = get_opresult_width(root -> ast_typetree);
             ++level;
