@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <memory.h>
+#include <getopt.h>
 #include "minic_typedef.h"
 #include "minic_ast.h"
 #include "minic_typetree.h"
