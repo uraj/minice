@@ -27,6 +27,7 @@ static struct var_list *def;
 static struct var_list *use;
 static int *def_size;
 static int *use_size;
+static int *is_actvar;
 static int s_expr_num;//the num of the tri-expressions
 static int sg_max_func_varlist = 0;//每条Funcall语句都会接有一条当前的活跃变量链
 static const int gc_change_num = 4;
@@ -592,6 +593,7 @@ static void malloc_active_var()
      use = (struct var_list *)malloc((sizeof(struct var_list)) * g_block_num);
      def_size = (int *)malloc((sizeof(int)) * g_block_num);
      use_size = (int *)malloc((sizeof(int)) * g_block_num);
+     is_actvar = (int *)calloc(cur_ref_var_num , sizeof(int));
      
      int i;
      for(i = 0 ; i < g_block_num ; i++)
@@ -889,6 +891,28 @@ int get_max_func_varlist()
      return sg_max_func_varlist;
 }
 
+int is_active_var(int mapid)
+{
+     return is_active[mapid];
+}
+
+static int add_actvar_info(struct var_list *list)
+{
+     if(list == NULL)
+          return 0;
+     if(list->head == NULL)
+          return 0;
+     struct var_list_node *temp = list->head;
+     int count = 0;
+     while(temp != list->tail->next)
+     {
+          count++;
+          is_actvar[temp->var_map_index] = 1;
+          temp = temp->next;
+     }
+     return count;
+}
+
 struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分析
 {
      initial_func_var(func_index);//通过函数index获得当前函数信息，以便后续使用
@@ -1088,4 +1112,5 @@ void free_all(struct var_list *all_var_lists)//free all memory
           var_list_free_bynode(all_var_lists[i].head);
      free(all_var_lists);
      free(var_out);
+     free(is_actvar);
 }

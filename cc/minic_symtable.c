@@ -119,7 +119,9 @@ static void var_no_update(struct symbol_table *t , struct value_info *value)//wh
      }
      t->myid[t->id_num] = value;
      value->no = g_var_id_num;
+#ifdef DEBUG_SYMTABLE
      printf("%s->%d\n" , t->myid[t->id_num]->name , value->no);
+#endif
      t->id_num ++;
      g_var_id_num ++;
 }
