@@ -76,3 +76,4 @@ consider this case:
 	How about treat k as active var in (1), that is easier to modify.
 
 21.The order of Arglist
+22.Bug in binary arithmetic

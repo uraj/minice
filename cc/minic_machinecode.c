@@ -1,5 +1,5 @@
-#include "minic_asmout.h"
 #include "minic_machinecode.h"
+#include "minic_asmout.h"
 #include "minic_basicblock.h"
 #include "minic_flowanalyse.h"
 #include "minic_aliasanalyse.h"
@@ -2100,7 +2100,6 @@ static void gen_per_code(struct triargexpr * expr)
 				int arg1_reg , dest_reg;
 				int stride = get_stride_from_index(arg1_index);
                 int width = get_width_from_index(arg1_index);
-                dest_reg = dest_info->reg_addr;//MARK TAOTAOTHERIPPER dest_info = 0x0
 
                 /*获得arg1的寄存器，在内存的话要申请临时寄存器装入*/
                 if(arg1_flag == Arg_Reg)
@@ -2112,10 +2111,14 @@ static void gen_per_code(struct triargexpr * expr)
                 }
 
                 /*如果dest在寄存器，使用MOV指令；否则store；*/
-                if(dest_flag == Arg_Reg)//MOV dest_reg , arg1_reg
-                     gen_mov_rsrd_code(dest_reg , arg1_reg);
-                else//STW/STB arg1_reg , [fp-] , dest_info->mem_addr
-                     gen_mem_rri_code(store , arg1_reg , FP , -1 , dest_info->mem_addr , width);
+				if(dest_index != -1)
+				{
+					dest_reg = dest_info->reg_addr;//MARK TAOTAOTHERIPPER dest_info = 0x0
+					if(dest_flag == Arg_Reg)//MOV dest_reg , arg1_reg
+						gen_mov_rsrd_code(dest_reg , arg1_reg);
+					else//STW/STB arg1_reg , [fp-] , dest_info->mem_addr
+						gen_mem_rri_code(store , arg1_reg , FP , -1 , dest_info->mem_addr , width);
+				}
                 
 				/*操作数据*/
 				/*ADD/SUB arg1_reg , arg1_reg , #stride*/
@@ -2489,8 +2492,6 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 
 	/********************************* gen mach code beg ***************************************/
 	set_cur_function(func_index);
-	//printf("%d\n", var_list_size);
-	//printf("%d\n", cur_ref_var_num);
 	alloc_reg = reg_alloc(active_var_array, var_list_size, cur_ref_var_num, max_reg_num);//current now
 	recover_triargexpr(block_head);		
 	reset_reg_number();//reset the reg number
