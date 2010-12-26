@@ -9,8 +9,6 @@
 //#define SHOWACTVAR
 //#define SHOW_FLOW_DEBUG
 
-extern int cur_ref_var_num;
-
 struct var_list
 {
      struct var_list_node *head;
