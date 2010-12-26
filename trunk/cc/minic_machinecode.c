@@ -1982,56 +1982,55 @@ static void gen_per_code(struct triargexpr * expr)
 					tempreg1 = arg1_info -> reg_addr;
 					except[ex_size++] = tempreg1;
 				}
+
 				if(arg2_flag == Arg_Reg)
 				{
 					tempreg2 = arg2_info -> reg_addr;
 					except[ex_size++] = tempreg2;
 				}
 
-				if(arg1_flag != Arg_Reg)
+				if(arg1_flag == Arg_Mem)//There can only be one immediate number
 				{
 					tempreg1 = gen_tempreg(except, ex_size);
 					mark1 = 1;
 					except[ex_size++] = tempreg1;
-				}
-
-				if(arg2_flag != Arg_Reg)
-				{
-					tempreg2 = gen_tempreg(except, ex_size);
-					mark2 = 1;
-					except[ex_size++] = tempreg2;
-				}
-	
-				if(arg1_flag == Arg_Mem)
-				{
 					if(is_array(arg1_index))
 						load_pointer(arg1_index, tempreg1, 0, 0);
 					else
 						load_var(arg1_info, tempreg1);
 				}
-				else if(arg1_flag == Arg_Imm)//Only one Imm
-				{
-					struct mach_arg tmp_arg1;
-					tmp_arg1.type = Mach_Imm;
-					tmp_arg1.imme = expr -> arg1.imme;
-					insert_dp_code(MOV, tempreg1, null, tmp_arg1, 0, NO);
-				}
-			
+
 				if(arg2_flag == Arg_Mem)
 				{
+					tempreg2 = gen_tempreg(except, ex_size);
+					mark2 = 1;
+					except[ex_size++] = tempreg2;
 					if(is_array(arg1_index))
 						load_pointer(arg2_index, tempreg2, 0, 0);
 					else
 						load_var(arg2_info, tempreg2);
 				}
-				else if(arg2_flag == Arg_Imm)//Only one Imm
-				{
-					struct mach_arg tmp_arg2;
-					tmp_arg2.type = Mach_Imm;
-					tmp_arg2.imme = expr -> arg1.imme;
-					insert_dp_code(MOV, tempreg2, null, tmp_arg2, 0, NO);
-				}	
 
+				/*
+					Plus => 
+						reg + reg	ADD
+						Imme + reg	ADD
+						reg + Imme	ADD
+						preg + reg	ADD reg<<2
+						preg + Imme ADD Imme<<2
+						reg + preg	ADD reg<<2
+						Imme + preg ADD imme<<2
+					Minus =>
+						reg - reg	SUB
+						imme - reg	RSUB
+						reg - imme	SUB
+						preg - reg	SUB reg<<2
+						preg - imme SUB imme<<2
+					Mul =>
+						reg * reg	MUL
+						imme * reg	MUL
+						reg * imme	MUL
+				*/
 				enum mach_op_type op_type;
 				switch(expr -> op)
 				{
@@ -2039,7 +2038,10 @@ static void gen_per_code(struct triargexpr * expr)
 						op_type = ADD;			
 						break;
 					case Minus:
-						op_type = SUB;
+						if(arg1_flag == Arg_Imm)
+							op_type = RSUB;/* The arg can't be a pointer for RSUB */
+						else
+							op_type = SUB;
 						break;
 					case Mul:
 						op_type = MUL;
@@ -2050,36 +2052,59 @@ static void gen_per_code(struct triargexpr * expr)
 				}
 
 				struct mach_arg binary_arg1, binary_arg2;
-				binary_arg2.type = binary_arg1.type = Arg_Reg;
-				binary_arg1.reg = tempreg1;
-				binary_arg2.reg = tempreg2;
-				
-				if(dest_flag == Arg_Reg)
+				if(arg1_flag == Arg_Imm)//only one Imme one time
 				{
-					reg_dpt[dest_info -> reg_addr].dirty = 1;
-					if(get_stride_from_index(arg1_index) == WORD)//only add and sub
-						insert_dp_code(op_type, dest_info -> reg_addr, binary_arg1, binary_arg2, 2, LL);
-					else if(get_stride_from_index(arg2_index) == WORD)//only add
-						insert_dp_code(op_type, dest_info -> reg_addr, binary_arg2, binary_arg1, 2, LL);
-					else insert_dp_code(op_type, dest_info -> reg_addr, binary_arg1, binary_arg2, 0, NO);
+					binary_arg1.type = Mach_Imm;
+					binary_arg1.imme = expr -> arg1.imme;
 				}
 				else
 				{
-					int tempdest;
+					binary_arg1.type = Mach_Reg;
+					binary_arg1.reg = tempreg1;
+				}
+				if(arg2_flag == Arg_Imm)
+				{
+					binary_arg2.type = Mach_Imm;
+					binary_arg2.imme = expr -> arg2.imme;
+				}
+				else
+				{
+					binary_arg2.type = Mach_Reg;
+					binary_arg2.reg = tempreg2;
+				}
+
+				int tempdest;
+				if(dest_flag == Arg_Reg)
+				{
+					reg_dpt[dest_info -> reg_addr].dirty = 1;
+					tempdest = dest_info -> reg_addr;
+				}
+				else
+				{
 					if(mark1)
 						tempdest = tempreg1;
 					else if(mark2)
 						tempdest = tempreg2;
 					else tempdest = gen_tempreg(except, ex_size);
-					if(get_stride_from_index(arg1_index) == WORD)//only add and sub
-						insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 2, LL);
-					else if(get_stride_from_index(arg2_index) == WORD)//only add
-						insert_dp_code(op_type, tempdest, binary_arg2, binary_arg1, 2, LL);
-					else insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 0, NO);	
-					store_var(dest_info, tempdest);
-					if(!mark1 && !mark2)
-						restore_tempreg(tempdest);
 				}
+
+				if(arg1_flag != Arg_Imm && get_stride_from_index(arg1_index) == WORD)//only add and sub
+					insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 2, LL);
+				else if(arg2_flag != Arg_Imm && get_stride_from_index(arg2_index) == WORD)//only add
+					insert_dp_code(op_type, tempdest, binary_arg2, binary_arg1, 2, LL);
+				else
+				{
+					if(op_type == RSUB)
+						insert_dp_code(op_type, tempdest, binary_arg2, binary_arg1, 0, NO);
+					else
+						insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 0, NO);
+				}
+
+				if(dest_flag != Arg_Reg)
+					store_var(dest_info, tempdest);
+				
+				if(!mark1 && !mark2)
+					restore_tempreg(tempdest);
 				if(mark2)
 					restore_tempreg(tempreg2);
 				if(mark1)

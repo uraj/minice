@@ -84,7 +84,6 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 				*/
 				if(expr.arg2.type == ExprArg)/* mark */
 					insert_tempvar(expr.arg2.expr);//will be removed as a kind of optimizing later
-
 				break;//Current now, don't treat assign reference as real reference, can be optimizing some, and will be optimized some
 			case Eq:                         /* == */
 			case Neq:                        /* != */
@@ -132,7 +131,7 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 			case Deref:                      /* '*' */
 			case Arglist:
 			case Return:
-				if(expr.arg1.type == ExprArg)
+				if(expr.arg1.type == ExprArg && expr.arg1.expr != -1)
 					insert_tempvar(expr.arg1.expr);
 				break;
 			
@@ -572,10 +571,12 @@ void recover_triargexpr(struct basic_block * block_head)
 	linear_block_seq = calloc(g_block_num, sizeof(struct basic_block * ));
 	cur_linear_block_index = 0;
 	
+	search_block(block_head);
 	int index;
 	struct triargexpr_list * head = block_head -> head;
 	struct triargexpr_list * tail = block_head -> tail;
 	
+	free(block_head);
 	block_head = NULL;
 	for(index = 1; index < cur_linear_block_index; index ++)
 	{

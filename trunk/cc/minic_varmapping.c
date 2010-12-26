@@ -91,6 +91,11 @@ void free_var_map()
 
 int insert_tempvar(int exprindex)
 {
+	if(exprindex < 0)
+	{
+		fprintf(stderr, "wrong exprindex in insert_tempvar\n");
+		return -1;
+	}
 	if(var_info_table[exprindex + cur_var_id_num] != NULL)
 		return 0;
 	var_info_table[exprindex + cur_var_id_num] = new_var_info();
@@ -166,6 +171,11 @@ int get_width_from_index(int index)
 
 int get_stride_from_index(int index)
 {
+	if(index == -1)
+	{
+		fprintf(stderr, "error index: -1 in get_stride_from_index\n");
+		return -1;
+	}
 	if(is_id_var(index))
 	{
 		struct value_info * id_info = get_valueinfo_byno(cur_func_info -> func_symt, index);
