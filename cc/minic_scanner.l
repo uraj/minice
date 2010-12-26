@@ -17,6 +17,9 @@ Char [^\\ \n\t\v\b\r\f\a]|\\[ntvbrfa\\\'\"\?]
 
 %%
 
+"/*".*"*/" {;}
+"/*".*     {;}
+.*"*/" {;}
 [1-9][0-9]* {
     if(sval_set)
         free(yylval.tk.sval);
