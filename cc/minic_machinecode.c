@@ -590,6 +590,8 @@ static inline int check_is_jump_dest(int exprnum)//need check every expr before 
 		insert_label_code(gen_new_label(expr_info -> label_num)); 
 		return 1;
 	}
+	else
+		insert_label_code(gen_new_label(expr_info -> label_num));
 	return 0;
 }
 
@@ -788,8 +790,8 @@ static inline void load_global_var(struct var_info * g_v_info, int reg_num)
 	dest_reg.reg = reg_num;
 	insert_mem_code(LDW, reg_num, address, null, 0, 0, NO, 0);
 	if(tmp_info -> type -> type == Char)
-		insert_mem_code(STB, reg_num, dest_reg, null, 0, 0, NO, 0);
-	else insert_mem_code(STW, reg_num, dest_reg, null, 0, 0, NO, 0);
+		insert_mem_code(LDB, reg_num, dest_reg, null, 0, 0, NO, 0);
+	else insert_mem_code(LDW, reg_num, dest_reg, null, 0, 0, NO, 0);
 }
 
 static inline void store_global_var(struct var_info * g_v_info, int reg_num)

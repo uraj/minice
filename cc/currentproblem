@@ -52,12 +52,14 @@ new:
 6.deal with array in triargexpr with binary op//Done
 7.How can we make sure that temp array head always marked in mem after register allocation//Done
 8.Optimize push param//Done
-9.Deal with param's addr
+9.Deal with param's addr//Done
 10.flush global var before leaving func//Done
-11.Mov out param from r0~r3
+11.Mov out param from r0~r3//Done
 12.Use pre indexed load store in gen_tempreg//Done
 
 13.ident的var_info中的index和mem_addr没有初始化
 14.有一些没有出现在活跃变量中，但却拥有map_id的三元式编号变量。（有可能是varmapping里面的问题？）
 15.endless loop when compile lala.c
 16.The param which not been used is always in memory.
+17.gen and restore temp_reg
+18.ignore unused parameter
