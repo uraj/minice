@@ -180,7 +180,7 @@ int get_stride_from_index(int index)
 
 void set_expr_label_mark(int exprnum)//only for label
 {
-	struct var_info * tmp_info = get_info_of_temp(exprnum);
+	struct var_info * tmp_info = var_info_table[exprnum + cur_var_id_num];
 	if(tmp_info == NULL)
 	{
 		var_info_table[exprnum + cur_var_id_num] = new_var_info();
