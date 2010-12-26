@@ -9,6 +9,8 @@
 //#define SHOWACTVAR
 //#define SHOW_FLOW_DEBUG
 
+extern int cur_ref_var_num;
+
 struct var_list
 {
      struct var_list_node *head;
@@ -45,4 +47,5 @@ extern struct var_list *var_list_inter(struct var_list *inter , struct var_list 
 extern int get_max_func_varlist();
 extern struct var_list *analyse_actvar(int *expr_num , int func_index);//活跃变量分析
 extern void free_all(struct var_list *all_var_lists);//free all memory
+extern int is_active_var(int mapid);//给定mapid，判断它是否在活跃变量里面
 #endif
