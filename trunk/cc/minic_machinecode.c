@@ -52,6 +52,7 @@ static int local_var_sp;
 static int total_label_num;//set zero in new_code_table_list 
 
 static struct Reg_Dpt shadow_reg_dpt[32];//use to deal with temp reg
+static char used_reg[32];
 static int * global_var_label_offset;
 static int ref_g_var_num;
 static char * global_var_label;
@@ -546,7 +547,6 @@ static void leave_func_pop()
 
 static void callee_save_push()
 {
-	int used_reg[32];
 	memset(used_reg, 0, 32 * sizeof(int));
 	int idx;
 	for(idx = 0; idx < cur_ref_var_num; idx ++)
@@ -563,14 +563,7 @@ static void callee_save_push()
 
 static void callee_save_pop()
 {
-	int used_reg[32];
-	memset(used_reg, 0, 32 * sizeof(int));
 	int idx;
-	for(idx = 0; idx < cur_ref_var_num; idx ++)
-	{
-		if(alloc_reg.result[idx] != -1)
-			used_reg[alloc_reg.result[idx]] = 1;
-	}
 	for(idx = 25; idx >= 17; idx --)
 	{
 		if(used_reg[idx] == 1)
@@ -835,11 +828,9 @@ static int is_reg_disabled(int regnum)
 	return 1;
 }
 
-static int is_reg_caller_save(int regnum)
+static int is_reg_saved(int regnum)
 {
-	if((regnum >= 4 && regnum <= 15) || regnum == 28)
-		return 1;
-	return 0;
+	return 1;
 }
 
 static int gen_tempreg(int * except, int size)//general an temp reg for the var should be in memory
@@ -859,14 +850,14 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 			switch(outlop)
 			{
 				case 0:
-					if(reg_dpt[index].content == REG_UNUSED && ex == size)
+					if(is_reg_saved(index) && reg_dpt[index].content == REG_UNUSED && ex == size)
 					{
 						reg_dpt[index].content = REG_TEMP;//-2 means tmp_reg
 						return index;
 					}
 					break;
 				case 1:
-					if(!is_global(reg_dpt[index].content) && !reg_dpt[index].dirty && ex == size)
+					if(is_reg_saved(index) && !is_global(reg_dpt[index].content) && !reg_dpt[index].dirty && ex == size)
 					{
 						shadow_reg_dpt[index] = reg_dpt[index];
 						reg_dpt[index].content = REG_TEMP;
@@ -874,7 +865,7 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 					}
 					break;
 				case 2:
-					if(!is_global(reg_dpt[index].content) && is_id_var(reg_dpt[index].content) && ex == size)
+					if(is_reg_saved(index) && !is_global(reg_dpt[index].content) && is_id_var(reg_dpt[index].content) && ex == size)
 					{
 						store_var(get_info_from_index(reg_dpt[index].content), index);
 						shadow_reg_dpt[index] = reg_dpt[index];
