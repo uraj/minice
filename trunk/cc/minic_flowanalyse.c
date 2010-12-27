@@ -1099,6 +1099,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                }
           after_make_actvarlist:
                count = add_actvar_info(actvar_list + act_list_index -1);
+               temp_expr->entity->actvar_list = (actvar_list + act_list_index -1);
                if(temp_expr->entity->op == Funcall)
                {
                     temp_expr->entity->arg2.func_actvar_list = (actvar_list + act_list_index -1);
