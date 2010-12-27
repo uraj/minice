@@ -6,6 +6,7 @@
 #include "minic_varmapping.h"
 #include "minic_regalloc.h"
 #include "minic_typedef.h"
+#include "minic_peephole.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -2647,7 +2648,11 @@ void gen_machine_code(int func_index, FILE * out_buf)//Don't forget NULL at last
 		tmp_node = tmp_node -> next;
 	}
 	print_mach_header(out_buf);
+#ifdef PEEPHOLE
+	peephole(func_index, out_buf);
+#else
 	print_mach_code(out_buf);//MARK TAOTAOTHERIPPER
+#endif
 	print_mach_tail(out_buf);
 
 	free_all(active_var_array);

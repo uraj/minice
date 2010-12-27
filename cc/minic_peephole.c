@@ -116,6 +116,10 @@ static struct mach_code_list * search_inst(struct mach_code_list * cur)
 		src_reg_mark[cur -> entity -> arg1.reg] = 1;
 	if(cur -> entity -> arg1.type == Mach_Reg)
 		src_reg_mark[cur -> entity -> arg2.reg] = 1;
+	if(cur -> next -> entity -> arg1.type == Mach_Reg)/* cur's next won't be NULL here */
+		src_reg_mark[cur -> next -> entity -> arg1.reg] = 1;
+	if(cur -> next -> entity -> arg2.type == Mach_Reg)
+		src_reg_mark[cur -> next -> entity -> arg2.reg] = 1;
 	des_reg_mark[cur -> entity -> dest] = 1;
 	if(cur -> entity -> indexed == PREW || cur -> entity -> indexed == POST)
 		des_reg_mark[cur -> entity -> arg1.reg] = 1;/* must be reg here */
@@ -223,8 +227,6 @@ static void instruction_scheduling()
 					insert = search_inst(cur);
 					if(insert != NULL)
 					{
-						printf("The code is optimized:\n");
-						mcode_out(cur -> entity, stdout);
 						success ++;
 						insert -> prev -> next = insert -> next;
 						insert -> next -> prev = insert -> prev;
@@ -251,11 +253,16 @@ static void print_code_list(FILE * out_buf)
 	}
 }
 
-void peephole(int func_index)
+void peephole(int func_index, FILE * out_buf)
 {
 	set_cur_function(func_index);
-	instruction_scheduling();
+	int former_success;
+	do
+	{
+		former_success = success;	
+		instruction_scheduling();
+	}while(former_success != success);
 	print_code_list(stdout);
-	printf("scheduling success:%d\n", success);
+	//printf("scheduling success:%d\n", success);
 	free_code_list();
 }
