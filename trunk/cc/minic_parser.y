@@ -314,9 +314,8 @@ compound_stmt : "{" statement_list "}" { $$ = $2; }
 null_stmt : ";" { $$ = NULL; };
 
 expression_stmt : expression ";" {
-                                     #ifdef DEBUG
-                                     print_ast($1);
-                                     #endif
+                                     if(option_show_ast)
+                                        print_ast($1);
                                      ast_type_check($1, simb_table, curr_table);
                                      struct subexpr_info expr = triargexpr_gen($1);
                                      free_ast($1);
