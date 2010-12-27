@@ -12,7 +12,7 @@ extern int evaluator(const char* ,int);
 
 int sval_set = 0;
 %}
-Char [^\\ \n\t\v\b\r\f\a]|\\[ntvbrfa\\\'\"\?]
+Char [^\\\n\v\r\f\a]|\\[ntvbrfa\\\'\"\?]
 /* patten '\x**' not supported currently */
 %%
 
