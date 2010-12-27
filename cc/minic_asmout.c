@@ -1,7 +1,7 @@
 #include "minic_asmout.h"
 #include <stdlib.h>
 
-extern struct mach_arg null;
+struct mach_arg null;
 
 static int special_reg_mach_out(int reg_num, FILE * out_buf)
 {
@@ -172,7 +172,7 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
                     fprintf(out_buf, "\tsub\t");
                     break;
                 case RSUB:
-                    fprintf(out_buf, "\trsb\t");
+                    fprintf(out_buf, "\trsub\t");
                     break;
                 case ADD:
 					fprintf(out_buf, "\tadd\t");
@@ -203,10 +203,13 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
             switch(mcode->cmp_op)
             {
                 case CMPSUB_A:
-                    fprintf(out_buf, "\tcmpsub.a");
+                    fprintf(out_buf, "\tcmpsub.a\t");
                     break;
             }
-            mach_arg_out(mcode->arg1, mcode->arg2, mcode->arg3, mcode->shift, out_buf); 
+            if(!special_reg_mach_out(mcode->arg1.reg, out_buf))//must be in reg
+				fprintf(out_buf, "r%d", mcode->arg1.reg);
+			null.type = Unused;
+			mach_arg_out(null, mcode->arg2, mcode->arg3, mcode->shift, out_buf);//MARK TAOTAOTHERIPPER 
             break;
         case MEM:
             switch(mcode->mem_op)
