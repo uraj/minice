@@ -14,8 +14,8 @@ new:
 
 10.Problems in getting triargexpr's 'triargexpr_list', because when we want to divide the code into basic blocks, we need to get the beginning of the next block with "goto (index)", but we cann't get 'triargexpr_list' from 'index'. We need a pointer in 'triargexpr'.//Done
 
-11.No Arglist, don't know why.
-12.Only one var as an expression
+11.No Arglist, don't know why.//Done
+12.Only one var as an expression//Done
 
 13.Some optimizing in fd, there are some parallel edges//Done, but need to be checked later
 14.Position of a++//Done
@@ -78,5 +78,6 @@ consider this case:
 21.The order of Arglist
 22.Bug in binary arithmetic//Done
 23.bug_1.c//Done
-24.bug when generate label for global var
+24.bug when generate label for global var//Done
 25.optimize binary op and assgin
+26.endless loop when test t10.c

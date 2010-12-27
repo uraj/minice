@@ -2543,5 +2543,6 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 	}
 	free_all(active_var_array);
 	leave_cur_function();
+	print_mach_code(func_index);//MARK TAOTAOTHERIPPER
 }
 
