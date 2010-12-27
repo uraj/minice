@@ -32,11 +32,9 @@ static int get_opresult_width(const struct typetree* ttree)
         case Array:
         case Void:
         case Function:
-        case Typeerror:
-            fprintf(stderr, "Wrong type when generating triargexpr.\n");
-            fflush(stderr);
             width = -1;
             break;
+        case Typeerror:
         default:
         {
             fprintf(stderr, "Wrong: get_opresult_width()\n");
