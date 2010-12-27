@@ -137,7 +137,7 @@ program : external_decls {
         ;
         
 external_decls : declaration external_decls {
-												g_global_id_num = g_var_id_num;/* Record the global id num */
+												g_global_id_num = g_var_id_num;/* Record the global id num *//* MARK TAOTAOTHERIPPER */
                                                 #ifdef SHOWBNF
                                                 printf("external_decls -> declaration external_decls\n");
                                                 #endif
@@ -652,11 +652,11 @@ int main(int argc, char* argv[])
 	fclose(yyin);
 	free_global_table();/*there should be an extra tmp table, and g_table_list_size is set in this*/
 	new_code_table_list();
-	i = 0;
-	//for(i = 0; i < g_table_list_size; i++)
-	//{
-		printf("%s\n", table_list[i] -> funcname);
-		gen_machine_code(i);
+	print_file_header(stdout, filename);
+	for(i = 0; i < g_table_list_size; i++)
+	{
+		//printf("%s\n", table_list[i] -> funcname);
+		gen_machine_code(i, stdout);
 		/*here is the register allotting and the assemble codes generating*/
 
 	    /*
@@ -675,7 +675,8 @@ int main(int argc, char* argv[])
         }
         printf("varlist ends.\n");
 		*/
-	//}
+	}
+	print_file_tail(stdout);
 	free_code_table_list();
     syms_delete(parm_stack);
     syms_delete(type_stack);

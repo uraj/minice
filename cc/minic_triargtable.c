@@ -102,6 +102,7 @@ void new_global_table()//init a new global table
 	gtriargexpr_table_bound = INITIALCODESIZE;
 	gtriargexpr_table_index = 0;
 	g_var_id_num = g_global_id_num;//init visible var with global id num
+	/* MARK TAOTAOTHERIPPER */
 }
 
 int insert_triargexpr(struct triargexpr expr)//should be in triargexpr.c
@@ -139,7 +140,6 @@ struct taexpr_list_header * new_taexprlist(int begin, int end)
 	newnode -> entity = &gtriargexpr_table[i];
 	newnode -> prev = NULL;
 	newnode -> next = NULL;
-//	newnode -> active_var = NULL;//may need more list later
 	newnode -> pointer_entity = NULL;
 	i++;
 	while(i <= end)
