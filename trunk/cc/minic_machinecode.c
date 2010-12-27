@@ -96,7 +96,8 @@ static inline void set_cur_function(int func_index)
 	cur_func_index = func_index;
 	
 	int string_num = get_localstr_num(cur_func_info -> func_symt);//get string num from the symtable
-	global_var_label_offset = calloc(g_global_id_num + string_num, sizeof(int));//need free
+	int padding = 10;//just in case
+	global_var_label_offset = calloc(g_global_id_num + string_num + padding, sizeof(int));//need free
 	ref_g_var_num = 0;
 	global_var_label = gen_new_label(total_label_num ++);//as the head element of the global var
 	cur_sp = 0;//just point to bp
@@ -117,8 +118,12 @@ static inline void set_cur_function(int func_index)
 
 static inline void leave_cur_function()
 {
-	free(global_var_label_offset);
-	free(global_var_label);
+	if(global_var_label_offset != NULL)
+		free(global_var_label_offset);
+	if(global_var_label != NULL)
+		free(global_var_label);
+	global_var_label_offset = NULL;
+	global_var_label = NULL;
 }
 /*************************** initial end *******************************/
 
