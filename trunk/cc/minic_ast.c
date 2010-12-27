@@ -14,7 +14,7 @@ struct ast* new_ast(enum operator p_op, int p_isleaf, void* p_left, void* p_righ
         ((struct ast *)p_left)->val->ast_leaf_type == Iconstleaf &&
         ((struct ast *)p_rightorval)->isleaf &&
         ((struct ast *)p_rightorval)->val->ast_leaf_type == Iconstleaf)) /* comupte constant expressions during compilation */
-    {        
+    {
         switch(p_op)
         {
             case Land:
