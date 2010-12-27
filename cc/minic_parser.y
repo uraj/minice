@@ -18,6 +18,7 @@
 #include "minic_aliasanalyse.h"
 #include "minic_regalloc.h"
 #include "minic_machinecode.h"
+#include "minic_peephole.h"
 //#define DEBUG
 //#define SHOWBNF
 //#define SHOWLOCALCODE
@@ -655,7 +656,8 @@ int main(int argc, char* argv[])
 	for(i = 0; i < g_table_list_size; i++)
 	{
 		//printf("%s\n", table_list[i] -> funcname);
-		gen_machine_code(i, stdout);
+		gen_machine_code(i, stdout);	
+		peephole(i);
 		/*here is the register allotting and the assemble codes generating*/
 
 	    /*

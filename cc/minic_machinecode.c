@@ -13,13 +13,8 @@
 #define INITIAL_MACH_CODE_SIZE 100
 #define MAX_LABEL_NAME_LEN 20
 #define TOTAL_REG_NUM 32
-#define SP 29
-#define FP 27
-#define LR 30
-#define PC 31
 #define BYTE 1
 #define WORD 4
-
 #define REG_UNUSED -1
 #define REG_TEMP -2
 
@@ -492,10 +487,10 @@ static void prepare_temp_var_inmem()//gen addr at first
 	{
 		struct mach_arg tmp_sp, tmp_offset;
 		tmp_sp.type = Mach_Reg;
-		tmp_sp.reg = SP;
+		tmp_sp.reg = REG_SP;
 		tmp_offset.type = Mach_Imm;
 		tmp_offset.imme = offset_from_sp;
-		insert_dp_code(SUB, SP, tmp_sp, tmp_offset, 0, NO);
+		insert_dp_code(SUB, REG_SP, tmp_sp, tmp_offset, 0, NO);
 	}
 
 	for(index = 0; index < cur_ref_var_num; index ++)//second scan, prepare data for first four params
@@ -530,10 +525,10 @@ static void free_temp_var_inmem()
 	{
 		struct mach_arg tmp_sp, tmp_offset;
 		tmp_sp.type = Mach_Reg;
-		tmp_sp.reg = SP;
+		tmp_sp.reg = REG_SP;
 		tmp_offset.type = Mach_Imm;
 		tmp_offset.imme = cur_sp - local_var_sp;
-		insert_dp_code(ADD, SP, tmp_sp, tmp_offset, 0, NO);
+		insert_dp_code(ADD, REG_SP, tmp_sp, tmp_offset, 0, NO);
 	}
 }
 
@@ -544,16 +539,16 @@ static void enter_func_push()
 	   mov fp, sp
 	   push lr
 	*/
-	push_param(FP);
-	gen_mov_rsrd_code(FP, SP);
+	push_param(REG_FP);
+	gen_mov_rsrd_code(REG_FP, REG_SP);
 	cur_sp = 0;
-	push_param(LR);
+	push_param(REG_LR);
 }
 
 static void leave_func_pop()
 {
-	pop_param_to_reg(LR);
-	pop_param_to_reg(FP);
+	pop_param_to_reg(REG_LR);
+	pop_param_to_reg(REG_FP);
 }
 
 static void callee_save_push()
@@ -678,7 +673,7 @@ static inline void load_pointer(int var_index, int reg_num, int imm_offset, int 
 	{
 		struct mach_arg tmp_fp;
 		tmp_fp.type = Mach_Reg;
-		tmp_fp.reg = FP;
+		tmp_fp.reg = REG_FP;
 		offset_arg.type = Mach_Imm;
 		offset_arg.imme = id_info -> mem_addr;
 		if(imm_offset != 0)
@@ -721,7 +716,7 @@ static inline void push_param(int reg_num)
 {	
 	struct mach_arg tmp_sp, tmp_offset;
 	tmp_sp.type = Mach_Reg;
-	tmp_sp.reg = SP;
+	tmp_sp.reg = REG_SP;
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = WORD;
 	cur_sp += WORD;//just in case
@@ -732,7 +727,7 @@ static inline void pop_param_to_reg(int reg_num)
 {
 	struct mach_arg tmp_sp, tmp_offset;
 	tmp_sp.type = Mach_Reg;
-	tmp_sp.reg = SP;
+	tmp_sp.reg = REG_SP;
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = WORD;
 	cur_sp -= WORD;
@@ -743,11 +738,11 @@ static inline void pop_param(int param_num)
 {
 	struct mach_arg tmp_sp, tmp_offset;
 	tmp_sp.type = Mach_Reg;
-	tmp_sp.reg = SP;
+	tmp_sp.reg = REG_SP;
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = WORD * param_num;
 	cur_sp -= (WORD * param_num);
-	insert_dp_code(ADD, SP, tmp_sp, tmp_offset, 1, NO);
+	insert_dp_code(ADD, REG_SP, tmp_sp, tmp_offset, 1, NO);
 }
 
 static inline void load_var(struct var_info * v_info, int reg_num)
@@ -770,7 +765,7 @@ static inline void load_temp_var(struct var_info * t_v_info, int reg_num)
 {
 	struct mach_arg tmp_fp, tmp_offset;
 	tmp_fp.type = Mach_Reg;
-	tmp_fp.reg = FP;//need width later
+	tmp_fp.reg = REG_FP;//need width later
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = t_v_info -> mem_addr;
 	int width = get_width_from_index(t_v_info -> index);
@@ -785,7 +780,7 @@ static inline void store_temp_var(struct var_info * t_v_info, int reg_num)
 {
 	struct mach_arg tmp_fp, tmp_offset;
 	tmp_fp.type = Mach_Reg;
-	tmp_fp.reg = FP;//need width later
+	tmp_fp.reg = REG_FP;//need width later
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = t_v_info -> mem_addr;
 	int width = get_width_from_index(t_v_info -> index);
@@ -834,7 +829,7 @@ static inline void store_global_var(struct var_info * g_v_info, int reg_num)
 /************************** get temp reg begin ***********************/
 static int is_reg_disabled(int regnum)
 {
-	if(regnum < 4 || regnum == 16 || regnum == FP || regnum >= SP)
+	if(regnum < 4 || regnum == 16 || regnum == REG_FP || regnum >= REG_SP)
 		return 1;
 	return 0;
 }
@@ -1395,7 +1390,7 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
      {
           temp_reg[++ temp_reg_size] = arg2_reg = gen_tempreg(except , 4);
           int arg2_width = get_width_from_index(arg2_index);
-          gen_mem_rri_code(load , arg2_reg , FP , -1 , arg2_info->mem_addr , arg2_width);
+          gen_mem_rri_code(load , arg2_reg , REG_FP , -1 , arg2_info->mem_addr , arg2_width);
      }
      except[2] = arg2_reg;
      
@@ -1428,7 +1423,7 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
           {
                int fp_off = arg1_info->mem_addr;
                fp_off -= (expr->arg2.imme << width_shift);
-               gen_mem_rri_code(type , dest_reg , FP , -1 , fp_off , 1 << width_shift);
+               gen_mem_rri_code(type , dest_reg , REG_FP , -1 , fp_off , 1 << width_shift);
           }
           else//arg2是寄存器或内存的话先把它左移，然后移入寄存器里，利用fp寄存器变址寻址
           {
@@ -1444,7 +1439,7 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
                //MEM dest_reg , [fp-] , addr_reg
                gen_mov_lshft_code(addr_reg , arg2_reg , width_shift);
                gen_dp_rri_code(ADD , addr_reg , addr_reg , arg1_info->mem_addr);
-               gen_mem_rrr_code(type , dest_reg , FP , -1 , addr_reg , 1 << width_shift);
+               gen_mem_rrr_code(type , dest_reg , REG_FP , -1 , addr_reg , 1 << width_shift);
           }
      }
      else
@@ -1462,7 +1457,7 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
                arg1_reg = gen_tempreg(except , 4);
                temp_reg[++ temp_reg_size] = arg1_reg;
                int arg1_width = get_width_from_index(arg1_index);
-               gen_mem_rri_code(load , arg1_reg , FP , -1 , arg1_info->mem_addr , arg1_width);
+               gen_mem_rri_code(load , arg1_reg , REG_FP , -1 , arg1_info->mem_addr , arg1_width);
           }
           except[1] = arg1_reg;
           //MEM dest_reg , [arg1_reg+] , arg2_reg
@@ -1526,7 +1521,7 @@ static int gen_deref_code(enum mem type, struct triargexpr *expr, struct var_inf
      int arg1_is_g = is_global(arg1_index);
      int arg1_is_array = is_array(arg1_index);
      if(arg1_is_array == 1 && arg1_is_g != 1)//是局部数组，LDB/LDW dest_reg , [fp-] , arg1_info->mem_addr
-          gen_mem_rri_code(load , dest_reg , FP , -1 , arg1_info->mem_addr , 1 << width_shift);
+          gen_mem_rri_code(load , dest_reg , REG_FP , -1 , arg1_info->mem_addr , 1 << width_shift);
      else
      {
           if(arg1_flag != Arg_Reg)//不在寄存器的一定要分配寄存器
@@ -1535,7 +1530,7 @@ static int gen_deref_code(enum mem type, struct triargexpr *expr, struct var_inf
                if(arg1_is_g == 1)//全局数组
                     load_pointer(arg1_index , arg1_reg , 0 , -1);//将全局数组首地址载入临时寄存器
                else//LDW arg1_reg , [fp-] , arg1_info->mem_addr
-                    gen_mem_rri_code(load , arg1_reg , FP , -1 , arg1_info->mem_addr , 4);
+                    gen_mem_rri_code(load , arg1_reg , REG_FP , -1 , arg1_info->mem_addr , 4);
           }
           
           //MEM dest_reg , [arg1_reg]
@@ -2174,7 +2169,7 @@ static void gen_per_code(struct triargexpr * expr)
 					if(dest_flag == Arg_Reg)//MOV dest_reg , arg1_reg
 						gen_mov_rsrd_code(dest_reg , arg1_reg);
 					else//STW/STB arg1_reg , [fp-] , dest_info->mem_addr
-						gen_mem_rri_code(store , arg1_reg , FP , -1 , dest_info->mem_addr , width);
+						gen_mem_rri_code(store , arg1_reg , REG_FP , -1 , dest_info->mem_addr , width);
 				}
                 
 				/*操作数据*/
@@ -2365,7 +2360,7 @@ static void gen_per_code(struct triargexpr * expr)
                     vinfo = get_info_from_index(focus->var_map_index);
                     if((vinfo->reg_addr >= 4 && vinfo->reg_addr <= 15) || vinfo->reg_addr == 28)
                     {
-                        gen_mem_rri_code(load, vinfo -> reg_addr, FP, -1, caller_save_index - saved_reg_count * WORD, WORD);
+                        gen_mem_rri_code(load, vinfo -> reg_addr, REG_FP, -1, caller_save_index - saved_reg_count * WORD, WORD);
                         saved_reg[saved_reg_count++] = vinfo->reg_addr;
                     }
 					focus = focus -> next;
@@ -2373,7 +2368,7 @@ static void gen_per_code(struct triargexpr * expr)
                 insert_buncond_code(expr->arg1.idname, 1);
                 /* restore caller save */
 				for(i = 0; i < saved_reg_count; ++i)
-                    gen_mem_rri_code(store, saved_reg[saved_reg_count], FP, -1, caller_save_index - saved_reg_count * WORD, WORD);           /* resotre */
+                    gen_mem_rri_code(store, saved_reg[saved_reg_count], REG_FP, -1, caller_save_index - saved_reg_count * WORD, WORD);           /* resotre */
 				reload_global_var();//MARK TAOTAOTHERIPPER
 				if(dest_index != -1)//The r0 won't be changed during the restore above	
 				{
@@ -2493,7 +2488,7 @@ static void gen_per_code(struct triargexpr * expr)
 				free_temp_var_inmem();
 				callee_save_pop();
 				leave_func_pop();
-                insert_jump_code(LR);
+                insert_jump_code(REG_LR);
 				break;
 			}
 		default:
@@ -2652,6 +2647,7 @@ void gen_machine_code(int func_index, FILE * out_buf)//Don't forget NULL at last
 	print_mach_header(out_buf);
 	print_mach_code(out_buf);//MARK TAOTAOTHERIPPER
 	print_mach_tail(out_buf);
+
 	free_all(active_var_array);
 	leave_cur_function();
 }
