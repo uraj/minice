@@ -33,6 +33,7 @@ extern void var_list_print(struct var_list *list);//打印链表
 extern void var_list_clear(struct var_list *list);//将链表清空（tail = head , head = NULL）
 extern struct var_list_node *var_list_insert(struct var_list *list , struct var_list_node *cur , int num);//插入节点
 extern struct var_list_node *var_list_delete(struct var_list *list , struct var_list_node *former , struct var_list_node *del_node);//删除节点，删除后被删除节点指针不可用
+extern struct var_list_node *var_list_find(struct var_list *list , int key);//寻找键值
 
 extern int var_list_isequal(struct var_list *l1 , struct var_list *l2);//判断两个链表是否相等
 extern struct var_list *var_list_copy(struct var_list *source , struct var_list *dest);//dest=source
