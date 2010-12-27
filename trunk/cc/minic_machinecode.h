@@ -2,8 +2,12 @@
 #define __MINIC_MACHINECODE_H__
 #include <stdint.h>
 #include <stdio.h>
-#define MACH_DEBUG 0
+#define MACH_DEBUG
 
+#define REG_SP 29
+#define REG_FP 27
+#define REG_LR 30
+#define REG_PC 31
 enum mach_arg_type { Unused = 0, Mach_Reg, Mach_Imm, Mach_Label};
 
 struct mach_arg
@@ -39,7 +43,7 @@ enum dp_op_type
 	MOV,/* no arg1 */
 	MOVCOND,//may be useful
 
-	MUL,
+	MUL
 	//MLA,//may be useful
 };
 

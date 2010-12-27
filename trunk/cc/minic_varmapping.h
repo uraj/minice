@@ -22,7 +22,7 @@ struct var_info                /* the struct to contain var's flags */
 //    struct var_list * ref_point;//only for array
 	int label_num;// the expr jump to which label /* can be union */
 
-	int ref_mark; 
+	int ref_mark;	/* ref_mark => 1 can't be optimized */ 
 	int index;
 };
 

@@ -1,24 +1,27 @@
 #include "minic_peephole.h"
-#include "minic_machineode.h"
+#include "minic_machinecode.h"
 #include "minic_asmout.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+//#define LARGEWINDOW
+
 struct mach_code_list
 {
 	struct mach_code * entity;
-	struct mach_code_list * next, *prev;
+	struct mach_code_list * next, * prev;
 };
 
 static struct mach_code_list * head;
 
+static struct mach_code * cur_table;
 static int cur_func_index;
 static int cur_code_num;
-static struct mach_code * cur_table;
 
 static int window_size;
-static char reg_mark[32];
+static char des_reg_mark[32];
+static char src_reg_mark[32];
 
 static int success;
 
@@ -28,12 +31,14 @@ static struct mach_code_list * new_code_node(struct mach_code * entity)
 	new_node -> entity = entity;
 	new_node -> next = NULL;
 	new_node -> prev = NULL;
+	return new_node;
 }
 
 static void gen_code_list()
 {
 	struct mach_code_list * old_node, * new_node;
-	for(index = 1; index < cur_code_num; index ++)
+	int index;
+	for(index = 0; index < cur_code_num; index ++)
 	{
 		if(index == 0)
 		{
@@ -51,10 +56,11 @@ static void gen_code_list()
 static void free_code_list()
 {
 	struct mach_code_list * tmp = head;
-	while(head != NULL)
+	while(tmp != NULL)
 	{
-		head = tmp -> next;
-		free(tmp);
+		head = tmp;
+		tmp = tmp -> next;
+		free(head);
 	}
 	head = NULL;
 }
@@ -70,49 +76,130 @@ static inline void set_cur_function(int func_index)
 	success = 0;
 }
 
-static int is_reg_disabled(int regnum)
-{
-	if(regnum < 4 || regnum == 16 || regnum == FP || regnum >= SP)
-		return 1;
-	return 0;
-}
-
+#ifdef LARGEWINDOW
 static int check_all_reg_used()
 {
 	int reg_index;
-	for(reg_index = 0; reg_index < 32; reg_index ++)
+	for(reg_index = 0; reg_index < 31; reg_index ++)/* every register is possible except PC */
 	{
-		if(is_reg_disabled(reg_index))
-			continue;
-		if(reg_mark[reg_index] != 1)
+		if(src_reg_mark[reg_index] != 1)
+			return 0;
+		if(des_reg_mark[reg_index] != 1)
 			return 0;
 	}
 	return 1;
 }
+#endif
+/*
+   we can prove that the label won't affet the instruction scheduling
+   here is the situation the label appear
+	1. pointer
+		lod r1, .L0
+		mov r0, r1	//this situation may be optimized to lod r0, .L0.
+					//if that occurs, because the pointer never changed
+					//so the the result is still right
+	2. store global var
+		lod r1, .L0
+		stw r0, [r1]
+	3. load global var
+		lod r1, .L0
+		lod r1, [r1]
+	when .L0 appear it must be conflict with the next sentence
+*/
 
 static struct mach_code_list * search_inst(struct mach_code_list * cur)
 {
-	memset(reg_mark, 0, 32 * sizeof(char));
-	if(cur -> entity.arg1.type == Mach_Reg)
-		reg_mark[cur -> entity.arg1.reg] = 1;
-	if(cur -> entity.arg1.type == Mach_Reg)
-		reg_mark[cur -> entity.arg2.reg] = 1;
+	memset(des_reg_mark, 0, 32 * sizeof(char));
+	memset(src_reg_mark, 0, 32 * sizeof(char));
+
+	if(cur -> entity -> arg1.type == Mach_Reg)
+		src_reg_mark[cur -> entity -> arg1.reg] = 1;
+	if(cur -> entity -> arg1.type == Mach_Reg)
+		src_reg_mark[cur -> entity -> arg2.reg] = 1;
+	des_reg_mark[cur -> entity -> dest] = 1;
+	if(cur -> entity -> indexed == PREW || cur -> entity -> indexed == POST)
+		des_reg_mark[cur -> entity -> arg1.reg] = 1;/* must be reg here */
+
 	cur = cur -> prev;
 	int step = 0;
 	while(cur != NULL)
 	{
 		if(step == window_size)
 			return NULL;
-		if(cur -> entity.op_type == BRANCH || cur -> entity.op_type == LABEL)//MARK TAOTAOTHERIPPER, cmp must be above the branch
-			return NULL;
+#ifdef LARGEWINDOW
 		if(check_all_reg_used())
 			return NULL;
-		if(reg_mark[cur -> entity.dest] != 1)
-			return cur;
-		if(cur -> entity.arg1.type == Mach_Reg)
-			reg_mark[cur -> entity.arg1.reg] = 1;
-		if(cur -> entity.arg2.type == Mach_Reg)
-			reg_mark[cur -> entity.arg2.reg] = 1;
+#endif
+		switch(cur -> entity -> op_type)/* deal with normal arg later, deal with dest and special arg in switch */
+		{
+			case BRANCH:
+			case LABEL:
+			case CMP://MARK TAOTAOTHERIPPER, cmp must be above the branch
+				return NULL;
+			case MEM:
+				{
+					switch(cur -> entity -> mem_op)
+					{
+						case LDW:
+						case LDB:
+							if((cur -> entity -> arg1.type != Mach_Reg || des_reg_mark[cur -> entity -> arg1.reg] != 1)
+									&& (cur -> entity -> arg2.type != Mach_Reg || des_reg_mark[cur -> entity -> arg2.reg] != 1))
+							{
+								if(src_reg_mark[cur -> entity -> dest] != 1)
+								{
+									if(cur -> entity -> indexed != PREW && cur -> entity -> indexed != POST)
+										return cur;
+									if(src_reg_mark[cur -> entity -> arg1.reg] != 1)/* must in reg here */
+										return cur;
+									else
+										des_reg_mark[cur -> entity -> arg1.reg] = 1;/* special dest */
+								}
+								else
+									des_reg_mark[cur -> entity -> dest] = 1;/* special dest */
+							}
+							break;
+						case STW:
+						case STB:
+							if(des_reg_mark[cur -> entity -> dest] != 1
+									&& (cur -> entity -> arg1.type != Mach_Reg || des_reg_mark[cur -> entity -> arg1.reg] != 1)
+									&& (cur -> entity -> arg2.type != Mach_Reg || des_reg_mark[cur -> entity -> arg2.reg] != 1))
+							{
+								if(cur -> entity -> indexed != PREW && cur -> entity -> indexed != POST)
+									return cur;
+								if(src_reg_mark[cur -> entity -> arg1.reg] != 1)/* must in reg here */
+									return cur;
+								else
+									des_reg_mark[cur -> entity -> arg1.reg] = 1;/* special dest */
+							}
+							else
+								src_reg_mark[cur -> entity -> dest] = 1;/* special src */
+							break;
+						default:
+							fprintf(stderr, "error mem type in instruction scheduling.\n");
+							exit(1);
+					}
+					break;
+				}
+			case DP:
+				{
+					if((cur -> entity -> arg1.type != Mach_Reg || des_reg_mark[cur -> entity -> arg1.reg] != 1)
+							&& (cur -> entity -> arg2.type != Mach_Reg || des_reg_mark[cur -> entity -> arg2.reg] != 1))
+					{
+						if(src_reg_mark[cur -> entity -> dest] != 1)
+							return cur;
+						else des_reg_mark[cur -> entity -> dest]  = 1;
+					}
+					break;
+				}
+			default:
+				fprintf(stderr, "error op type in instruction scheduling.\n");
+				break;
+		}
+		if(cur -> entity -> arg1.type == Mach_Reg)
+			src_reg_mark[cur -> entity -> arg1.reg] = 1;
+		if(cur -> entity -> arg2.type == Mach_Reg)
+			src_reg_mark[cur -> entity -> arg2.reg] = 1;	
+		cur = cur -> prev;
 		step ++;
 	}
 	return NULL;
@@ -120,21 +207,24 @@ static struct mach_code_list * search_inst(struct mach_code_list * cur)
 
 static void instruction_scheduling()
 {
-	int index;
 	struct mach_code_list * last = NULL, * insert = NULL, * cur = head;
 	while(cur != NULL)
 	{
-		if(cur -> entity.op_type == MEM 
-				&& (cur -> entity.mem_op_type == LDW || cur -> entity.mem_op_type == LDB))
+		if(cur -> entity -> op_type == MEM 
+				&& (cur -> entity -> mem_op == LDW || cur -> entity -> mem_op == LDB))
 		{
 			if(cur -> next != NULL)
 			{
-				if((cur -> next -> entity.arg1.type == Mach_Reg && cur -> entity.dest) 
-						|| (cur -> next -> entity.arg2.type == Mach_Reg && cur -> entity.dest))
+				if((cur -> next -> entity -> arg1.type == Mach_Reg 
+							&& cur -> next -> entity -> arg1.reg == cur -> entity -> dest) 
+						|| (cur -> next -> entity -> arg2.type == Mach_Reg 
+							&& cur -> next -> entity -> arg2.reg == cur -> entity -> dest))
 				{
 					insert = search_inst(cur);
 					if(insert != NULL)
 					{
+						printf("The code is optimized:\n");
+						mcode_out(cur -> entity, stdout);
 						success ++;
 						insert -> prev -> next = insert -> next;
 						insert -> next -> prev = insert -> prev;
@@ -151,7 +241,7 @@ static void instruction_scheduling()
 	}
 }
 
-static void print_code_list(FILE out_buf)
+static void print_code_list(FILE * out_buf)
 {
 	struct mach_code_list * tmp = head;
 	while(tmp != NULL)
