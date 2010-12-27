@@ -79,3 +79,4 @@ consider this case:
 22.Bug in binary arithmetic//Done
 23.bug_1.c//Done
 24.bug when generate label for global var
+25.optimize binary op and assgin

@@ -2102,7 +2102,7 @@ static void gen_per_code(struct triargexpr * expr)
 				if(dest_flag != Arg_Reg)
 					store_var(dest_info, tempdest);
 				
-				if(!mark1 && !mark2)
+				if(dest_flag == Arg_Mem && !mark1 && !mark2)
 					restore_tempreg(tempdest);
 				if(mark2)
 					restore_tempreg(tempreg2);
