@@ -47,6 +47,36 @@ test:
 	.word	.LC0
 	.word	.LC1
 	.size	test, .-test
+	.align	2
+	.global	no_str
+	.type	no_str,function
+no_str:
+	@ args = 0, pretend = 0, frame = 8
+	@ frame_needed = 1, uses_anonymous_args = 0
+	mov	ip, sp
+	stw	pc, [sp-], #4;
+	stw	lr, [sp-], #8;
+	stw	ip, [sp-], #12;
+	stw	ip, [sp-], #12;stw	fp, [sp-], #16;
+	stw	ip, [sp-], #12;stw	fp, [sp-], #16;sub	sp, sp, #16;
+	sub	fp, ip, #4
+	sub	sp, sp, #8
+	stw	r0, [fp+], #-16
+	stw	r1, [fp+], #-20
+	ldw	r15, [fp+], #-16
+	add	r15, r15, #1
+	stw	r15, [fp+], #-16
+	ldw	r15, [fp+], #-20
+	add	r15, r15, #1
+	stw	r15, [fp+], #-20
+	ldw	r15, [fp+], #-16
+	mov	r0, r15
+	mov	ip, fp
+	ldw	fp,  [fp-], #12
+	ldw	sp,  [ip-], #8
+	ldw	ip,  [ip-], #4
+	jump	ip
+	.size	no_str, .-no_str
 	.section	.rodata
 	.align	3
 .LC2:
@@ -68,11 +98,11 @@ main:
 	stw	ip, [sp-], #12;stw	fp, [sp-], #16;
 	stw	ip, [sp-], #12;stw	fp, [sp-], #16;sub	sp, sp, #16;
 	sub	fp, ip, #4
-	ldw	r15, .L7
-	ldw	r14, .L7+4
+	ldw	r15, .L9
+	ldw	r14, .L9+4
 	stw	r14, [r15+], #0
-	ldw	r15, .L7
-	ldw	r14, .L7+8
+	ldw	r15, .L9
+	ldw	r14, .L9+8
 	stw	r14, [r15+], #0
 	mov	r15, #1
 	mov	r0, r15
@@ -81,9 +111,9 @@ main:
 	ldw	sp,  [ip-], #8
 	ldw	ip,  [ip-], #4
 	jump	ip
-.L8:
+.L10:
 	.align	2
-.L7:
+.L9:
 	.word	e
 	.word	.LC2
 	.word	.LC3

@@ -200,6 +200,8 @@ static inline void insert_cmp_code(struct mach_arg arg1, struct mach_arg arg2)
 	new_code.cmp_op = CMPSUB_A;
 	new_code.arg1 = arg1;
 	new_code.arg2 = arg2;
+	new_code.arg3 = 0;
+	new_code.shift = NO;
 	insert_code(new_code);
 }
 
@@ -2512,16 +2514,88 @@ static void reset_reg_number()//
      }
 }
 
-void print_mach_header()
+static void print_mach_header(FILE * out_buf)
 {
-	
+	int str_align = 3;
+	int nor_align = 2;
+	if(cur_func_info -> func_symt -> str_num != 0)
+	{
+		fprintf(out_buf, "\t.section\t.rodata\n");
+		int str_index;
+		for(str_index = 0; str_index < cur_func_info -> func_symt -> str_num; str_index++)
+		{
+			fprintf(out_buf, "\t.align\t%d\n", str_align);
+			fprintf(out_buf, "%s:\n", cur_func_info -> func_symt -> const_str[str_index].vl_info -> name);
+			char * tmp_string = cur_func_info -> func_symt -> const_str[str_index].string;
+			tmp_string[strlen(tmp_string) - 1] = 0;
+			fprintf(out_buf, "\t.ascii\t%s\\000\"\n", cur_func_info -> func_symt -> const_str[str_index].string);
+		}
+	}
+	fprintf(out_buf, "\t.text\n");
+	fprintf(out_buf, "\t.align\t%d\n", nor_align);
+	fprintf(out_buf, "\t.global\t%s\n", cur_func_info -> name);
+	fprintf(out_buf, "\t.type\t%s,function\n", cur_func_info -> name);
+	fprintf(out_buf, "%s:\n", cur_func_info -> name);
 }
 
-static void print_mach_code(int func_index)
+static void print_mach_tail(FILE * out_buf)
+{
+	int nor_align = 2;
+	if(ref_g_var_num > 0)
+	{
+		fprintf(out_buf, "\t.align\t%d\n", nor_align);
+		fprintf(out_buf, "%s:\n", global_var_label);
+		int g_var_index;
+		for(g_var_index = 0; g_var_index < ref_g_var_num; g_var_index ++)
+		{
+			struct value_info * var_value_info = get_valueinfo_byno(cur_func_info -> func_symt, global_var_label_offset[g_var_index]);
+			char * var_name = var_value_info -> name;
+			fprintf(out_buf, "\t.word\t%s\n", var_name);
+		}
+	}
+	fprintf(out_buf, "\t.size\t%s, .-%s\n", cur_func_info -> name, cur_func_info -> name);
+}
+static void print_mach_code(FILE * out_buf)
 {
 	int index;
-	for(index = 0; index < code_table_list[func_index].code_num; index++)
-		mcode_out(&code_table_list[func_index].table[index], stdout);
+	for(index = 0; index < code_table_list[cur_func_index].code_num; index++)
+		mcode_out(&code_table_list[cur_func_index].table[index], out_buf);
+}
+
+void print_file_header(FILE * out_buf, char * filename)
+{
+	fprintf(out_buf, "\t.file\t\"%s\"\n", filename);
+	g_global_id_num = get_globalvar_num();
+	if(g_global_id_num > 0)
+	{
+		int global_var_index;
+		for(global_var_index = 0; global_var_index < g_global_id_num; global_var_index ++)//global var's index is 0 ~ g_global_id_num
+		{
+			struct value_info * g_value_info = get_valueinfo_byno(simb_table, global_var_index);
+			fprintf(out_buf, "\t.comm\t%s, ", g_value_info -> name);
+			switch(g_value_info -> type -> type)
+			{
+				case Array:
+					if(g_value_info -> type -> base_type -> type == Char)
+						fprintf(out_buf, "%d, %d\n", g_value_info -> type -> size, BYTE);
+					else
+						fprintf(out_buf, "%d, %d\n", g_value_info -> type -> size * WORD, WORD);
+					break;
+				case Char:
+					fprintf(out_buf, "%d, %d\n", BYTE, BYTE);
+					break;
+				default:
+					fprintf(out_buf, "%d, %d\n", WORD, WORD);
+					break;
+			}
+		}
+	}
+}
+
+void print_file_tail(FILE * out_buf)
+{
+	char * edition = "MINICC: (UC_1.0_20101227) 0.0.0";
+	fprintf(out_buf, "\t.ident\t\"%s\"\n", edition);
 }
 
 void new_code_table_list()
@@ -2542,7 +2616,7 @@ void free_code_table_list()
 }
 
 
-void gen_machine_code(int func_index)//Don't forget NULL at last
+void gen_machine_code(int func_index, FILE * out_buf)//Don't forget NULL at last
 {
 	int var_list_size;
 	/********************************* data flow analyse ***************************************/
@@ -2571,8 +2645,10 @@ void gen_machine_code(int func_index)//Don't forget NULL at last
 		gen_per_code(expr);
 		tmp_node = tmp_node -> next;
 	}
+	print_mach_header(out_buf);
+	print_mach_code(out_buf);//MARK TAOTAOTHERIPPER
+	print_mach_tail(out_buf);
 	free_all(active_var_array);
 	leave_cur_function();
-	//print_mach_code(func_index);//MARK TAOTAOTHERIPPER
 }
 

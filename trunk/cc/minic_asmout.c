@@ -209,7 +209,7 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
             if(!special_reg_mach_out(mcode->arg1.reg, out_buf))//must be in reg
 				fprintf(out_buf, "r%d", mcode->arg1.reg);
 			null.type = Unused;
-			mach_arg_out(null, mcode->arg2, mcode->arg3, mcode->shift, out_buf);//MARK TAOTAOTHERIPPER 
+			mach_arg_out(mcode->arg2, null, mcode->arg3, mcode->shift, out_buf);//MARK TAOTAOTHERIPPER 
             break;
         case MEM:
             switch(mcode->mem_op)
@@ -259,16 +259,16 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
                             fprintf(out_buf, "\tbne");
                             break;
                         case Mach_SL:
-                            fprintf(out_buf, "\tbslt");
+                            fprintf(out_buf, "\tbsl");
                             break;
                         case Mach_SG:
-                            fprintf(out_buf, "\tbsgt");
+                            fprintf(out_buf, "\tbsg");
                             break;
                         case Mach_EL:
-                            fprintf(out_buf, "\tbsle");
+                            fprintf(out_buf, "\tbel");
                             break;
                         case Mach_EG:
-                            fprintf(out_buf, "\tbsge");
+                            fprintf(out_buf, "\tbeg");
                             break;
                     }
                     fprintf(out_buf, "\t%s\n", mcode->dest_label);
@@ -276,7 +276,7 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
             }
             break;
         case LABEL:
-            fprintf(out_buf, "%s\n", mcode->label);
+            fprintf(out_buf, "%s:\n", mcode->label);
             return;
     }
     return;

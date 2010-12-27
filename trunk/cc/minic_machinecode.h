@@ -1,7 +1,8 @@
 #ifndef __MINIC_MACHINECODE_H__
 #define __MINIC_MACHINECODE_H__
 #include <stdint.h>
-#define MACH_DEBUG 0
+#include <stdio.h>
+//#define MACH_DEBUG 0
 
 enum mach_arg_type { Unused = 0, Mach_Reg, Mach_Imm, Mach_Label};
 
@@ -132,12 +133,15 @@ struct mach_code_table
 	int code_num;
 };
 
+extern int g_global_id_num;
 extern int g_table_list_size; 
 extern struct mach_code_table * code_table_list;
 extern struct triargtable ** table_list;
 extern struct symbol_table * simb_table;  
 
-extern void gen_machine_code(int func_index);
+extern void print_file_header(FILE * out_buf, char * filename);
+extern void print_file_tail(FILE * out_buf);
+extern void gen_machine_code(int func_index, FILE * out_buf);
 extern void new_code_table_list();
 extern void free_code_table_list();
 #endif
