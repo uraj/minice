@@ -2330,7 +2330,7 @@ static void gen_per_code(struct triargexpr * expr)
                 char saved_reg[32];
                 int saved_reg_count = 0;
                 int i;
-                while(focus != NULL && focus != expr -> arg2.func_actvar_list -> tail)
+                while(focus != NULL && focus != expr -> arg2.func_actvar_list -> tail -> next)
                 {
                     vinfo = get_info_from_index(focus->var_map_index);
                     if((vinfo->reg_addr >= 4 && vinfo->reg_addr <= 15) || vinfo->reg_addr == 28)
@@ -2338,7 +2338,7 @@ static void gen_per_code(struct triargexpr * expr)
                         gen_mem_rri_code(load, vinfo -> reg_addr, FP, -1, caller_save_index - saved_reg_count * WORD, WORD);
                         saved_reg[saved_reg_count++] = vinfo->reg_addr;
                     }
-                    focus = focus -> next;
+					focus = focus -> next;
                 }
                 insert_buncond_code(expr->arg1.idname, 1);
                 /* restore caller save */
