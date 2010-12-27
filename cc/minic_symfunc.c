@@ -112,7 +112,7 @@ struct value_type * decl_push_func(char * name, struct symbol_stack * type_stack
     while(parm_stack -> top != NULL)
     {
         parmvalue = syms_pop(parm_stack);
-        parmtype = parmvalue -> cur_typenode;
+		parmtype = parmvalue -> cur_typenode;
         delete_valueinfo(parmvalue -> value);
         delete_valuetype(parmvalue);
         if(newtype -> value -> type -> parm_list == NULL)
