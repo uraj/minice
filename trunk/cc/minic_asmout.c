@@ -206,8 +206,6 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
                     fprintf(out_buf, "\tcmpsub.a");
                     break;
             }
-			if(!special_reg_mach_out(mcode->arg1->, out_buf))
-				fprintf(out_buf, "r%d", mcode->dest);
             mach_arg_out(mcode->arg1, mcode->arg2, mcode->arg3, mcode->shift, out_buf); 
             break;
         case MEM:
