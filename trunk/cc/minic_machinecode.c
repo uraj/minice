@@ -2245,21 +2245,27 @@ static void gen_per_code(struct triargexpr * expr)
 					{
 						arg1.type = Mach_Reg;
 						arg1.reg = arg1_info->reg_addr;
+						arg2.type = Mach_Imm;
+						arg2.imme = 0;
+						insert_dp_code(RSUB, dest_reg, arg1, arg2, 0, NO);
 					}
-					else    /* arg1_flag == Arg_Imm */
+					else    /* arg1_flag == Arg_Imm */ //MARK TAOTAOTHERIPPER need some optimizing here
 					{
-						arg1.type = Mach_Imm;
-						arg1.imme = expr->arg1.imme;
+						arg2.type = Mach_Imm;
+						arg2.imme = expr->arg1.imme;
+						insert_dp_code(MVN, dest_reg, null, arg2, 0, NO);
+						arg2.imme = 1;
+						arg1.type = Mach_Reg;
+						arg1.reg = dest_reg;
+						insert_dp_code(ADD, dest_reg, arg1, arg2, 0, NO);
 					}
-					arg2.type = Mach_Imm;
-					arg2.imme = 0;
-					insert_dp_code(RSUB, dest_reg, arg1, arg2, 0, NO);
 				}
 				if(dest_flag == Arg_Mem)
 				{
 					store_var(dest_info, dest_reg);
 					restore_tempreg(dest_reg);
 				}
+				break;
 			}
 
         case Subscript:                  /* [] */
