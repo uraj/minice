@@ -55,7 +55,8 @@ static inline struct var_info *  new_var_info()
 	new_info -> is_use = -1;
 	new_info -> reg_addr = -1;
 	new_info -> mem_addr = INITIAL_MEM_ADDR;
-	new_info -> label_num = -1; 
+	new_info -> label_num = -1;
+	new_info -> ref_mark = 1;
 //	new_info -> ref_point = NULL;
 	return new_info;
 }
@@ -88,7 +89,7 @@ void free_var_map()
 	free(var_info_table);
 }
 
-int insert_tempvar(int exprindex)
+int insert_tempvar(int exprindex, int isrefed)
 {
 	if(exprindex < 0)
 	{
@@ -96,9 +97,14 @@ int insert_tempvar(int exprindex)
 		return -1;
 	}
 	if(var_info_table[exprindex + cur_var_id_num] != NULL)
+	{
+		var_info_table[exprindex + cur_var_id_num] -> ref_mark = 
+			(var_info_table[exprindex + cur_var_id_num] -> ref_mark || isrefed);//MARK TAOTAOTHERIPPER
 		return 0;
+	}
 	var_info_table[exprindex + cur_var_id_num] = new_var_info();
 	var_info_table[exprindex + cur_var_id_num] -> index = map_bridge_cur_index + cur_var_id_num;
+	var_info_table[exprindex + cur_var_id_num] -> ref_mark = isrefed; 
 	//malloc the flags in the var_info_table
     if(map_bridge_cur_index >= map_bridge_bound)
     {
