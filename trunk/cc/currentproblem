@@ -80,4 +80,4 @@ consider this case:
 23.bug_1.c//Done
 24.bug when generate label for global var//Done
 25.optimize binary op and assgin
-26.endless loop when test t10.c
+26.endless loop when test t10.c//Done
