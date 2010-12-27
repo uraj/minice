@@ -334,6 +334,22 @@ struct var_list *var_list_copy(struct var_list *source , struct var_list *dest)
      return dest;
 }
 
+struct var_list_node *var_list_find(struct var_list *list , int key)
+{
+     if(list == NULL)
+          return NULL;
+     if(list->head == NULL)
+          return NULL;
+     struct var_list_node *temp = list->head;
+     while(temp != list->tail->next)
+     {
+          if(temp->var_map_index == key)
+               return temp;
+          temp = temp->next;
+     }
+     return NULL;
+}
+
 struct var_list *var_list_merge(struct var_list *adder , struct var_list *dest)//将变量链adder和dest合并，并写入dest内
 {
      if(adder == NULL)

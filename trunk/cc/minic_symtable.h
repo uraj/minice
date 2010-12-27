@@ -27,6 +27,7 @@ struct value_info//the information of a ident
 struct string_info//the information of the constant strings
 {
      char *string;//the value
+     struct value_info *vl_info;
      int flag;//if the string is contained in the assembler file,it is 1;or it is 0
 };
 
@@ -48,6 +49,7 @@ struct symbol_table//the symbol table,used hash
      struct value_info **myid;//the idents of the function
 
      int str_num;//the number of the idents(maybe needn't)
+     int str_start;
      int cur_strarray_size;//the array "myid" is a length_variable array,so we must have the current size
      struct string_info *const_str;//the constant strings in the function
 };
