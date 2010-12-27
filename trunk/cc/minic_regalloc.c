@@ -203,46 +203,56 @@ static struct ralloc_info reg_alloc_core(char ** igmatrix, struct adjlist ** igl
     struct ralloc_info ret;
     ret.result = calloc(sizeof(int), n);
     int * stack = malloc(n * sizeof(int));
-    int * spill = malloc(n * sizeof(int));
+    int * allocated = calloc(n, sizeof(int));
     isort_elem * elem = malloc(n * sizeof(isort_elem));
-    int top = 0, spillcount = 0, left = n, i;
+    int top = 0, left = n, i;
     for(i = 0; i < n; ++i)
         if(appear[i] == 0)
         {
+            allocated[i] = 1;
             ret.result[i] = -1;
             left -= 1;
         }
     while(left > 0)
     {
+        int spill = 1;
         get_degree((const char **)igmatrix, n, elem);
         qsort(elem, n, sizeof(isort_elem), isort_elem_cmp);
-        for(i = 0; i < n; ++i)
+        for(i = n - 1; i >= 0; --i)
         {
-            if(ret.result[elem[i].val] != 0)     /* i already allocated */
+            if(allocated[elem[i].val])     /* i already allocated */
                 continue;
             if(elem[i].key < max_reg)
             {
                 stack[top++] = elem[i].val;     /* i can be placed in a reg */
+                allocated[elem[i].val] = 1;
                 delete_node(igmatrix, n, i);
                 --left;
+                spill = 0;
             }
-            else                /* spill the var with max degree */
+        }
+        if(spill)
+        {
+            for(i = 0; i < n; ++i)
             {
-                /* spill policy, maybe need a better one */
-                delete_node(igmatrix, n, elem[i].val);
-                (ret.result)[elem[i].val] = -1;
-                spill[spillcount++] = elem[i].val;
-                --left;
-                break;
+                if(allocated[elem[i].val])
+                    continue;
+                else                /* spill the var with max degree */
+                {
+                    /* spill policy, maybe need a better one */
+                    delete_node(igmatrix, n, elem[i].val);
+                    (ret.result)[elem[i].val] = -1;
+                    allocated[elem[i].val] = 1;
+                    --left;
+                    break;
+                }
             }
         }
     }
+    free(allocated);
     free(elem);
     ret.consume = color_interfer_graph(iglist, ret.result, max_reg, stack, top);
     free(stack);
-    for(i = 0; ret.consume < max_reg && i < spillcount; ++i)
-        ret.result[spill[i]] = ++ret.consume;
-    free(spill);
     /* debug */
     if(!check(iglist, ret.result, n))
         printf("wrong answer\n");
