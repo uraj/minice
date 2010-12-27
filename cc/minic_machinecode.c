@@ -1766,7 +1766,7 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 						if(tmp_arg_flag == Arg_Imm)
 						{
 							array_offset.type = Mach_Imm;
-							array_offset.imme = expr -> arg2.imme;
+							array_offset.imme = refed_expr.arg2.imme;
 						}
 						else
 						{
