@@ -81,3 +81,4 @@ consider this case:
 24.bug when generate label for global var//Done
 25.optimize binary op and assgin
 26.endless loop when test t10.c//Done
+27.bug_3.c
