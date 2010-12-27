@@ -9,111 +9,13 @@
 struct ast* new_ast(enum operator p_op, int p_isleaf, void* p_left, void* p_rightorval)
 {
     struct ast* a = malloc(sizeof(struct ast));
-    if((p_isleaf == 0) && (p_rightorval != NULL) &&
-       (((struct ast *)p_left)->isleaf &&
-        ((struct ast *)p_left)->val->ast_leaf_type == Iconstleaf &&
-        ((struct ast *)p_rightorval)->isleaf &&
-        ((struct ast *)p_rightorval)->val->ast_leaf_type == Iconstleaf)) /* comupte constant expressions during compilation */
-    {
-        switch(p_op)
-        {
-            case Land:
-                a->val = malloc(sizeof(struct leafval));
-                a->val->ival =
-                    ((struct ast *)p_left)->val->ival &
-                    ((struct ast *)p_rightorval)->val->ival;
-                break;
-                
-            case Lor:
-                a->val = malloc(sizeof(struct leafval));
-                a->val->ival =
-                    ((struct ast *)p_left)->val->ival |
-                    ((struct ast *)p_rightorval)->val->ival;
-                break;
-                
-            case Eq:
-                a->val = malloc(sizeof(struct leafval));
-                a->val->ival =
-                    ((struct ast *)p_left)->val->ival ==
-                    ((struct ast *)p_rightorval)->val->ival;
-                break;
-                
-            case Neq:
-                a->val = malloc(sizeof(struct leafval));
-                a->val->ival =
-                    ((struct ast *)p_left)->val->ival !=
-                    ((struct ast *)p_rightorval)->val->ival;
-                break;
-                
-            case Ge:
-                a->val = malloc(sizeof(struct leafval));
-                a->val->ival =
-                    ((struct ast *)p_left)->val->ival >=
-                    ((struct ast *)p_rightorval)->val->ival;
-                break;
-                
-            case Le:
-                a->val = malloc(sizeof(struct leafval));
-                a->val->ival =
-                    ((struct ast *)p_left)->val->ival <=
-                    ((struct ast *)p_rightorval)->val->ival;
-                break;
-                
-            case Nge:
-                a->val = malloc(sizeof(struct leafval));
-                a->val->ival =
-                    ((struct ast *)p_left)->val->ival <
-                    ((struct ast *)p_rightorval)->val->ival;
-                break;
-                
-            case Nle:
-                a->val = malloc(sizeof(struct leafval));
-                a->val->ival =
-                    ((struct ast *)p_left)->val->ival >
-                    ((struct ast *)p_rightorval)->val->ival;
-                break;
-                
-            case Plus:
-                a->val = malloc(sizeof(struct leafval));
-                a->val->ival =
-                    ((struct ast *)p_left)->val->ival +
-                    ((struct ast *)p_rightorval)->val->ival;
-                break;
-                
-            case Minus:
-                a->val = malloc(sizeof(struct leafval));
-                a->val->ival =
-                    ((struct ast *)p_left)->val->ival -
-                    ((struct ast *)p_rightorval)->val->ival;
-                break;
-                
-            case Mul:
-                a->val = malloc(sizeof(struct leafval));
-                a->val->ival =
-                    ((struct ast *)p_left)->val->ival *
-                    ((struct ast *)p_rightorval)->val->ival;
-                break;
-                
-            default:
-                fprintf(stderr, "Invalid operand for opertor ");
-                op_printer(p_op, stderr);
-                exit(1);
-        };
-        a->isleaf = 1;
-        a->op = Nullop;
-        a->left = NULL;
-        a->val->ast_leaf_type = Iconstleaf;
-    }
+    a -> op = p_op;
+    a -> isleaf = p_isleaf;
+    if(p_isleaf)
+        a -> val = p_rightorval;
     else
-    {
-        a -> op = p_op;
-        a -> isleaf = p_isleaf;
-        if(p_isleaf)
-            a -> val = p_rightorval;
-        else
-            a -> right = p_rightorval;
-        a -> left = p_left;
-    }
+        a -> right = p_rightorval;
+    a -> left = p_left;
     a -> ast_typetree = NULL;
     return a;
 }

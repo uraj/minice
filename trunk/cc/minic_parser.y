@@ -422,34 +422,157 @@ assignment_expr : unary_expr "=" expression { $$ = new_ast(Assign, 0, $1, $3); }
                 | binary_expr /* default */
                 ;
 
-binary_expr : binary_expr "+" binary_expr  { $$ = new_ast(Plus, 0, $1, $3); }
-            | binary_expr "-" binary_expr  { $$ = new_ast(Minus, 0, $1, $3); }
-            | binary_expr "*" binary_expr  { $$ = new_ast(Mul, 0, $1, $3); }
-            | binary_expr "<" binary_expr  { $$ = new_ast(Nge, 0, $1, $3); }
-            | binary_expr ">" binary_expr  { $$ = new_ast(Nle, 0, $1, $3); }
-            | binary_expr "==" binary_expr { $$ = new_ast(Eq, 0, $1, $3); }
-            | binary_expr "!=" binary_expr { $$ = new_ast(Neq, 0, $1, $3); }
-            | binary_expr ">=" binary_expr { $$ = new_ast(Ge, 0, $1, $3); }
-            | binary_expr "<=" binary_expr { $$ = new_ast(Le, 0, $1, $3); }
-            | binary_expr "&&" binary_expr { $$ = new_ast(Land, 0, $1, $3);}
-            | binary_expr "||" binary_expr { $$ = new_ast(Lor, 0, $1, $3); }
+binary_expr : binary_expr "+" binary_expr  {
+                                               if(($1->isleaf && $1->val->ast_leaf_type == Iconstleaf) &&
+                                                  ($3->isleaf && $3->val->ast_leaf_type == Iconstleaf))
+                                               {
+                                                   $1->val->ival += $3->val->ival;
+                                                   $$ = $1;
+                                                   free_ast($3);
+                                               }
+                                               else
+                                                   $$ = new_ast(Plus, 0, $1, $3);
+                                           }
+            | binary_expr "-" binary_expr  {
+                                               if(($1->isleaf && $1->val->ast_leaf_type == Iconstleaf) &&
+                                                  ($3->isleaf && $3->val->ast_leaf_type == Iconstleaf))
+                                               {
+                                                   $1->val->ival -= $3->val->ival;
+                                                   $$ = $1;
+                                                   free_ast($3);
+                                               }
+                                               else
+                                                   $$ = new_ast(Minus, 0, $1, $3);
+                                           }
+            | binary_expr "*" binary_expr  {
+                                               if(($1->isleaf && $1->val->ast_leaf_type == Iconstleaf) &&
+                                                  ($3->isleaf && $3->val->ast_leaf_type == Iconstleaf))
+                                               {
+                                                   $1->val->ival *= $3->val->ival;
+                                                   $$ = $1;
+                                                   free_ast($3);
+                                               }
+                                               else
+                                                   $$ = new_ast(Mul, 0, $1, $3);
+                                           }
+            | binary_expr "<" binary_expr  {
+                                               if(($1->isleaf && $1->val->ast_leaf_type == Iconstleaf) &&
+                                                  ($3->isleaf && $3->val->ast_leaf_type == Iconstleaf))
+                                               {
+                                                   $1->val->ival = ($1->val->ival < $3->val->ival);
+                                                   $$ = $1;
+                                                   free_ast($3);
+                                               }
+                                               else
+                                                   $$ = new_ast(Nge, 0, $1, $3);
+                                           }
+            | binary_expr ">" binary_expr  {
+                                               if(($1->isleaf && $1->val->ast_leaf_type == Iconstleaf) &&
+                                                  ($3->isleaf && $3->val->ast_leaf_type == Iconstleaf))
+                                               {
+                                                   $1->val->ival = ($1->val->ival > $3->val->ival);
+                                                   $$ = $1;
+                                                   free_ast($3);
+                                               }
+                                               else
+                                                   $$ = new_ast(Nle, 0, $1, $3);
+                                           }
+            | binary_expr "==" binary_expr {
+                                               if(($1->isleaf && $1->val->ast_leaf_type == Iconstleaf) &&
+                                                  ($3->isleaf && $3->val->ast_leaf_type == Iconstleaf))
+                                               {
+                                                   $1->val->ival = ($1->val->ival == $3->val->ival);
+                                                   $$ = $1;
+                                                   free_ast($3);
+                                               }
+                                               else
+                                                   $$ = new_ast(Eq, 0, $1, $3);
+                                           }
+            | binary_expr "!=" binary_expr {
+                                               if(($1->isleaf && $1->val->ast_leaf_type == Iconstleaf) &&
+                                                  ($3->isleaf && $3->val->ast_leaf_type == Iconstleaf))
+                                               {
+                                                   $1->val->ival = ($1->val->ival != $3->val->ival);
+                                                   $$ = $1;
+                                                   free_ast($3);
+                                               }
+                                               else
+                                                   $$ = new_ast(Neq, 0, $1, $3);
+                                           }
+            | binary_expr ">=" binary_expr {
+                                               if(($1->isleaf && $1->val->ast_leaf_type == Iconstleaf) &&
+                                                  ($3->isleaf && $3->val->ast_leaf_type == Iconstleaf))
+                                               {
+                                                   $1->val->ival = ($1->val->ival >= $3->val->ival);
+                                                   $$ = $1;
+                                                   free_ast($3);
+                                               }
+                                               else
+                                                   $$ = new_ast(Ge, 0, $1, $3);
+                                           }
+            | binary_expr "<=" binary_expr {
+                                               if(($1->isleaf && $1->val->ast_leaf_type == Iconstleaf) &&
+                                                  ($3->isleaf && $3->val->ast_leaf_type == Iconstleaf))
+                                               {
+                                                   $1->val->ival = ($1->val->ival <= $3->val->ival);
+                                                   $$ = $1;
+                                                   free_ast($3);
+                                               }
+                                               else
+                                                   $$ = new_ast(Le, 0, $1, $3);
+                                           }
+            | binary_expr "&&" binary_expr {
+                                               if(($1->isleaf && $1->val->ast_leaf_type == Iconstleaf) &&
+                                                  ($3->isleaf && $3->val->ast_leaf_type == Iconstleaf))
+                                               {
+                                                   $1->val->ival = ($1->val->ival && $3->val->ival);
+                                                   $$ = $1;
+                                                   free_ast($3);
+                                               }
+                                               else
+                                                   $$ = new_ast(Land, 0, $1, $3);
+                                           }
+            | binary_expr "||" binary_expr {
+                                               if(($1->isleaf && $1->val->ast_leaf_type == Iconstleaf) &&
+                                                  ($3->isleaf && $3->val->ast_leaf_type == Iconstleaf))
+                                               {
+                                                   $1->val->ival = ($1->val->ival || $3->val->ival);
+                                                   $$ = $1;
+                                                   free_ast($3);
+                                               }
+                                               else
+                                                   $$ = new_ast(Lor, 0, $1, $3);
+                                           }
             | unary_expr
             ;
 
 unary_expr : "!" unary_expr {
-                                $$ = new_ast(Lnot, 0, $2, NULL);
+                                if($2->isleaf && $2->val->ast_leaf_type == Iconstleaf)
+                                {
+                                    $2->val->ival = !($2->val->ival);
+                                    $$ = $2;
+                                }
+                                else
+                                    $$ = new_ast(Lnot, 0, $2, NULL);
                                 #ifdef SHOWBNF
                                 printf("unary_expr : ! unary_expr\n");
                                 #endif
                             }
            | "+" unary_expr {
-                                $$ = new_ast(Uplus, 0, $2, NULL);
+                                $$ = $2;
+                                //$$ = new_ast(Uplus, 0, $2, NULL);
                                 #ifdef SHOWBNF
                                 printf("unary_expr : + unary_expr\n");
                                 #endif
                             }
            | "-" unary_expr {
-                                $$ = new_ast(Uminus, 0, $2, NULL);
+                                if($2->isleaf && $2->val->ast_leaf_type == Iconstleaf)
+                                {
+                                    $2->val->ival = -($2->val->ival);
+                                    $$ = $2;
+                                }
+                                else
+                                    $$ = new_ast(Uminus, 0, $2, NULL);
                                 #ifdef SHOWBNF
                                 printf("unary_expr : - unary_expr\n");
                                 #endif

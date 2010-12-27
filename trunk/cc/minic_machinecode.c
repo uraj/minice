@@ -2439,7 +2439,10 @@ static void gen_per_code(struct triargexpr * expr)
 				else                /* dest_flag == Arg_Mem */
 					reg = gen_tempreg(NULL, 0);
 				if((~src) <= 0x1ff)
+                {
+                    mach_src.imme = ~src;
 					insert_dp_code(MVN, reg, mach_src, null, 0, NO);
+                }
 				else
 				{
 					int lsb = 0;
