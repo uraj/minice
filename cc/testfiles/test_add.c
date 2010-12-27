@@ -32,4 +32,8 @@ int main(int b, int c, int d, int e, int f)
 	h = 1 + j;
 	h = k + 1;
 	h = 1 + k;
+
+	/* same arg */
+	a = a + a;
+	b = b + b;
 }
