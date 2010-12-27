@@ -50,7 +50,6 @@ static int local_var_sp;
 static int total_label_num;//set zero in new_code_table_list 
 
 static struct Reg_Dpt shadow_reg_dpt[32];//use to deal with temp reg
-static char used_reg[32];
 static int * global_var_label_offset;
 static int ref_g_var_num;
 static char * global_var_label;
@@ -556,7 +555,8 @@ static void leave_func_pop()
 
 static void callee_save_push()
 {
-	memset(used_reg, 0, 32 * sizeof(char));
+	int used_reg[32];
+	memset(used_reg, 0, 32 * sizeof(int));
 	int idx;
 	for(idx = 0; idx < cur_ref_var_num; idx ++)
 	{
@@ -572,7 +572,14 @@ static void callee_save_push()
 
 static void callee_save_pop()
 {
+	int used_reg[32];
+	memset(used_reg, 0, 32 * sizeof(int));
 	int idx;
+	for(idx = 0; idx < cur_ref_var_num; idx ++)
+	{
+		if(alloc_reg.result[idx] != -1)
+			used_reg[alloc_reg.result[idx]] = 1;
+	}
 	for(idx = 25; idx >= 17; idx --)
 	{
 		if(used_reg[idx] == 1)
@@ -837,7 +844,7 @@ static int is_reg_disabled(int regnum)
 	return 0;
 }
 
-static int is_reg_saved(int regnum)
+static int is_reg_callee_save(int regnum)
 {
 	if((regnum >= 4 && regnum <= 15) || regnum == 28)
 		return 1;
@@ -863,7 +870,7 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 			switch(outlop)
 			{
 				case 0:
-					if(is_reg_saved(index) && reg_dpt[index].content == REG_UNUSED && ex == size)
+					if(reg_dpt[index].content == REG_UNUSED && ex == size)
 					{
 						shadow_reg_dpt[index] = reg_dpt[index];
 						reg_dpt[index].content = REG_TEMP;//-2 means tmp_reg
@@ -871,7 +878,7 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 					}
 					break;
 				case 1:
-					if(is_reg_saved(index) && !is_global(reg_dpt[index].content) && !reg_dpt[index].dirty && ex == size)
+					if(!is_global(reg_dpt[index].content) && !reg_dpt[index].dirty && ex == size)
 					{
 						shadow_reg_dpt[index] = reg_dpt[index];
 						reg_dpt[index].content = REG_TEMP;
@@ -879,7 +886,7 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 					}
 					break;
 				case 2:
-					if(is_reg_saved(index) && !is_global(reg_dpt[index].content) && is_id_var(reg_dpt[index].content) && ex == size)
+					if(!is_global(reg_dpt[index].content) && is_id_var(reg_dpt[index].content) && ex == size)
 					{
 						store_var(get_info_from_index(reg_dpt[index].content), index);
 						shadow_reg_dpt[index] = reg_dpt[index];
@@ -1163,8 +1170,8 @@ static inline int prtrtm_cond_expr(struct triargexpr *cond_expr)
           /*Eq<->Neq, Ge<->Nge, Le<->Nle*/
           switch(cond_expr->op)
           {
-          case Eq :cond_expr->op = Neq;break;
-          case Neq:cond_expr->op = Eq ;break;
+          case Eq :cond_expr->op = Eq;break;
+          case Neq:cond_expr->op = Neq ;break;
           case Ge :cond_expr->op = Nge;break;
           case Nge:cond_expr->op = Ge ;break;
           case Le :cond_expr->op = Nle;break;
@@ -1237,7 +1244,7 @@ static inline void gen_cmp_code(struct triargexpr *cond_expr , int *restore_reg)
      struct mach_arg arg1 , arg2;
      arg1.type = Mach_Reg;
      arg1.reg = arg_reg_index[0];
-     if(cond_arg_index[1] == -2)//第二个是立即数
+     if(arg_flag[1] == Arg_Imm)//第二个是立即数
      {
           arg2.type = Mach_Imm;
           arg2.imme = cond_expr->arg2.imme;
@@ -1869,6 +1876,8 @@ static void gen_per_code(struct triargexpr * expr)
 		case Minusminus:                 /* -- */
 		case Uplus:                      /* +  */
 		case Uminus:                     /* -  */
+//		case Deref:						 /* *  */
+//		case Subscript:					 /* [] */
 		case BigImm:
 			{
 				dest_index = get_index_of_temp(expr -> index);
@@ -1908,7 +1917,9 @@ static void gen_per_code(struct triargexpr * expr)
 						arg1_flag = Arg_Imm;
 				}
 
-				if(expr -> op == Plus || expr -> op == Minus || expr -> op == Mul)
+				if(expr -> arg2.type == ExprArg && expr -> arg2.expr == -1)//TAOTAOTHERIPPER MARK
+					;
+				else
 				{
 					if(expr -> arg2.type != ImmArg)
 					{
