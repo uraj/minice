@@ -1,8 +1,7 @@
 #ifndef __MINIC_MACHINECODE_H__
 #define __MINIC_MACHINECODE_H__
 #include <stdint.h>
-
-/*I'm not sure whether it is good to divide the op into three types*/
+//#define MACH_DEBUG 0
 
 enum mach_arg_type { Unused = 0, Mach_Reg, Mach_Imm, Mach_Label};
 

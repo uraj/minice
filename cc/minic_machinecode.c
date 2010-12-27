@@ -23,8 +23,6 @@
 #define REG_UNUSED -1
 #define REG_TEMP -2
 
-#define MACH_DEBUG 0
-
 enum Arg_Flag
 {
 	Arg_Imm,
@@ -650,6 +648,8 @@ static inline void load_pointer(int var_index, int reg_num, int imm_offset, int 
 	src_reg.reg = reg_num;
 	if(is_global(var_index))
 	{
+		ref_global_var(var_index);//MARK TAOTAOTHERIPPER, do nothing but allocate a label for used global var
+									/* the var is always prepared, except load_pointer. */
 		int id_offset = id_info -> mem_addr;
 		struct mach_arg address;
 		address.type = Mach_Label;
@@ -1729,6 +1729,7 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 	{
 		arg1_index = get_index_of_id(expr -> arg1.idname);
 		arg1_info = get_info_from_index(arg1_index);
+		/* the global var may hasn't been loaded yet */
 		load_pointer(arg1_index, dest_reg, 0, -1);
 	}
 	else if(expr -> arg1.type == ExprArg)
