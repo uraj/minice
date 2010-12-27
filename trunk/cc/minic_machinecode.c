@@ -1317,9 +1317,9 @@ static inline void gen_cj_expr(struct triargexpr *expr)
           cond_expr.op = Neq;
           memcpy(&(cond_expr.arg1) , &(expr->arg1) , sizeof(struct triarg));//cond_expr.arg1 = expr->arg1
           cond_expr.arg2.type = ImmArg;
-          cond_expr.arg1.imme = 0;
+          cond_expr.arg2.imme = 0;
           int restore_reg[2] , i;
-          gen_cmp_code(&cond_expr , restore_reg);
+          gen_cmp_code(&cond_expr , restore_reg);//*************error
           
           /*TrueJump则是BNE LABEL；FalseJump则是BEQ LABEL*/
           int label_num = ref_jump_dest(expr->arg2.expr);
@@ -1489,6 +1489,7 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
 static int gen_deref_code(enum mem type, struct triargexpr *expr, struct var_info *dest_info, enum Arg_Flag dest_flag, int imme)
 {
      struct triargexpr_list *expr_node = cur_table->index_to_list[expr->index];
+     printf("**********");var_list_print(expr_node->pointer_entity);
      flush_pointer_entity(store , expr_node->pointer_entity);
      int width_shift = 2;
      int arg1_index = get_index_of_arg(&(expr->arg1));

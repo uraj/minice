@@ -1009,7 +1009,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     del1 = get_index_of_arg(&(temp_expr->entity->arg1) , &point_list);
                     del2 = get_index_of_temp(temp_expr->entity->index);
                     make_change_list(del1 , del2 , next_del_list);
-                    next_del_list = var_list_merge(point_list , next_del_list);
+                    //next_del_list = var_list_merge(point_list , next_del_list);
                     point_list = NULL;
                     break;
                     
