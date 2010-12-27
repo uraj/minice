@@ -2,7 +2,7 @@
 #define __MINIC_MACHINECODE_H__
 #include <stdint.h>
 #include <stdio.h>
-#define MACH_DEBUG 0
+//#define MACH_DEBUG 0
 
 enum mach_arg_type { Unused = 0, Mach_Reg, Mach_Imm, Mach_Label};
 
