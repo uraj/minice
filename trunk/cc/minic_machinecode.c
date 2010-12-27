@@ -2036,7 +2036,7 @@ static void gen_per_code(struct triargexpr * expr)
 						imme * reg	MUL
 						reg * imme	MUL
 				*/
-				enum mach_op_type op_type;
+				enum dp_op_type op_type;
 				switch(expr -> op)
 				{
 					case Plus:
