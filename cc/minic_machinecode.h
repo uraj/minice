@@ -2,7 +2,7 @@
 #define __MINIC_MACHINECODE_H__
 #include <stdint.h>
 #include <stdio.h>
-//#define MACH_DEBUG 0
+#define MACH_DEBUG 0
 
 enum mach_arg_type { Unused = 0, Mach_Reg, Mach_Imm, Mach_Label};
 
@@ -127,7 +127,7 @@ struct mach_code//mach means machine
 	{
 		enum index_type indexed;							/* 1 => write_back, 2 => not write_back */
 		char optimize;						/* only for dp op type, 1 => can be optimized 0 => can't*/
-	}
+	};
 	enum shift_type shift;					/* used in data-processing and memory-access*/
 };
 
