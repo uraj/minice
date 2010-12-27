@@ -4,7 +4,7 @@
 #include "minic_typetree.h"
 #include "minic_typedef.h"
 
-//#define DEBUG_SYMTABLE 
+#define DEBUG_SYMTABLE 
 
 struct symbol_table;
 struct symt_node;
