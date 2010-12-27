@@ -2338,6 +2338,7 @@ static void gen_per_code(struct triargexpr * expr)
                         gen_mem_rri_code(load, vinfo -> reg_addr, FP, -1, caller_save_index - saved_reg_count * WORD, WORD);
                         saved_reg[saved_reg_count++] = vinfo->reg_addr;
                     }
+                    focus = focus -> next;
                 }
                 insert_buncond_code(expr->arg1.idname, 1);
                 /* restore caller save */

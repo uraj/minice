@@ -86,7 +86,7 @@ static inline int arg_parm_compat(struct typetree* arg, struct typetree* parm)
 
 struct typetree* compat_typetree(enum operator op, struct ast* tree1, struct ast* tree2)
 {
-    struct typetree* ret;
+    struct typetree* ret = NULL;
     if(tree1 == NULL)
         return typet_new_type(Typeerror);
     enum data_type tree1_type = tree1 -> ast_typetree -> type;
