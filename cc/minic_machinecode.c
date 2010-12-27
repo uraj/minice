@@ -2360,15 +2360,15 @@ static void gen_per_code(struct triargexpr * expr)
                     vinfo = get_info_from_index(focus->var_map_index);
                     if((vinfo->reg_addr >= 4 && vinfo->reg_addr <= 15) || vinfo->reg_addr == 28)
                     {
-                        gen_mem_rri_code(load, vinfo -> reg_addr, REG_FP, -1, caller_save_index - saved_reg_count * WORD, WORD);
+                        gen_mem_rri_code(store, vinfo -> reg_addr, REG_FP, -1, caller_save_index - saved_reg_count * WORD, WORD);
                         saved_reg[saved_reg_count++] = vinfo->reg_addr;
                     }
 					focus = focus -> next;
                 }
                 insert_buncond_code(expr->arg1.idname, 1);
                 /* restore caller save */
-				for(i = 0; i < saved_reg_count; ++i)
-                    gen_mem_rri_code(store, saved_reg[saved_reg_count], REG_FP, -1, caller_save_index - saved_reg_count * WORD, WORD);           /* resotre */
+				for(saved_reg_count = saved_reg_count - 1; saved_reg_count >= 0; saved_reg_count --)
+                    gen_mem_rri_code(load, saved_reg[saved_reg_count], REG_FP, -1, caller_save_index - saved_reg_count * WORD, WORD);           /* resotre */
 				reload_global_var();//MARK TAOTAOTHERIPPER
 				if(dest_index != -1)//The r0 won't be changed during the restore above	
 				{

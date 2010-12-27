@@ -243,6 +243,7 @@ static void instruction_scheduling()
 	}
 }
 
+//static void 
 static void print_code_list(FILE * out_buf)
 {
 	struct mach_code_list * tmp = head;
