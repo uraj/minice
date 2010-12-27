@@ -210,6 +210,9 @@ struct token_info symt_insert_conststr(struct symbol_table *t ,char *str)//inser
           free(temp);
      }
      t->const_str[t->str_num].string = strdup(str);
+     t->const_str[t->str_num].vl_info = new_vinfo;
+     if(t->str_num == 0)
+          t->str_start = g_const_str_num;
      t->str_num ++;
      g_const_str_num++;
 //     printf("%s->%s\n" , id_name , t->const_str[t->str_num - 1].string);

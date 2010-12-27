@@ -25,6 +25,7 @@ struct triargexpr
     enum operator op;
     int width;
     int stride;
+     struct var_list *actvar_list;
     struct triarg arg1, arg2;
 };
 
