@@ -2,7 +2,7 @@
 #define __MINIC_MACHINECODE_H__
 #include <stdint.h>
 #include <stdio.h>
-#define MACH_DEBUG
+//#define MACH_DEBUG
 
 #define REG_SP 29
 #define REG_FP 27

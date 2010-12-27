@@ -253,7 +253,6 @@ parm_list : parm_list "," parm_decl {
                                         #ifdef SHOWBNF
                                         printf("parm_list : parm_list , parm_decl\n");
                                         #endif
-
                                     }
           | parm_decl {
                           #ifdef SHOWBNF
@@ -779,7 +778,8 @@ int main(int argc, char* argv[])
 	for(i = 0; i < g_table_list_size; i++)
 	{
 		//printf("%s\n", table_list[i] -> funcname);
-		gen_machine_code(i, stdout);	
+		gen_machine_code(i, stdout);
+		
 		peephole(i);
 		/*here is the register allotting and the assemble codes generating*/
 

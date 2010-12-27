@@ -260,19 +260,20 @@ struct typetree* compat_typetree(enum operator op, struct ast* tree1, struct ast
             break;
 
         case Funcall:
-            while(arg && parm)
+			while(arg && parm)
             {
                 funcheck = arg_parm_compat(arg->ast_typetree, parm);
                 arg = arg->right;
                 parm = parm->next_parm;
                 if(funcheck)
                     break;
+
             }
             if(arg || parm || funcheck)
                 ret = typet_new_type(Typeerror);
             else
                 ret = typet_typetree_dup(tree1->ast_typetree->return_type);
-            break;
+			break;
             
         case Return:            /* do nothing */
             return ret;         /* ret is NULL hear */

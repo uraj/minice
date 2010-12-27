@@ -1632,8 +1632,7 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
                     {
                          struct var_info *arg2_info = NULL;
                          enum Arg_Flag arg2_flag = mach_prepare_index(arg2_index, &arg2_info, 1); 
-						 printf("lala\n");
-						 int dest_reg = gen_array_code(store , last_expr , arg2_info , arg2_flag , arg2->imme);
+						 int dest_reg = gen_array_code(store , last_expr , arg2_info , arg2_flag , arg2->imme);/* MARK TAOTAOTHERIPPER */
                          gen_assign_expr_code(expr->index , dest_reg);
                          if(arg2_flag != Arg_Reg)
                               restore_tempreg(dest_reg);

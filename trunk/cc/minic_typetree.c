@@ -30,7 +30,7 @@ struct typetree * typet_typetree_dup(const struct typetree * src)
                 break;
             case Pointer:
                 obj -> base_type = typet_typetree_dup(src -> base_type);
-                obj -> return_type = NULL;
+                obj -> next_parm = typet_typetree_dup(src -> next_parm);/*MARK TAOTAOTHERIPPER error at first */
                 break;
             case Function:
                 obj -> return_type = typet_typetree_dup(src -> return_type);
