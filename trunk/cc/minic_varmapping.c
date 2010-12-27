@@ -64,8 +64,7 @@ int new_var_map(int func_index)
 {
 	if(!set_cur_func(func_index))
 		return 0;
-	var_info_table = malloc(sizeof(struct var_info *) * (cur_expr_num + cur_var_id_num));
-	memset(var_info_table, 0, sizeof(struct var_info *) * (cur_expr_num + cur_var_id_num));
+	var_info_table = calloc((cur_expr_num + cur_var_id_num), sizeof(struct var_info *));
 	int index = 0;
 	while(index < cur_var_id_num)//malloc var info for id
     {
@@ -202,6 +201,8 @@ void set_expr_label_mark(int exprnum)//only for label
 
 struct var_info * get_info_of_temp_for_label(int exprnum)//only for label
 {
+	if(exprnum >= cur_expr_num)
+		return NULL;
 	return var_info_table[exprnum + cur_var_id_num];	
 }
 
