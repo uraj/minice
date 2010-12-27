@@ -37,6 +37,11 @@ static int get_opresult_width(const struct typetree* ttree)
             fflush(stderr);
             width = -1;
             break;
+        default:
+        {
+            fprintf(stderr, "Wrong: get_opresult_width()\n");
+            exit(1);
+        }
     }
     return width;
 }
