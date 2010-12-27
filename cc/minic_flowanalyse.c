@@ -928,7 +928,7 @@ static void make_change_list(int num1 , int num2 , struct var_list *dest)
      }
      if(num1 >= 0)
           var_list_append(dest , num1);
-     if(num2 >= 0)
+     if(num2 >= 0 && num1 != num2)
           var_list_append(dest , num2);
 }
 

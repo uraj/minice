@@ -1568,6 +1568,23 @@ static void gen_assign_expr_code(int expr_num , int arg2_reg)
           store_var(arg1_info , arg2_reg);
 }
 
+static int is_assign(struct triargexpr *expr , int dest_index , int arg_index)
+{
+     if(dest_index < 0)
+          return 0;
+     if(is_global(dest_index) == 1)
+     {
+          if(arg_index == -2)
+               return 1;
+          if(alloc_reg.result[dest_index] == alloc_reg.result[arg_index])//两个变量分配了同一寄存器，该赋值无用
+               return 0;
+          return 1;
+     }
+     if(var_list_find(expr->actvar_list , dest_index) != NULL)
+          return 1;
+     return 0;
+}
+
 /*生成代码过程中，要多次在变量间赋值，expr的作用是根据运算类型判断是否对临时寄存器做其他操作*/
 static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , struct triargexpr *expr)
 {
@@ -1596,12 +1613,12 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
      int arg2_index = get_index_of_arg(arg2);//立即数、
      //int dest_index = get_index_of_temp(expr->index);
      
-     if(is_active_var(arg1_index) == 0 && is_global(arg1_index) == 0)//既不活跃又不是全局变量，没必要赋值
+     if(is_assign(expr , arg1_index , arg2_index) == 0)//没必要赋值
      {
           if(expr_flag == nothing)
                return;
-          else if(expr_flag == assign)//如果是赋值语句而arg1又是三元式，并且它不活跃，，说明他是个没有被引用的三元式编号变量，要考虑数组或指针实体赋值
-          {
+          else if(expr_flag == assign)
+          {//如果是赋值语句而arg1又是三元式，并且它不活跃，说明他是个没有被引用的三元式编号变量，要考虑数组或指针实体赋值
                if(arg1->type == ExprArg)
                {
                     struct triargexpr_list *last_expr_node = cur_table->index_to_list[arg1->expr];
