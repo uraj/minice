@@ -1570,6 +1570,12 @@ static void gen_assign_expr_code(int expr_num , int arg2_reg)
 
 static int is_assign(struct triargexpr *expr , int dest_index , int arg_index)
 {
+     if(expr == NULL)
+     {
+          if(dest_index < 0)
+               return 0;
+          return 1;
+     }
      if(dest_index < 0)
           return 0;
      if(is_global(dest_index) == 1)
