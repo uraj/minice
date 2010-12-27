@@ -190,7 +190,7 @@ void mcode_out(const struct mach_code * mcode, FILE * out_buf)
                     fprintf(out_buf, "\tmov\t"); 
 					break;
                 case MVN:
-                    fprintf(out_buf, "\tmvn\t");
+                    fprintf(out_buf, "\tnot\t");
                     break;
                 case MOVCOND:   /* it sucks */
                     ;
