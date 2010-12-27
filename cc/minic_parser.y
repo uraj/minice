@@ -603,6 +603,15 @@ int main(int argc, char* argv[])
 {
     char option = 0;
     char * filename = NULL;
+    int i;
+    for(i = 1; i < argc; ++i)
+    {
+        if(argv[i][0] != '-')
+        {
+            filename = argv[i];
+            break;
+        }
+    }
     while((option = getopt(argc, argv, "amtf:")) != -1)
     {
         switch(option)
@@ -642,8 +651,8 @@ int main(int argc, char* argv[])
 	yyparse();
 	fclose(yyin);
 	free_global_table();/*there should be an extra tmp table, and g_table_list_size is set in this*/
-	new_code_table_list();	
-	int i = 0 ;
+	new_code_table_list();
+	i = 0;
 	//for(i = 0; i < g_table_list_size; i++)
 	//{
 		printf("%s\n", table_list[i] -> funcname);
