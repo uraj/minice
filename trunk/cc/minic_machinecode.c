@@ -2354,7 +2354,6 @@ static void gen_per_code(struct triargexpr * expr)
                 struct var_info * vinfo = NULL;
                 char saved_reg[32];
                 int saved_reg_count = 0;
-                int i;
                 while(focus != NULL && focus != expr -> arg2.func_actvar_list -> tail -> next)
                 {
                     vinfo = get_info_from_index(focus->var_map_index);

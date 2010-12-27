@@ -6,12 +6,13 @@ int b(int a1, int a2, int a3, int a4, int a5)
 {
 	int k;
 	int *p;
-	k = a1;
+	/*k = a1;
 	k = a2;
 	k = a3;
 	k = a4;
 	k = a5;
-	k =  k + g_a2;
+	k =  k + g_a2;*/
+	k = -1;
 	p = &g_a1;
 	g_a2 = g_a2 + g_a1;	
 	if(a1 > 1)
