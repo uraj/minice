@@ -2487,6 +2487,11 @@ static void reset_reg_number()//
      }
 }
 
+static void print_mach_header()
+{
+
+}
+
 static void print_mach_code(int func_index)
 {
 	int index;
