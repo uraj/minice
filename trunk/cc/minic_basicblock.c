@@ -83,7 +83,7 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 						insert_tempvar(expr.arg1.expr);
 				*/
 				if(expr.arg2.type == ExprArg)/* mark */
-					insert_tempvar(expr.arg2.expr);//will be removed as a kind of optimizing later
+					insert_tempvar(expr.arg2.expr, 0);//will be removed as a kind of optimizing later
 				break;//Current now, don't treat assign reference as real reference, can be optimizing some, and will be optimized some
 			case Eq:                         /* == */
 			case Neq:                        /* != */
@@ -95,9 +95,9 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 			case Minus:                      /* -  */
 			case Mul:                        /* *  */
 				if(expr.arg1.type == ExprArg)
-					insert_tempvar(expr.arg1.expr);
+					insert_tempvar(expr.arg1.expr, 1);
 				if(expr.arg2.type == ExprArg)
-					insert_tempvar(expr.arg2.expr);
+					insert_tempvar(expr.arg2.expr, 1);
 				break;	
 			case Uplus:                      /* +  */
 			case Plusplus:                   /* ++ */
@@ -107,7 +107,7 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 					struct triarg tmp_arg;
 					tmp_arg = unary_search(table, &table[i]);
 					if(tmp_arg.type == ExprArg)
-						insert_tempvar(tmp_arg.type);
+						insert_tempvar(tmp_arg.type, 1);
 					break;
 				}
 		
@@ -130,11 +130,14 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 			case Uminus:                     /* -  */	
 			case Deref:                      /* '*' */
 			case Arglist:
+				if(expr.arg1.type == ExprArg && expr.arg1.expr != -1)
+					insert_tempvar(expr.arg1.expr, 1);
+				break;
 			case Return:
 				if(expr.arg1.type == ExprArg && expr.arg1.expr != -1)
-					insert_tempvar(expr.arg1.expr);
+					insert_tempvar(expr.arg1.expr, 0);
 				break;
-			
+							
 			case UncondJump:
 				if(expr.arg1.expr != -1)//-1 means the end of the function
 					flag_list[expr.arg1.expr] = 1;
@@ -153,7 +156,7 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 						case Nle:                        /* >  */
 							break;
 						default:
-							insert_tempvar(expr.arg1.expr);
+							insert_tempvar(expr.arg1.expr, 1);
 							break;
 					}
 				}
@@ -186,7 +189,6 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 			case FalseJump:
 				if(expr.arg1.type == ExprArg)
 				{
-					insert_tempvar(expr.arg1.expr);
 					cond_expr = table[expr.arg1.expr];
 					switch(cond_expr.op)
 					{
@@ -198,7 +200,7 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 						case Nle:                        /* >  */
 							break;
 						default:
-							insert_tempvar(expr.arg1.expr);
+							insert_tempvar(expr.arg1.expr, 1);
 							break;
 					}	
 				}

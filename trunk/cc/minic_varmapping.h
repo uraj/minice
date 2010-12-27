@@ -22,6 +22,7 @@ struct var_info                /* the struct to contain var's flags */
 //    struct var_list * ref_point;//only for array
 	int label_num;// the expr jump to which label /* can be union */
 
+	int ref_mark; 
 	int index;
 };
 
@@ -48,8 +49,8 @@ extern int is_array(int index);
 extern int new_var_map(int func_index);
 extern void free_var_map();
 
-extern int insert_tempvar(int exprindex);
-
+extern int insert_tempvar(int exprindex, int isrefed);
+extern int set_unref(int exprindex);
 
 extern void set_expr_label_mark(int exprnum);
 extern struct var_info * get_info_of_temp_for_label(int exprnum);
