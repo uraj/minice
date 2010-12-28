@@ -556,7 +556,7 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
 //          int change = 0;
 //          if(temp_expr->op == Deref)//*p
 //          {
-//x               struct var_list *temp_point_list = temp_expr_node->pointer_entity;
+//               struct var_list *temp_point_list = temp_expr_node->pointer_entity;
 //               printf("//************************(%d)" , temp_expr->index);
 //               var_list_print(temp_point_list);
 /*               if(temp_point_list != NULL
@@ -699,6 +699,18 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                }
           }
           temp = DFS_array[i]->head;
+          /*
+            分析步骤：
+            1、对于赋值。arg1=arg2
+                a)首先，如果arg1是标号(k)而且k没有map_id，需要向上看一步，如果k是*p或者a[i]，要先分析语句k；
+                b)分析本条赋值语句。
+            2、对于a+b、a-b、*p、a[i]、+a、-a、&a以及所有逻辑指令;
+                a)如果expr->entity->index没有map_id，说明这一句话从来没被引用过，没必要生成代码，也就没必要分析；
+                b)分析本条语句。
+            3、其他语句，根据要分析的操作数个数和位置，分以下几种情况：
+                a)a++、a--
+                b)TrueJump、FalseJump、Return、Arglist
+           */
           while(temp != NULL)
           {
                /**/
@@ -725,9 +737,13 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                case Plus:
                case Minus:
                case Mul://二元操作
+                    if(get_index_of_temp(temp->entity->index) == -1)
+                         break;
                     analyse_expr_index(temp->entity->index , DEFINE , i);
                     analyse_arg(&(temp->entity->arg1) , USE , i);
                     analyse_arg(&(temp->entity->arg2) , USE , i);
+                    break;
+               case Subscript:
                     break;
                case Lnot:
                case Uplus:

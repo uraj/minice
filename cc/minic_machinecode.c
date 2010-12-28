@@ -1400,10 +1400,10 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
      {
           if(arg1_flag == Arg_Reg)//如果arg1在寄存器内，这意味着进入函数的时候数组首地址已经被放到了该寄存器里面，直接使用该寄存器寻址；
           {
-               if(arg2_flag == Arg_Imm)//MEM dest_reg , [arg1_reg+] , expr->arg2.imme
-                    gen_mem_rri_code(type , dest_reg , arg1_reg , 1 , expr->arg2.imme , 1 << width_shift);
-               else//MEM dest_reg , [arg1_reg+] , arg2_reg
-                    gen_mem_rrr_code(type , dest_reg , arg1_reg , 1 , arg2_reg , 1 << width_shift);
+               if(arg2_flag == Arg_Imm)//MEM dest_reg , [arg1_reg+] , (expr->arg2.imme)<<width_shift
+                    gen_mem_rri_code(type, dest_reg, arg1_reg, 1, (expr->arg2.imme) << width_shift, 1 << width_shift);
+               else//MEM dest_reg , [arg1_reg+] , arg2_reg << #width_shift
+                    gen_mem_lshft_code(type , dest_reg , arg1_reg , 1 , arg2_reg , width_shift , 1 << width_shift);
           }
           else
           {
@@ -1487,7 +1487,7 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
 static int gen_deref_code(enum mem type, struct triargexpr *expr, struct var_info *dest_info, enum Arg_Flag dest_flag, int imme)
 {
      struct triargexpr_list *expr_node = cur_table->index_to_list[expr->index];
-     printf("**********");var_list_print(expr_node->pointer_entity);
+//     printf("**********");var_list_print(expr_node->pointer_entity);
      flush_pointer_entity(store , expr_node->pointer_entity);
      int width_shift = 2;
      int arg1_index = get_index_of_arg(&(expr->arg1));
