@@ -1575,29 +1575,6 @@ static void gen_assign_expr_code(int expr_num , int arg2_reg)
           store_var(arg1_info , arg2_reg);
 }
 
-static int is_assign(struct triargexpr *expr , int dest_index , int arg_index)
-{
-     if(expr == NULL)
-     {
-          if(dest_index < 0)
-               return 0;
-          return 1;
-     }
-     if(dest_index < 0)
-          return 0;
-     if(is_global(dest_index) == 1)
-     {
-          if(arg_index == -2)
-               return 1;
-          if(alloc_reg.result[dest_index] == alloc_reg.result[arg_index])//两个变量分配了同一寄存器，该赋值无用
-               return 0;
-          return 1;
-     }
-     if(var_list_find(expr->actvar_list , dest_index) != NULL)
-          return 1;
-     return 0;
-}
-
 /*生成代码过程中，要多次在变量间赋值，expr的作用是根据运算类型判断是否对临时寄存器做其他操作*/
 static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , struct triargexpr *expr)
 {
@@ -1626,7 +1603,7 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
      int arg2_index = get_index_of_arg(arg2);//立即数、
      //int dest_index = get_index_of_temp(expr->index);
      
-     if(is_assign(expr , arg1_index , arg2_index) == 0)//没必要赋值
+     if(is_assign(expr , arg1_index) == 0)//没必要赋值
      {
           if(expr_flag == nothing)
                return;

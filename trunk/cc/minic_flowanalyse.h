@@ -20,6 +20,7 @@ extern struct triargtable **table_list;
 
 extern int option_show_active_var;
 extern int option_show_flow_debug;
+extern struct var_list begin_var_list;//程序开头处活跃的变量
 
 /*var_list_node*/
 extern struct var_list_node *var_list_node_new();
@@ -47,6 +48,7 @@ extern struct var_list *var_list_inter(struct var_list *inter , struct var_list 
 
 /*analyse*/
 extern int get_max_func_varlist();
+extern int is_assign(struct triargexpr *expr , int dest_index);//判断一个赋值语句是否有必要分析
 extern struct var_list *analyse_actvar(int *expr_num , int func_index);//活跃变量分析
 extern void free_all(struct var_list *all_var_lists);//free all memory
 extern int is_active_var(int mapid);//给定mapid，判断它是否在活跃变量里面
