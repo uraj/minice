@@ -84,3 +84,4 @@ consider this case:
 27.bug_3.c
 28.Bug for Uminus immediate number
 29.Const string on the right side of equals sign
+30.SOme optimize when caller save

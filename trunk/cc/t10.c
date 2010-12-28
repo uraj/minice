@@ -24,13 +24,6 @@ int main()
   a[7] = 4;
   a[8] = 6;
   a[9] = 13;
-	  
-  printline_int(a[0]);
-  printline_int(a[1]);
-  printline_int(a[2]);
-  printline_int(a[3]);
-  printline_int(a[4]);
-  printline_int(a[5]);
   for (i=0;i<9;i++)
   {
     for (j=i+1;j<10;j++)
