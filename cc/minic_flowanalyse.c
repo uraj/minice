@@ -31,6 +31,8 @@ static int *is_actvar;
 static int s_expr_num;//the num of the tri-expressions
 static int sg_max_func_varlist = 0;//每条Funcall语句都会接有一条当前的活跃变量链
 
+struct var_list begin_var_list;//程序开头处活跃的变量
+
 static inline int compare (const void * a, const void * b) 
 {
 	return ( *(int*)a - *(int*)b );
@@ -701,7 +703,7 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
      {
           if(option_show_flow_debug == 1)
                printf("block:%d\n" , i);
-          if(i == 0)//第一个块要把函数参数和全局变量放入def[0]当中
+/*          if(i == 0)//第一个块要把函数参数和全局变量放入def[0]当中
           {
                //int start = cur_func_sym_table->arg_no_min;
                //int end = cur_func_sym_table->arg_no_max;
@@ -721,9 +723,10 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                     var_list_append(def , j);
                }
           }
+*/
           temp = DFS_array[i]->head;
           /*
-            分析步骤：
+            单条语句分析步骤：
             1、对于赋值。arg1=arg2
                 a)首先，如果arg1是标号(k)而且k没有map_id，需要向上看一步，如果k是*p或者a[i]，要先分析语句k；
                 b)分析本条赋值语句。
@@ -832,6 +835,21 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                }
                temp = temp->next;
           }
+          
+          /*由于全局变量的最后一次赋值必须要写回内存，所以为了统一，必须让所有可能被定值的全局变量在程序出口处活跃，例如：
+            (1) = a , 1;
+            (2) = a , 0;
+            (3) Return 0;
+            如果a是局部变量，(1)和(2)都没必要做，这也符合活跃变量的做法；但如果a是全局变量，(1)不用做但(2)必须做，这按照普通的活跃变量分析是无法解决的，所以只需要让a在(3)之后也是活跃的，就可以解决这个问题。当然这么做会加大寄存器分配的负担，但是本着全局变量尽量少用的原则，又考虑到可用寄存器十分充足，所以折中了一下。
+           */
+          if(is_end_block(i) == 1)//该block可能是结尾block，此时将该函数中所有可能被定值的全局变量都放到var_out里面
+          {
+               int j;
+               int global_var_num = get_globalvar_num();
+               for(j = 0 ; j < global_var_num ; j++)
+                    if(defed_gvar[j] == 1)
+                         var_list_append(var_out + i , j);
+          }
           var_list_sort(def + i , def_size[i]);//when DEFs and USEs are made
           var_list_sort(use + i , use_size[i]);//sort them so that we can op
           var_list_del_repeate(def + i);
@@ -839,6 +857,8 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
           if(option_show_flow_debug == 1)
                printf("\n");
      }
+     begin_var_list.head = begin_var_list.tail = NULL;
+     var_list_copy(var_in , &begin_var_list);
      free(def_size);
      free(use_size);
 }
@@ -928,7 +948,10 @@ static int add_actvar_info(struct var_list *list)
      return count;
 }
 
-static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)//get the map_index of arg,but if arg is a *p,we must do something about the pointer_entity list.Return -1 if we can't find the map_id or we find more than one idents in the pointer_entity list but dest is NULL.If pointer_entity list has only one ident,replace arg with it and return its map_id.If pointer_entity list has more than one idents and dest isn't NULL,it'll return the map_id of arg and put the pointer_entity list in dest.
+/*
+  get the map_index of arg.
+ */
+static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)
 {
      if(arg->type == IdArg)
      {
@@ -941,14 +964,14 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)/
      {
           if(arg->expr == -1)
                return -1;
-          struct triargexpr_list *temp_expr_node = cur_func_triarg_table->index_to_list[arg->expr];
+/*          struct triargexpr_list *temp_expr_node = cur_func_triarg_table->index_to_list[arg->expr];
           struct triargexpr *temp_expr = temp_expr_node->entity;
           if(temp_expr->op == Deref)//*p
           {
                struct var_list *temp_point_list = temp_expr_node->pointer_entity;
                if(dest == NULL)//此arg为引用编号(temp_point_list == NULL)
                {
-/*                    if(temp_point_list == NULL)
+                    if(temp_point_list == NULL)
                          return -2;
                     if(temp_point_list->head == NULL)
                          return -2;
@@ -965,14 +988,14 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)/
                          arg->type = IdArg;
                          arg->idname=(get_valueinfo_byno(cur_func_sym_table,temp_point_list->head->var_map_index))->name;
                          return temp_point_list->head->var_map_index;
-                    }*/
+                    }
                     return get_index_of_temp(arg->expr);
                }
-               if(temp_point_list == NULL)//预示该代码可能会段错误，要把下一条的活跃变量全部清空，这里做不了，返回-2
+               if(temp_point_list == NULL)//按说所有变量在这一句都活跃，但是这种现象的出现意味着程序可能不正确，为了简单不做处理，返回-2
                     return -2;
-               if(temp_point_list->head == NULL)//预示该代码可能会段错误，要把下一条的活跃变量全部清空，这里做不了，返回-2
-                    return -2;
-/*               if(temp_point_list->head == temp_point_list->tail)//只有一个元素
+               if(temp_point_list->head == NULL)
+                    return -2;//按说所有变量在这一句都活跃，但是这种现象的出现意味着程序可能不正确，为了简单，不做处理，返回-2
+               if(temp_point_list->head == temp_point_list->tail)//只有一个元素
                {
                     struct var_info *temp_var_info = get_info_from_index(temp_point_list->head->var_map_index);
                     if(temp_var_info->ref_point != NULL)//此指针为数组
@@ -985,10 +1008,11 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)/
                     arg->type = IdArg;
                     arg->idname = (get_valueinfo_byno(cur_func_sym_table , temp_point_list->head->var_map_index))->name;
                     return temp_point_list->head->var_map_index;
-               }*/
+               }
                (*dest) = temp_point_list;
                return (get_index_of_temp(arg->expr));
           }
+*/
           return (get_index_of_temp(arg->expr));
      }
      else
@@ -1009,6 +1033,30 @@ static void make_change_list(int num1 , int num2 , struct var_list *dest)
           var_list_append(dest , num1);
      if(num2 >= 0 && num1 != num2)
           var_list_append(dest , num2);
+}
+
+int is_assign(struct triargexpr *expr , int dest_index)//判断一个赋值语句是否有必要分析
+{
+     if(expr == NULL)
+     {
+          if(dest_index < 0)
+               return 0;
+          return 1;
+     }
+     if(dest_index < 0)
+          return 0;
+/*     if(is_global(dest_index) == 1)
+     {
+          if(arg_index == -2)
+               return 1;
+          if(alloc_reg.result[dest_index] == alloc_reg.result[arg_index])//两个变量分配了同一寄存器，该赋值无用
+               return 0;
+          return 1;
+     }
+*/
+     if(var_list_find(expr->actvar_list , dest_index) == NULL)//
+          return 0;
+     return 1;
 }
 
 struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分析
@@ -1057,21 +1105,13 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
      每当遇到三元式中的一个argi，只要它不是被赋值的元素，则交由get_index_of_arg处理，其中第二个参数为NULL，返回值放到变量addi中。
          a）argi如果是立即数，get_index_of_arg返回-1；
          b）argi如果是ident，get_index_of_arg返回该ident的map_id；
-         c）如果是三元式编号，处理会复杂一些：
-             1）如果编号对应三元式的操作类型不是Deref，直接返回该三元式编号的map_id；
-             2）如果编号对应三元式操作类型为Deref，即解除引用，那么如果：
-                 a）pointer_entity中只有1个元素。这种情况下，直接将argi替换成该元素，addi就是该元素的map_id；
-                 b）pointer_entity中有好几个元素。addi还是原来的编号的map_id。
-     如果只有一个操作数，则add2=-1。如此之后，便将add1和add2通过make_list制作成了添加链。add_list获得过程不会对point_list进行任何操作。
+         c）如果是三元式编号，get_index_of_temp返回该编号的map_id。
+     如果只有一个操作数，则add2=-1。如此之后，便将add1和add2通过make_list制作成了添加链。如果该三元式是deref，还需要将其对应的pointer_entity中的所有变量置成活跃的。
   2）获得得到next_del_list。
      每当遇到三元式中的一个argi，如果是被赋值的元素，则交由get_index_of_arg处理，其中第二个参数为&point_list，返回值放到变量deli中。
          a）argi如果是立即数，get_index_of_arg返回-1；
          b）argi如果是ident，get_index_of_arg返回该ident的map_id；
-         c）如果是三元式编号，处理会复杂一些：
-             1）如果编号对应三元式的操作类型不是Deref，直接返回该三元式编号的map_id；
-             2）如果编号对应三元式操作类型为Deref，即解除引用，那么如果：
-                 a）pointer_entity中只有1个元素。这种情况下，直接将argi替换成该元素，deli就是该元素的map_id；
-                 b）pointer_entity中有好几个元素。
+         c）如果是三元式编号，get_index_of_temp返回该编号的map_id。
   然后再从上一条的活跃变量中删除del_list，添加add_list就可以了
 */
      for(i = 0 ; i < g_block_num ; i++)
@@ -1122,7 +1162,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     }
                     var_list_copy(next_del_list , del_list);
                     
-                    del1 = get_index_of_arg(&(temp_expr->entity->arg1) , &point_list);
+                    del1 = get_index_of_arg(&(temp_expr->entity->arg1) , NULL);
                     del2 = get_index_of_temp(temp_expr->entity->index);
                     make_change_list(del1 , del2 , next_del_list);
                     //next_del_list = var_list_merge(point_list , next_del_list);
@@ -1198,6 +1238,12 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     add1 = -1;
                     add2 = get_index_of_arg(&(temp_expr->entity->arg1) , NULL);
                     make_change_list(add1 , add2 , add_list);
+                    if(temp_expr->entity->op == Deref)//引用的*p，需要把它所有可能对应的实体都置成活跃
+                    {
+                         struct triargexpr_list *temp_expr_node = cur_func_triarg_table->index_to_list[arg->expr];
+                         point_list = temp_expr_node->pointer_entity;
+                         add_list = var_list_merge(point_list , add_list);
+                    }
                     var_list_copy(next_del_list , del_list);
                     
                     del1 = -1;
