@@ -979,6 +979,8 @@ static inline enum Arg_Flag mach_prepare_arg(int arg_index, struct var_info * ar
 			reg_dpt[arg_info -> reg_addr].dirty = 0;
 			if(is_array(arg_index) && is_global(arg_index))
 				load_pointer(arg_index, alloc_reg.result[arg_index], 0, -1);
+			else if(is_conststr_byno(cur_func_info -> func_symt, arg_index))
+				load_pointer(arg_index, alloc_reg.result[arg_index], 0, -1);
 			else if(arg_type == 1)
 			{
 				if(is_global(arg_index))
@@ -1281,10 +1283,10 @@ static inline void gen_cj_expr(struct triargexpr *expr)
                {
                case Eq :cond_type = Mach_EQ;break;
                case Neq:cond_type = Mach_NE;break;
-               case Ge :cond_type = Mach_SG;break;
-               case Nge:cond_type = Mach_EL;break;
-               case Le :cond_type = Mach_SL;break;
-               case Nle:cond_type = Mach_EG;break;
+               case Ge :cond_type = Mach_EG;break;
+               case Nge:cond_type = Mach_SL;break;
+               case Le :cond_type = Mach_EL;break;
+               case Nle:cond_type = Mach_SG;break;
                default :break;
                }
           }
@@ -1294,10 +1296,10 @@ static inline void gen_cj_expr(struct triargexpr *expr)
                {
                case Eq :cond_type = Mach_NE;break;
                case Neq:cond_type = Mach_EQ;break;
-               case Ge :cond_type = Mach_EL;break;
-               case Nge:cond_type = Mach_SG;break;
-               case Le :cond_type = Mach_EG;break;
-               case Nle:cond_type = Mach_SL;break;
+               case Ge :cond_type = Mach_SL;break;
+               case Nge:cond_type = Mach_EG;break;
+               case Le :cond_type = Mach_SG;break;
+               case Nle:cond_type = Mach_EL;break;
                default :break;
                }
           }
@@ -1976,8 +1978,8 @@ static void gen_per_code(struct triargexpr * expr)
                      arg1_index = get_index_of_arg(&(expr -> arg1));
                      if(arg1_index < 0)
                           break;
-					arg1_info = get_info_from_index(arg1_index);
-					arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
+					 arg1_info = get_info_from_index(arg1_index);
+					 arg1_flag = mach_prepare_arg(arg1_index, arg1_info, 1);
 				}
 				else
 					arg1_flag = Arg_Imm;

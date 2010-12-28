@@ -83,3 +83,4 @@ consider this case:
 26.endless loop when test t10.c//Done
 27.bug_3.c
 28.Bug for Uminus immediate number
+29.Const string on the right side of equals sign
