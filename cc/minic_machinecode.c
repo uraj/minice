@@ -1415,10 +1415,10 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
                except[1] = arg1_reg;
                load_pointer(arg1_index , arg1_reg , 0 , -1);//将全局变量首地址载入临时寄存器
                
-               if(arg2_flag == Arg_Imm)//MEM dest_reg , [arg1_reg+] , expr->arg2.imme
-                    gen_mem_rri_code(type , dest_reg , arg1_reg , 1 , expr->arg2.imme , 1 << width_shift);
-               else//MEM dest_reg , [arg1_reg+] , arg2_reg
-                    gen_mem_rrr_code(type , dest_reg , arg1_reg , 1 , arg2_reg , 1 << width_shift);
+               if(arg2_flag == Arg_Imm)//MEM dest_reg , [arg1_reg+] , (expr->arg2.imme)<<width_shift
+                    gen_mem_rri_code(type , dest_reg , arg1_reg , 1 , (expr->arg2.imme)<<width_shift, 1 << width_shift);
+               else//MEM dest_reg , [arg1_reg+] , arg2_reg << #width_shift
+                    gen_mem_lshft_code(type , dest_reg , arg1_reg , 1 , arg2_reg , width_shift , 1 << width_shift);
           }
      }
      else if(is_array(arg1_index) == 1)//arg1是局部数组
@@ -1464,8 +1464,10 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
                gen_mem_rri_code(load , arg1_reg , REG_FP , -1 , arg1_info->mem_addr , arg1_width);
           }
           except[1] = arg1_reg;
-          //MEM dest_reg , [arg1_reg+] , arg2_reg
-          gen_mem_rrr_code(type , dest_reg , arg1_reg , 1 , arg2_reg , 1 << width_shift);
+          if(arg2_flag == Arg_Imm)//MEM dest_reg , [arg1_reg+] , (expr->arg2.imme)<<width_shift
+               gen_mem_rri_code(type , dest_reg , arg1_reg , 1 , (expr->arg2.imme)<<width_shift, 1 << width_shift);
+          else//MEM dest_reg , [arg1_reg+] , arg2_reg << #width_shift
+               gen_mem_lshft_code(type , dest_reg , arg1_reg , 1 , arg2_reg , width_shift , 1 << width_shift);
      }
      if(dest_flag == Arg_Mem)
           store_var(dest_info , dest_reg);
