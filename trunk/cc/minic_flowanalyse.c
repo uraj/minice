@@ -677,6 +677,7 @@ static int get_arg_index(struct triarg arg)
           return get_index_of_id(arg.idname);
      if(arg.type == ImmArg)
           return -2;
+     return -1;
 }
 
 static void initial_active_var()//活跃变量分析的初始化部分def和use
