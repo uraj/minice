@@ -1232,7 +1232,7 @@ static inline void gen_cmp_code(struct triargexpr *cond_expr , int *restore_reg)
                          except[j] = cond_arg_info[j]->reg_addr;
                }
                arg_reg_index[i] = gen_tempreg(except , 2);
-               restore_reg[restore_reg_index--] = arg_reg_index[i];
+               restore_reg[restore_reg_index--] = arg_reg_index[i];/* MARK TAOTAOTHERIPPER */
           }
      }
      struct mach_arg arg1 , arg2;
@@ -2393,7 +2393,7 @@ static void gen_per_code(struct triargexpr * expr)
                 /* restore caller save */
 
 				struct mach_arg caller_arg1, caller_arg2;
-				for(saved_reg_count = saved_reg_count - 1; saved_reg_count >= 0; saved_reg_count --)
+				for(saved_reg_count = saved_reg_count - 1; saved_reg_count >= 0; saved_reg_count --)/* can be optimized some */
 				{
 					caller_arg1.type = Mach_Reg;
 					caller_arg2.type = Mach_Imm;
