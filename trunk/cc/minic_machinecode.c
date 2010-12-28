@@ -1232,7 +1232,8 @@ static inline void gen_cmp_code(struct triargexpr *cond_expr , int *restore_reg)
                          except[j] = cond_arg_info[j]->reg_addr;
                }
                arg_reg_index[i] = gen_tempreg(except , 2);
-               restore_reg[restore_reg_index--] = arg_reg_index[i];/* MARK TAOTAOTHERIPPER */
+               load_var(cond_arg_info[i] , arg_reg_index[i]);
+               restore_reg[restore_reg_index--] = arg_reg_index[i];
           }
      }
      struct mach_arg arg1 , arg2;
@@ -1722,6 +1723,7 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
                     except[0] = rd;
                     rd = gen_tempreg(except , 1);
                     temp_reg = rd;
+                    load_var(arg2_info , rd);
                     gen_rsub_rri_code(rd , rd , 0);
                }
                store_var(arg1_info , rd);
