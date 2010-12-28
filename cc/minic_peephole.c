@@ -242,6 +242,7 @@ static void instruction_scheduling()
 		cur = cur -> next;
 	}
 }
+
 #if 0
 static void merge_binary_operation()
 {
@@ -249,8 +250,8 @@ static void merge_binary_operation()
 	while(cur != NULL)
 	{
 		/* if there is this kind of op the dest will occupy the reg 
-		   for only one one clock, so that won't effect register 
-		   allocation too much */
+		   for only one one clock, so that won't affect register 
+		   allocation too much */ 
 		if(cur -> entity -> op_type == DP && cur -> entity -> optimize && cur -> next != NULL)
 		{
 			if(cur -> next -> op_type == DP 
@@ -264,6 +265,7 @@ static void merge_binary_operation()
 	}
 }
 #endif
+
 static void print_code_list(FILE * out_buf)
 {
 	struct mach_code_list * tmp = head;
