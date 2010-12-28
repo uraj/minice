@@ -82,3 +82,4 @@ consider this case:
 25.optimize binary op and assgin
 26.endless loop when test t10.c//Done
 27.bug_3.c
+28.Bug for Uminus immediate number
