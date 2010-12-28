@@ -6,6 +6,7 @@
 #include "minic_varmapping.h"
 //#define SHOWBASICBLOCK
 //#define SHOWNEWCODE
+//#define UNARYOPTIMIZE
 struct var_list_node
 {
 	int var_map_index;
