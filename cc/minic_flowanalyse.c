@@ -30,7 +30,6 @@ static int *use_size;
 static int *is_actvar;
 static int s_expr_num;//the num of the tri-expressions
 static int sg_max_func_varlist = 0;//每条Funcall语句都会接有一条当前的活跃变量链
-static const int gc_change_num = 4;
 
 static inline int compare (const void * a, const void * b) 
 {
@@ -496,16 +495,28 @@ static inline int is_mapid_available(int map_id)
      return 1;
 }
 
+static inline int is_local_array(int mapid)
+{
+     if(mapid < 0)
+          return 0;
+     if(is_global(mapid) == 1)
+          return 0;
+     if(is_array(mapid) == 1)
+          return 1;
+     return 0;
+}
+
 static inline void analyse_map_index(int i , int type , int block_index)
 {
      if(is_mapid_available(i) == 0)
           return;
-#ifdef SHOW_FLOW_DEBUG
-     if(type == DEFINE)//**************************
-          printf("DEFINE ");
-     else
-          printf("USE ");//**********************
-#endif
+     if(option_show_flow_debug == 1)
+     {
+          if(type == DEFINE)
+               printf("DEFINE ");
+          else
+               printf("USE ");
+     }
      struct var_info *temp;
      temp = get_info_from_index(i);
      if(temp == NULL)
@@ -531,9 +542,8 @@ static inline void analyse_map_index(int i , int type , int block_index)
                use_size[block_index]++;
           }
      }
-#ifdef SHOW_FLOW_DEBUG 
-     printf("\n");
-#endif
+     if(option_show_flow_debug == 1)
+          printf("\n");
 }
 
 static inline void analyse_arg(struct triarg *arg , int type , int block_index)//活跃变量分析中的内存分配函数
@@ -542,9 +552,10 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
      if(arg->type == IdArg)
      {
           i = get_index_of_id(arg->idname);
-#ifdef SHOW_FLOW_DEBUG
-          printf("      mapid:%d->idname:%s " , i , arg->idname);//*****************************
-#endif
+          if(is_local_array(i) == 1)//局部数组，不分析
+               return;
+          if(option_show_flow_debug == 1)
+               printf("      mapid:%d->idname:%s " , i , arg->idname);
      }
      else if(arg->type == ExprArg)
      {
@@ -573,15 +584,15 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
                     }
                     }
                     }*/
-#ifdef SHOW_FLOW_DEBUG
-          if(i != -1)//***************************
+          if(option_show_flow_debug == 1)
           {
 //               if(change == 0)
-                    printf("      mapid:%d->expr:%d " , i , arg->expr);//*************************
+               printf("      mapid:%d->expr:%d " , i , arg->expr);//*************************
+               if(i == -1)
+                    printf("\n");
 //               else
 //                    printf("      mapid:%d->idname:%s " , i , arg->idname);//*****************************
           }
-#endif
      }
      else
           return;
@@ -595,9 +606,8 @@ static inline void analyse_expr_index(int expr_index , int type , int block_inde
      int i = get_index_of_temp(expr_index);
      if(i == -1)
           return;
-#ifdef SHOW_FLOW_DEBUG
-	 printf("      mapid:%d->expr:%d " , i , expr_index);
-#endif
+     if(option_show_flow_debug == 1)
+          printf("      mapid:%d->expr:%d " , i , expr_index);
      analyse_map_index(i ,type , block_index);
 }
 
@@ -683,16 +693,14 @@ static int get_arg_index(struct triarg arg)
 static void initial_active_var()//活跃变量分析的初始化部分def和use
 {
      int i;
-#ifdef SHOW_FLOW_DEBUG
-     printf("id_num:%d\n" , g_var_id_num);
-#endif
+     if(option_show_flow_debug == 1)
+          printf("id_num:%d\n" , g_var_id_num);
      struct triargexpr_list *temp;
      s_expr_num = 0;
      for(i = 0 ; i < g_block_num ; i++)
      {
-#ifdef SHOW_FLOW_DEBUG
-          printf("block:%d\n" , i);
-#endif
+          if(option_show_flow_debug == 1)
+               printf("block:%d\n" , i);
           if(i == 0)//第一个块要把函数参数和全局变量放入def[0]当中
           {
                //int start = cur_func_sym_table->arg_no_min;
@@ -746,11 +754,13 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                          int last_index = temp->entity->arg1.expr;
                          struct triargexpr_list *last_expr_node = cur_func_triarg_table->index_to_list[last_index];
                          struct triargexpr *last_expr = last_expr_node->entity;
-                         if(last_expr->op == Deref || last_expr->op == Subscript)
+                         if(last_expr->op == Subscript)
                          {
                               analyse_arg(&(last_expr->arg1) , USE , i);
                               analyse_arg(&(last_expr->arg2) , USE , i);
                          }
+                         else if(last_expr->op == Deref)
+                              analyse_arg(&(last_expr->arg1) , USE , i);
                     }
                     break;
 
@@ -766,18 +776,12 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                case Plus:
                case Minus:
                case Mul:
+               case Subscript:
                     if(get_index_of_temp(temp->entity->index) == -1)
                          break;
                     analyse_expr_index(temp->entity->index , DEFINE , i);
                     analyse_arg(&(temp->entity->arg1) , USE , i);
                     analyse_arg(&(temp->entity->arg2) , USE , i);
-                    break;
-               case Subscript:
-                    if(get_index_of_temp(temp->entity->index) == -1)
-                         break;
-                    analyse_arg(&(temp->entity->arg2) , USE , i);
-                    if(is_mapid_available(get_arg_index(temp->entity->arg1)) == 1)
-                         analyse_arg(&(temp->entity->arg1) , USE , i);
                     break;
 
                     /*一元操作*/
@@ -808,18 +812,19 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                     analyse_expr_index(temp->entity->index , DEFINE , i);
                     break;
                }
-#ifdef SHOW_FLOW_DEBUG
-               print_triargexpr(*(temp->entity));printf("\n");//**************************************
-#endif
+               if(option_show_flow_debug == 1)
+               {
+                    print_triargexpr(*(temp->entity));
+                    printf("\n");
+               }
                temp = temp->next;
           }
           var_list_sort(def + i , def_size[i]);//when DEFs and USEs are made
           var_list_sort(use + i , use_size[i]);//sort them so that we can op
           var_list_del_repeate(def + i);
           var_list_del_repeate(use + i);
-#ifdef SHOW_FLOW_DEBUG
-          printf("\n");
-#endif
+          if(option_show_flow_debug == 1)
+               printf("\n");
      }
      free(def_size);
      free(use_size);
@@ -859,17 +864,18 @@ static void solve_equa_ud()//求解活跃变量方程组
      }
      for(i = 0 ; i < g_block_num ; i++)//解方程组后，def，use和var_in都没用了
      {
-#ifdef SHOWACTVAR
-          printf("DEF %d :" , i);
-          var_list_print(def + i);
-          printf("USE %d :" , i);
-          var_list_print(use + i);
-          printf("VIN %d :" , i);
-          var_list_print(var_in + i);
-          printf("OUT %d :" , i);
-          var_list_print(var_out + i);
-          printf("\n");
-#endif
+          if(option_show_active_var == 1)
+          {
+               printf("DEF %d :" , i);
+               var_list_print(def + i);
+               printf("USE %d :" , i);
+               var_list_print(use + i);
+               printf("VIN %d :" , i);
+               var_list_print(var_in + i);
+               printf("OUT %d :" , i);
+               var_list_print(var_out + i);
+               printf("\n");
+          }
           var_list_free_bynode(def[i].head);
           var_list_free_bynode(use[i].head);
           var_list_free_bynode(var_in[i].head);
@@ -914,7 +920,7 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)/
      if(arg->type == IdArg)
      {
           int i = get_index_of_id(arg->idname);
-          if(is_mapid_available(i) == 0)
+          if(is_local_array(i) == 1)
                return -1;
           return i;
      }
@@ -998,7 +1004,6 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
      malloc_active_var();//活跃变量分析相关的数组空间分配
      initial_active_var();//完成活跃变量分析的初始化部分，生成def和use
      solve_equa_ud();//求解活跃变量方程组，得到var_in和var_out
-     
      (*expr_num) = s_expr_num;//the num of expressions
 
      int i , add1 , add2 , del1 , del2 , flag_first;
@@ -1050,7 +1055,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
              1）如果编号对应三元式的操作类型不是Deref，直接返回该三元式编号的map_id；
              2）如果编号对应三元式操作类型为Deref，即解除引用，那么如果：
                  a）pointer_entity中只有1个元素。这种情况下，直接将argi替换成该元素，deli就是该元素的map_id；
-                 b）pointer_entity中有好几个元素。此时将(*dest)也就是point_list指向pointer_entity，deli为原来编号的map_id。
+                 b）pointer_entity中有好几个元素。
   然后再从上一条的活跃变量中删除del_list，添加add_list就可以了
 */
      for(i = 0 ; i < g_block_num ; i++)
@@ -1058,23 +1063,44 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
           temp_expr = DFS_array[i]->tail;
           del1 = del2 = -1;
           flag_first = 1;
+          int is_continue;//本条语句没有进行活跃变量分析，则置为1
           var_list_copy(var_out + i , &show_list);
-#ifdef SHOWACTVAR
-          printf("\nblock (%d)\n" , i);
-#endif
+          if(option_show_active_var == 1)
+               printf("\nblock (%d)\n" , i);
           while(temp_expr != DFS_array[i]->head->prev)
           {
+               is_continue = 0;
                switch(temp_expr->entity->op)
                {
-               case Assign:       //=
+               case Assign:       //arg1 = arg2
                     add2 =  get_index_of_arg(&(temp_expr->entity->arg2) , NULL);
                     add1 = -1;
                     make_change_list(add1 , add2 , add_list);
-                    if(del1 == -2 || del2 == -2)//上一句中对指针实体赋值，而且该指针指向不明确，当前活跃变量链就是add_list
-                    {
-                         var_list_copy(add_list , actvar_list + act_list_index);
-                         act_list_index++;
-                         goto after_make_actvarlist;
+                    if(temp_expr->entity->arg1.type == ExprArg && get_index_of_temp(temp_expr->entity->arg1.expr) == -1)
+                    {//arg1是三元式编号，而且没被引用过。说明其对应三元式可能是a[i]或者*p
+                         int last_index = temp_expr->entity->arg1.expr;
+                         struct triargexpr_list *last_expr_node = cur_func_triarg_table->index_to_list[last_index];
+                         struct triargexpr *last_expr = last_expr_node->entity;
+                         if(last_expr->op == Subscript)//是a[i]或者*p的话，要往上看一步
+                         {
+                              add1 = get_index_of_arg(&(last_expr->arg1) , NULL);
+                              add2 = get_index_of_arg(&(last_expr->arg2) , NULL);
+                              struct var_list temp_list;
+                              temp_list.head = temp_list.tail = NULL;
+                              make_change_list(add1 , add2 , &temp_list);
+                              add_list = var_list_merge(&temp_list , add_list);
+                              var_list_del_repeate(add_list);
+                         }
+                         else if(last_expr->op == Deref)
+                         {
+                              add1 = -1;
+                              add2 = get_index_of_arg(&(last_expr->arg2) , NULL);
+                              struct var_list temp_list;
+                              temp_list.head = temp_list.tail = NULL;
+                              make_change_list(add1 , add2 , &temp_list);
+                              add_list = var_list_merge(&temp_list , add_list);
+                              var_list_del_repeate(add_list);
+                         }
                     }
                     var_list_copy(next_del_list , del_list);
                     
@@ -1098,15 +1124,14 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                case Minus:       //-
                case Mul:         //*
                case Subscript:   //[]
+                    if(get_index_of_temp(temp_expr->entity->index) == -1)
+                    {
+                         is_continue = 1;
+                         break;
+                    }
                     add1 = get_index_of_arg(&(temp_expr->entity->arg1) , NULL);
                     add2 = get_index_of_arg(&(temp_expr->entity->arg2) , NULL);
                     make_change_list(add1 , add2 , add_list);
-                    if(del1 == -2 || del2 == -2)//上一句中对指针实体赋值，而且该指针指向不明确，当前活跃变量链就是add_list
-                    {
-                         var_list_copy(add_list , actvar_list + act_list_index);
-                         act_list_index++;
-                         goto after_make_actvarlist;
-                    }
                     var_list_copy(next_del_list , del_list);
                     
                     del1 = -1;
@@ -1117,10 +1142,16 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     /*Unary op or jump*/
                case Lnot:        //!
                case Uplus:       //+
-               case Plusplus:    //++
-               case Minusminus:  //--
+               case Uminus:      //-
                case Ref:         //&
                case Deref:       //*
+                    if(get_index_of_temp(temp_expr->entity->index) == -1)
+                    {
+                         is_continue = 1;
+                         break;
+                    }
+               case Plusplus:    //++
+               case Minusminus:  //--
                case Arglist:     //parameters
                case Return:      //return
                case FalseJump:   //if true jump
@@ -1128,27 +1159,17 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     add1 = -1;
                     add2 = get_index_of_arg(&(temp_expr->entity->arg1) , NULL);
                     make_change_list(add1 , add2 , add_list);
-                    if(del1 == -2 || del2 == -2)//上一句中对指针实体赋值，而且该指针指向不明确，当前活跃变量链就是add_list
-                    {
-                         var_list_copy(add_list , actvar_list + act_list_index);
-                         act_list_index++;
-                         goto after_make_actvarlist;
-                    }
                     var_list_copy(next_del_list , del_list);
                     
                     del1 = -1;
                     del2 = get_index_of_temp(temp_expr->entity->index);
                     make_change_list(del1 , del2 , next_del_list);
                     break;
+
+                    /*大立即数*/
                default:
                     add1 = add2 = -1;
                     make_change_list(add1 , add2 , add_list);
-                    if(del1 == -2 || del2 == -2)//上一句中对指针实体赋值，而且该指针指向不明确，当前活跃变量链就是add_list
-                    {
-                         var_list_copy(add_list , actvar_list + act_list_index);
-                         act_list_index++;
-                         goto after_make_actvarlist;
-                    }
                     var_list_copy(next_del_list , del_list);
                     
                     del1 = -1;
@@ -1156,39 +1177,44 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     make_change_list(del1 , del2 , next_del_list);
                     break;
                }
-               if(flag_first == 1)
+               if(is_continue == 0)
                {
-                    var_list_sub(var_out + i , del_list , actvar_list + act_list_index);
-                    var_list_merge(add_list , actvar_list + act_list_index);
-                    act_list_index++;
-                    flag_first = 0;
+                    if(flag_first == 1)
+                    {
+                         var_list_sub(var_out + i , del_list , actvar_list + act_list_index);
+                         var_list_merge(add_list , actvar_list + act_list_index);
+                         act_list_index++;
+                         flag_first = 0;
+                    }
+                    else
+                    {
+                         var_list_sub(actvar_list + act_list_index - 1 , del_list , actvar_list + act_list_index);
+                         var_list_merge(add_list , actvar_list + act_list_index);
+                         act_list_index++;
+                    }
+                    //         after_make_actvarlist:
+                    count = add_actvar_info(actvar_list + act_list_index -1);
+                    temp_expr->entity->actvar_list = (actvar_list + act_list_index -1);
+                    if(temp_expr->entity->op == Funcall)
+                    {
+                         temp_expr->entity->arg2.func_actvar_list = (actvar_list + act_list_index -1);
+                         if(count > sg_max_func_varlist)
+                              sg_max_func_varlist = count;
+                    }
                }
-               else
+               if(option_show_flow_debug == 1)
                {
-                    var_list_sub(actvar_list + act_list_index - 1 , del_list , actvar_list + act_list_index);
-                    var_list_merge(add_list , actvar_list + act_list_index);
-                    act_list_index++;
+                    printf("del:");
+                    var_list_print(del_list);
+                    printf("add:");
+                    var_list_print(add_list);
                }
-          after_make_actvarlist:
-               count = add_actvar_info(actvar_list + act_list_index -1);
-               temp_expr->entity->actvar_list = (actvar_list + act_list_index -1);
-               if(temp_expr->entity->op == Funcall)
+               if(option_show_active_var == 1)
                {
-                    temp_expr->entity->arg2.func_actvar_list = (actvar_list + act_list_index -1);
-                    if(count > sg_max_func_varlist)
-                         sg_max_func_varlist = count;
+                    print_triargexpr(*(temp_expr->entity));
+                    printf("\t[%d]active varible:" , temp_expr->entity->index);
+                    var_list_print(actvar_list + act_list_index -1);
                }
-#ifdef SHOW_FLOW_DEBUG
-               printf("del:");
-               var_list_print(del_list);
-               printf("add:");
-               var_list_print(add_list);
-#endif
-#ifdef SHOWACTVAR
-               print_triargexpr(*(temp_expr->entity));
-               printf("\t[%d]active varible:" , temp_expr->entity->index);
-               var_list_print(actvar_list + act_list_index -1);
-#endif
                temp_expr = temp_expr->prev;
           }
      }

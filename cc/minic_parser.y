@@ -29,6 +29,9 @@ const size_t MAXIDLEN = 31; /* 31 is the minimum length supported by compilers a
 int option_show_triargexpr = 0;
 int option_show_localcode = 0;
 int option_show_ast = 0;
+int option_show_symt_debug = 0;
+int option_show_flow_debug = 0;
+int option_show_active_var = 0;
 
 /* provided by the scanner */
 extern int yylineno;
@@ -733,7 +736,7 @@ int main(int argc, char* argv[])
             break;
         }
     }
-    while((option = getopt(argc, argv, "amtf:")) != -1)
+    while((option = getopt(argc, argv, "amtfd:")) != -1)
     {
         switch(option)
         {
@@ -749,6 +752,11 @@ int main(int argc, char* argv[])
             case 'f':
                 filename = optarg;
                 break;
+        case 'd':
+             option_show_flow_debug = 1;
+             option_show_active_var = 1;
+             option_show_symt_debug = 1;
+             break;
             default:
                 ;
         }
@@ -763,6 +771,15 @@ int main(int argc, char* argv[])
         fprintf(stderr, "minicc: %s: No such file.\n", filename);
         return 1;
     }
+    char *asm_out_name;
+    asm_out_name = strdup(filename);
+    asm_out_name[strlen(filename) - 1] = 's';
+    FILE *asm_out_file = fopen(asm_out_name , "w");
+    if(asm_out_file == NULL)
+    {
+         fprintf(stderr , "无法生成汇编文件！\n");
+         return 0;
+    }
 	curr_table = symt_new();
     simb_table = curr_table;
     type_stack = syms_new();
@@ -773,11 +790,11 @@ int main(int argc, char* argv[])
 	fclose(yyin);
 	free_global_table();/*there should be an extra tmp table, and g_table_list_size is set in this*/
 	new_code_table_list();
-	print_file_header(stdout, filename);
+	print_file_header(asm_out_file, filename);
 	for(i = 0; i < g_table_list_size; i++)
 	{
 		//printf("%s\n", table_list[i] -> funcname);
-		gen_machine_code(i, stdout);
+		gen_machine_code(i, asm_out_file);
 		/*here is the register allotting and the assemble codes generating*/
 
 	    /*
@@ -797,7 +814,8 @@ int main(int argc, char* argv[])
         printf("varlist ends.\n");
 		*/
 	}
-	print_file_tail(stdout);
+	print_file_tail(asm_out_file);
+    fclose(asm_out_file);
 	free_code_table_list();
     syms_delete(parm_stack);
     syms_delete(type_stack);
