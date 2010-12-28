@@ -2604,21 +2604,24 @@ void print_file_header(FILE * out_buf, char * filename)
 		for(global_var_index = 0; global_var_index < g_global_id_num; global_var_index ++)//global var's index is 0 ~ g_global_id_num
 		{
 			struct value_info * g_value_info = get_valueinfo_byno(simb_table, global_var_index);
-			fprintf(out_buf, "\t.comm\t%s, ", g_value_info -> name);
-			switch(g_value_info -> type -> type)
+			if(g_value_info -> modi != Extern)
 			{
-				case Array:
-					if(g_value_info -> type -> base_type -> type == Char)
-						fprintf(out_buf, "%d, %d\n", g_value_info -> type -> size, BYTE);
-					else
-						fprintf(out_buf, "%d, %d\n", g_value_info -> type -> size * WORD, WORD);
-					break;
-				case Char:
-					fprintf(out_buf, "%d, %d\n", BYTE, BYTE);
-					break;
-				default:
-					fprintf(out_buf, "%d, %d\n", WORD, WORD);
-					break;
+				fprintf(out_buf, "\t.comm\t%s, ", g_value_info -> name);
+				switch(g_value_info -> type -> type)
+				{
+					case Array:
+						if(g_value_info -> type -> base_type -> type == Char)
+							fprintf(out_buf, "%d, %d\n", g_value_info -> type -> size, BYTE);
+						else
+							fprintf(out_buf, "%d, %d\n", g_value_info -> type -> size * WORD, WORD);
+						break;
+					case Char:
+						fprintf(out_buf, "%d, %d\n", BYTE, BYTE);
+						break;
+					default:
+						fprintf(out_buf, "%d, %d\n", WORD, WORD);
+						break;
+				}
 			}
 		}
 	}
