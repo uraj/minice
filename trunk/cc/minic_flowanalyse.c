@@ -727,12 +727,15 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
             1、对于赋值。arg1=arg2
                 a)首先，如果arg1是标号(k)而且k没有map_id，需要向上看一步，如果k是*p或者a[i]，要先分析语句k；
                 b)分析本条赋值语句。
-            2、对于a+b、a-b、*p、a[i]、+a、-a、&a以及所有逻辑指令;
+            2、对于条件跳转。
+                a)首先，如果arg1是标号(k)而且k没有map_id，这意味着这个位置是一个逻辑条件指令，需要向上看一步，分析该三元式；
+                b)分析本条条件跳转指令。
+            3、对于a+b、a-b、*p、a[i]、+a、-a、&a以及所有逻辑指令;
                 a)如果expr->entity->index没有map_id，说明这一句话从来没被引用过，没必要生成代码，也就没必要分析；
                 b)分析本条语句。
-            3、其他语句，根据要分析的操作数个数和位置，分以下几种情况：
+            4、其他语句，根据要分析的操作数个数和位置，分以下几种情况：
                 a)a++、a--
-                b)TrueJump、FalseJump、Return、Arglist
+                b)Return、Arglist
            */
           while(temp != NULL)
           {
@@ -792,7 +795,6 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                case Deref:
                     if(get_index_of_temp(temp->entity->index) == -1)
                          break;
-                    break;
                case Plusplus:
                case Minusminus:
                     analyse_expr_index(temp->entity->index , DEFINE , i);
@@ -801,7 +803,18 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
 
                     /*跳转及函数相关语句*/
                case TrueJump:
-               case FalseJump:
+               case FalseJump://逻辑跳转要往上看一步
+                    if(get_arg_index(temp->entity->arg1) == -1)
+                    {
+                         int last_index = temp->entity->arg1.expr;
+                         struct triargexpr_list *last_expr_node = cur_func_triarg_table->index_to_list[last_index];
+                         struct triargexpr *last_expr = last_expr_node->entity;
+                         analyse_arg(&(last_expr->arg1) , USE , i);
+                         analyse_arg(&(last_expr->arg2) , USE , i);
+                    }
+                    else
+                         analyse_arg(&(temp->entity->arg1) , USE , i);
+                    break;
                case Arglist:
                case Return:
                     analyse_arg(&(temp->entity->arg1) , USE , i);
@@ -1025,12 +1038,15 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
        1、对于赋值。arg1=arg2
            a)首先，如果arg1是标号(k)而且k没有map_id，需要向上看一步，如果k是*p或者a[i]，要先分析语句k；
            b)分析本条赋值语句。
-       2、对于a+b、a-b、*p、a[i]、+a、-a、&a以及所有逻辑指令;
+       2、对于条件跳转。
+           a)首先，如果arg1是标号(k)而且k没有map_id，这意味着这个位置是一个逻辑条件指令，需要向上看一步，分析该三元式；
+           b)分析本条条件跳转指令。
+       3、对于a+b、a-b、*p、a[i]、+a、-a、&a以及所有逻辑指令;
            a)如果expr->entity->index没有map_id，说明这一句话从来没被引用过，没必要生成代码，也就没必要分析；
            b)分析本条语句。
-       3、其他语句，根据要分析的操作数个数和位置，分以下几种情况：
+       4、其他语句，根据要分析的操作数个数和位置，分以下几种情况：
            a)a++、a--
-           b)TrueJump、FalseJump、Return、Arglist
+           b)Return、Arglist
      */
 /*
   思路：
@@ -1142,6 +1158,29 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     break;
 
                     /*Unary op or jump*/
+               case FalseJump:   //if true jump
+               case TrueJump:    //if false jump
+                    add1 = -1;
+                    add2 = get_index_of_arg(&(temp_expr->entity->arg1) , NULL);
+                    make_change_list(add1 , add2 , add_list);
+                    if(temp_expr->entity->arg1.type == ExprArg && get_index_of_temp(temp_expr->entity->arg1.expr) == -1)
+                    {//条件是逻辑判断，需要向上看一步
+                         int last_index = temp_expr->entity->arg1.expr;
+                         struct triargexpr_list *last_expr_node = cur_func_triarg_table->index_to_list[last_index];
+                         struct triargexpr *last_expr = last_expr_node->entity;
+                         add1 = get_index_of_arg(&(last_expr->arg1) , NULL);
+                         add2 = get_index_of_arg(&(last_expr->arg2) , NULL);
+                         struct var_list temp_list;
+                         temp_list.head = temp_list.tail = NULL;
+                         make_change_list(add1 , add2 , &temp_list);
+                         add_list = var_list_merge(&temp_list , add_list);
+                         var_list_del_repeate(add_list);
+                    }
+                    var_list_copy(next_del_list , del_list);
+                    
+                    var_list_clear(next_del_list);
+                    break;
+                    
                case Lnot:        //!
                case Uplus:       //+
                case Uminus:      //-
@@ -1156,8 +1195,6 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                case Minusminus:  //--
                case Arglist:     //parameters
                case Return:      //return
-               case FalseJump:   //if true jump
-               case TrueJump:    //if false jump
                     add1 = -1;
                     add2 = get_index_of_arg(&(temp_expr->entity->arg1) , NULL);
                     make_change_list(add1 , add2 , add_list);
