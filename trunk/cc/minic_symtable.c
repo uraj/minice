@@ -119,9 +119,8 @@ static void var_no_update(struct symbol_table *t , struct value_info *value)//wh
      }
      t->myid[t->id_num] = value;
      value->no = g_var_id_num;
-#ifdef DEBUG_SYMTABLE
-     printf("%s->%d\n" , t->myid[t->id_num]->name , value->no);
-#endif
+     if(option_show_symt_debug == 1)
+          printf("%s->%d\n" , t->myid[t->id_num]->name , value->no);
      t->id_num ++;
      g_var_id_num ++;
 }
@@ -130,6 +129,8 @@ int symt_insert(struct symbol_table *t , struct value_info *value)
 {
 	if(t == NULL || value == NULL)
 		return 0;
+    if(option_show_symt_debug == 1)
+         printf("insert:%s\n" , value->name);
 	int index = ELFhash(value->name)%(t->size);
 	if(t->head[index].value == NULL)
 	{
@@ -421,9 +422,12 @@ int is_conststr_byno(struct symbol_table *table , int no)//根据变量编号，
      if(temp_info == NULL)
           return 0;
      char *name = temp_info->name;
-     if((name[0] == '.') && (name[1] == 'L') && (name[2] = 'C'))
-          return 1;
-     return 0;
+     char *str_name = ".LC";
+     int i;
+     for(i = 0 ; i < 3 ; i++)
+          if(name[i] == '\0' || name[i] != str_name[i])
+               return 0;
+     return 1;
 }
 
 int get_localvar_num(struct symbol_table *table)//获得该符号表（函数）的局部变量个数，前提是已经完成了语法分析

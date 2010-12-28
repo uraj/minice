@@ -18,6 +18,9 @@ struct var_list
 extern struct symbol_table *simb_table;
 extern struct triargtable **table_list;
 
+extern int option_show_active_var;
+extern int option_show_flow_debug;
+
 /*var_list_node*/
 extern struct var_list_node *var_list_node_new();
 extern void var_list_printbynode(struct var_list_node *head);//打印head以后的节点×××××有可能有用
