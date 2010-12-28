@@ -37,6 +37,13 @@ const PipeState * gp_pipe = NULL;
 int * gp_cachemiss = NULL;
 int * gp_cachewb = NULL;
 
+/* special functions */
+/* #define PRINT_INT 0 */
+/* #define PRINT_CHAR 1 */
+/* #define PRINT_STRING 2 */
+/* #define PRINTLINE_INT 3 */
+/* #define MAIN 4 */
+
 /* used by console() in console.c */
 jmp_buf beginning;
 
@@ -87,7 +94,7 @@ void simulate_init(RegFile * storage, PipeState * pipe_state, StatInfo * stat_in
     return;
 }
 
-StatInfo simulate(uint32_t simulation_entry, uint32_t special_entry)
+StatInfo simulate(uint32_t * func_entry)
 {
     StatInfo stat_info;
     RegFile storage;
@@ -95,7 +102,7 @@ StatInfo simulate(uint32_t simulation_entry, uint32_t special_entry)
     
     /* initialization */
     simulate_init(&storage, &pipe_state, &stat_info);
-    storage.reg[PC] = simulation_entry;
+    storage.reg[PC] = func_entry[MAIN];
     
     while(1)
     {
@@ -109,14 +116,14 @@ StatInfo simulate(uint32_t simulation_entry, uint32_t special_entry)
             pipe_state.ex_in.bubble = 1;
             continue;           /* stalling */
         }
-        if(IFStage(&storage, &pipe_state, special_entry) == -1)
+        if(IFStage(&storage, &pipe_state, func_entry) == -1)
             break;
         ++stat_info.instr_count;
     }
     return stat_info;
 }
 
-StatInfo simulate_db(uint32_t simulation_entry, uint32_t special_entry)
+StatInfo simulate_db(uint32_t * func_entry)
 {
     setjmp(beginning);
     
@@ -125,7 +132,7 @@ StatInfo simulate_db(uint32_t simulation_entry, uint32_t special_entry)
     PipeState pipe_state;
 
     simulate_init(&storage, &pipe_state, &stat_info);
-    storage.reg[PC] = simulation_entry;
+    storage.reg[PC] = func_entry[MAIN];
     
     while(1)
     {
@@ -148,7 +155,7 @@ StatInfo simulate_db(uint32_t simulation_entry, uint32_t special_entry)
             continue;           /* stalling */
         }
         pipe_state.ex_in.sinfo = pipe_state.id_in.sinfo;
-        if(IFStage(&storage, &pipe_state, special_entry) == -1)
+        if(IFStage(&storage, &pipe_state, func_entry) == -1)
             break;
         ++stat_info.instr_count;
      
@@ -221,16 +228,22 @@ int main(int argc, char * argv[])
     memset(L1PageTable, 0, sizeof(L1PageTable));    
     Elf32_Ehdr ehdr = get_elf_hdr(elf);
     load_elf_segments(elf, ehdr);
-    uint32_t special_entry = get_func_entry(elf, ehdr, "__minic_print");
-    uint32_t simulation_entry = get_func_entry(elf, ehdr, "main");
+    
+    uint32_t func_entry[5];
+    func_entry[PRINT_INT] = get_func_entry(elf, ehdr, "print_int");
+    func_entry[PRINT_CHAR] = get_func_entry(elf, ehdr, "print_char");
+    func_entry[PRINT_STRING] = get_func_entry(elf, ehdr, "print_string");
+    func_entry[PRINTLINE_INT] = get_func_entry(elf, ehdr, "printline_int");
+    func_entry[MAIN] = get_func_entry(elf, ehdr, "main");
+    
     fclose(elf);
     
     StatInfo stat_info;
     
     if(db_option)
-        stat_info = simulate_db(simulation_entry, special_entry);
+        stat_info = simulate_db(func_entry);
     else
-        stat_info = simulate(simulation_entry, special_entry);
+        stat_info = simulate(func_entry);
     
     if(stat_option)
         print_stat_info(&stat_info);

@@ -35,7 +35,7 @@ static InstrFields get_fields(instr instruction)
 
 static InstrType get_instr_type(instr code)
 {
-    if(code == 0xffffffff)
+    if((code & 0xfffffff0) == 0xfffffff0)
         return Usr_Trap;
     switch(GET_FIELD(code, 31, 29))
     {
@@ -284,7 +284,32 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
         data_hazard = read_register(storage, pipe_state, 0, &data);
         if(data_hazard)
             return -1;
-        printf("%d\n", data);
+        switch(GET_FIELD(pipe_state->id_in.instruction, 3, 0))
+        {
+            case PRINT_INT:
+                printf("%d", data);
+                break;
+            case PRINT_CHAR:
+                printf("%c", (char)(data & 0xff));
+                break;
+            case PRINT_STRING:
+            {
+                uint32_t character;
+                do
+                {
+                    mem_read(data++, 1, 0, &character);
+                    printf("%c", (char)(character & 0xff));
+                }
+                while((character & 0xff) != 0);
+                
+                break;
+            }
+            case PRINTLINE_INT:
+                printf("%d\n", data);
+                break;
+            default:
+                fprintf(stderr, "Invalid instruction.\n");
+        }
         fflush(stdout);
         storage->reg[PC] = storage->reg[LR];
         return 0;

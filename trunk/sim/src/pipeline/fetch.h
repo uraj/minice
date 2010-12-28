@@ -3,6 +3,6 @@
 
 #include <pipeline/globdefs.h>
 
-extern int IFStage(RegFile * storage, PipeState * pipe_state, uint32_t special_entry);
+extern int IFStage(RegFile * storage, PipeState * pipe_state, uint32_t func_entry[]);
 
 #endif
