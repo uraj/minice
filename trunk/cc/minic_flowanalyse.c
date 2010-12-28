@@ -665,6 +665,20 @@ static void initial_func_var(int func_index)//通过函数index获得当前函�
      }*/
 }
 
+static int get_arg_index(struct triarg arg)
+{
+     if(arg.type == ExprArg)
+     {
+          if(arg.expr == -1)
+               return -3;
+          return get_index_of_temp(arg.expr);
+     }
+     if(arg.type == IdArg)
+          return get_index_of_id(arg.idname);
+     if(arg.type == ImmArg)
+          return -2;
+}
+
 static void initial_active_var()//活跃变量分析的初始化部分def和use
 {
      int i;
@@ -721,11 +735,25 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                /**/
                switch(temp->entity->op)
                {
+                    /*赋值语句*/
                case Assign:
                     analyse_expr_index(temp->entity->index , DEFINE , i);
                     analyse_arg(&(temp->entity->arg1) , DEFINE , i);
                     analyse_arg(&(temp->entity->arg2) , USE , i);
+                    if(temp->entity->arg1.type == ExprArg && get_index_of_temp(temp->entity->arg1.expr) == -1)
+                    {
+                         int last_index = temp->entity->arg1.expr;
+                         struct triargexpr_list *last_expr_node = cur_func_triarg_table->index_to_list[last_index];
+                         struct triargexpr *last_expr = last_expr_node->entity;
+                         if(last_expr->op == Deref || last_expr->op == Subscript)
+                         {
+                              analyse_arg(&(last_expr->arg1) , USE , i);
+                              analyse_arg(&(last_expr->arg2) , USE , i);
+                         }
+                    }
                     break;
+
+                    /*二元操作*/
                case Land:
                case Lor:
                case Eq:
@@ -736,7 +764,7 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                case Nle:
                case Plus:
                case Minus:
-               case Mul://二元操作
+               case Mul:
                     if(get_index_of_temp(temp->entity->index) == -1)
                          break;
                     analyse_expr_index(temp->entity->index , DEFINE , i);
@@ -744,22 +772,37 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                     analyse_arg(&(temp->entity->arg2) , USE , i);
                     break;
                case Subscript:
+                    if(get_index_of_temp(temp->entity->index) == -1)
+                         break;
+                    analyse_arg(&(temp->entity->arg2) , USE , i);
+                    if(is_mapid_available(get_arg_index(temp->entity->arg1)) == 1)
+                         analyse_arg(temp->entity->arg1 , USE , i);
                     break;
+
+                    /*一元操作*/
                case Lnot:
                case Uplus:
-               case Plusplus:
-               case Minusminus:
+               case Uminus:
                case Ref:
                case Deref:
-               case Arglist:
-               case Return:
+                    if(get_index_of_temp(temp->entity->index) == -1)
+                         break;
+                    break;
+               case Plusplus:
+               case Minusminus:
                     analyse_expr_index(temp->entity->index , DEFINE , i);
                     analyse_arg(&(temp->entity->arg1) , USE , i);
                     break;
+
+                    /*跳转及函数相关语句*/
                case TrueJump:
                case FalseJump:
+               case Arglist:
+               case Return:
                     analyse_arg(&(temp->entity->arg1) , USE , i);
                     break;
+
+                    /*大立即数等等*/
                default:
                     analyse_expr_index(temp->entity->index , DEFINE , i);
                     break;
@@ -971,6 +1014,18 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
      struct var_list *add_list = var_list_new();
      struct var_list *point_list = NULL;//deal with *p,or it is NULL
      struct triargexpr_list *temp_expr;
+     /*
+       分析步骤：
+       1、对于赋值。arg1=arg2
+           a)首先，如果arg1是标号(k)而且k没有map_id，需要向上看一步，如果k是*p或者a[i]，要先分析语句k；
+           b)分析本条赋值语句。
+       2、对于a+b、a-b、*p、a[i]、+a、-a、&a以及所有逻辑指令;
+           a)如果expr->entity->index没有map_id，说明这一句话从来没被引用过，没必要生成代码，也就没必要分析；
+           b)分析本条语句。
+       3、其他语句，根据要分析的操作数个数和位置，分以下几种情况：
+           a)a++、a--
+           b)TrueJump、FalseJump、Return、Arglist
+     */
 /*
   思路：
   del_list——当前三元式要删除的变量的map_id
