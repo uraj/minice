@@ -98,11 +98,16 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 					insert_tempvar(expr.arg1.expr, 1);
 				if(expr.arg2.type == ExprArg)
 					insert_tempvar(expr.arg2.expr, 1);
-				break;	
+				break;			
+
+			case Ref:                        /* &  */
+				break;						 /* MARK taotaotheripper */
+
 			case Uplus:                      /* +  */
 			case Plusplus:                   /* ++ */
 			case Minusminus:                 /* -- *///MARK TAOTAOTHERIPPER
 				//this optimizing shall be opened later
+#ifdef UNARYOPTIMIZE 
 				{
 					struct triarg tmp_arg;
 					tmp_arg = unary_search(table, &table[i]);
@@ -110,23 +115,11 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 						insert_tempvar(tmp_arg.type, 1);
 					break;
 				}
-		
-
-			case Ref:                        /* &  */
-				break;						 /* MARK taotaotheripper */
+#endif
 			case Subscript:                  /* [] */
-				/* if(expr.arg1.type == IdArg) */
-				/* { */
-				/* 	struct var_info * tmp_var_info = get_info_of_id(expr.arg1.idname); */
-				/* 	struct value_info * tmp_func_info = symt_search(simb_table, table_list[cur_func_index] -> funcname); */
-				/* 	struct value_info * tmp_value_info = symbol_search(simb_table, tmp_func_info -> func_symt, expr.arg1.idname); */
-				/* 	if(tmp_value_info -> type -> type == Array ) */
-				/* 	{ */
-				/* 		if(tmp_var_info -> ref_point == NULL) */
-				/* 			tmp_var_info -> ref_point = var_list_new(); */
-				/* 		tmp_var_info -> ref_point = var_list_append(tmp_var_info -> ref_point, expr.index);//dongdong trans index to mapid */
-				/* 	} */
-				/* }/\* make array ref point list used when flush array elem in regs  *\/ */	
+				if(expr.arg2.type == ExprArg && expr.arg2.expr != -1)/* the first arg of Subscript can only be ID */
+					insert_tempvar(expr.arg2.expr, 1);
+				break;
 			case Uminus:                     /* -  */	
 			case Deref:                      /* '*' */
 			case Arglist:
@@ -185,7 +178,7 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 							flag_list[table[i].arg1.expr] = 1;
 					}
 				}	
-			break;
+				break;
 			case FalseJump:
 				if(expr.arg1.type == ExprArg)
 				{

@@ -2,8 +2,8 @@
 #define __MINIC_MACHINECODE_H__
 #include <stdint.h>
 #include <stdio.h>
-//#define PEEPHOLE
-#define MACH_DEBUG
+#define PEEPHOLE
+//#define MACH_DEBUG
 
 #define REG_SP 29
 #define REG_FP 27
