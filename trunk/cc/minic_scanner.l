@@ -43,7 +43,7 @@ Char [^\\\n\v\r\f\a]|\\[ntvbrfa\\\'\"\?]
 \'{Char}\' {
 	if(sval_set)
         free(yylval.tk.sval);
-	yylval.tk.cval = yytext[0];
+	yylval.tk.cval = yytext[1];
 	sval_set = 0;
 	return CCONSTANT;
 }
