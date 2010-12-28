@@ -205,6 +205,8 @@ scalar_var: id %prec VAR {
 
 function_def : function_hdr "{" function_body "}" {
                                                       curr_table = NULL;/*is not necessary*/
+													  //printf("%d\n", gtriargexpr_table_index);
+													  //printf("%d\n", ghead -> entity -> index);
 													  struct triargtable * tmp_table = new_table($1);
 													  insert_table(tmp_table);/*add new function triargtable to the list,
 																			   g_total_expr_num is modified in the function.*/
@@ -280,8 +282,8 @@ parm_decl : type_name id {
 function_body : internal_decls statement_list {
                                                     
                                                    if(option_show_localcode)//#ifdef SHOWCODE
-												        print_list_header($2);
-													struct taexpr_list_header * final_list = stmt_list_merge($2, return_list_append(NULL));
+												        print_list_header($2);	
+												   struct taexpr_list_header * final_list = stmt_list_merge($2, return_list_append(NULL));
 													
 													ghead = final_list -> head;
                                                     gtail = final_list -> tail;
@@ -299,7 +301,7 @@ statement_list : statement statement_list { $$ = stmt_list_merge($1, $2); }
 
 statement : compound_stmt { $$ = $1;
                             #ifdef SHOWLOCALCODE
-                                //print_list_header($$);//test
+                                print_list_header($$);//test
                             #endif
                           }
           | null_stmt { $$ = $1; }

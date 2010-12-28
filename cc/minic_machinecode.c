@@ -2390,12 +2390,15 @@ static void gen_per_code(struct triargexpr * expr)
                     {
 						/* the dirty global var has been stored in flush global var, so here I
 						   don't need to store the clear reg, just reload it later is OK. */
-						if(!is_global(focus->var_map_index) && is_id_var(focus->var_map_index)
+						if(!is_global(focus->var_map_index))
+						{
+							if(is_id_var(focus->var_map_index)
 								&& reg_dpt[vinfo->reg_addr].dirty)/* the array and string is clear global var, just store var */
-							store_var(vinfo, vinfo -> reg_addr);
-						else
-							gen_mem_rri_code(store, vinfo -> reg_addr, REG_FP, -1, caller_save_index - saved_reg_count * WORD, WORD);
-                        saved_reg[saved_reg_count++] = vinfo->reg_addr;
+								store_var(vinfo, vinfo -> reg_addr);
+							else
+								gen_mem_rri_code(store, vinfo -> reg_addr, REG_FP, -1, caller_save_index - saved_reg_count * WORD, WORD);
+							saved_reg[saved_reg_count++] = vinfo->reg_addr;
+						}
                     }
 					focus = focus -> next;
                 }

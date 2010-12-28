@@ -50,7 +50,7 @@ struct triargexpr_list ** new_index_to_list()//Malloc and redirect, be free in f
 	struct triargexpr_list * tmpnode = ghead;
 	while(tmpnode != NULL)
 	{
-		print_triargexpr(*tmpnode -> entity);
+		//print_triargexpr(*tmpnode -> entity);
 		list[tmpnode -> entity -> index] = tmpnode;
 		tmpnode = tmpnode -> next;
 	}
@@ -119,7 +119,7 @@ int insert_triargexpr(struct triargexpr expr)//should be in triargexpr.c
         gtriargexpr_table = tmp_expr_table;
     }
     expr.index = gtriargexpr_table_index;//just in case
-    gtriargexpr_table[gtriargexpr_table_index++] = expr;
+	gtriargexpr_table[gtriargexpr_table_index++] = expr;
     return expr.index;
 }
 
