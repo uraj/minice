@@ -6,8 +6,8 @@ int a[4];
 
 int main()
 {
-  int b[2];
   int i;
+  int b[2];
 
   for (i=0;i<2;i++)
     b[i] = i+8;
