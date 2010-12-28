@@ -282,7 +282,7 @@ function_body : internal_decls statement_list {
                                                    if(option_show_localcode)//#ifdef SHOWCODE
 												        print_list_header($2);
 													struct taexpr_list_header * final_list = stmt_list_merge($2, return_list_append(NULL));
-                                                    
+													
 													ghead = final_list -> head;
                                                     gtail = final_list -> tail;
                                                     free_taexprlist(final_list);

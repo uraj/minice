@@ -46,10 +46,11 @@ void free_table_list()//free the global table list
 struct triargexpr_list ** new_index_to_list()//Malloc and redirect, be free in free_table
 {
 	int size = gtriargexpr_table_index;
-	struct triargexpr_list ** list = malloc(sizeof(struct triargexpr_list *) * size);
+	struct triargexpr_list ** list = calloc(size, sizeof(struct triargexpr_list *));
 	struct triargexpr_list * tmpnode = ghead;
 	while(tmpnode != NULL)
 	{
+		print_triargexpr(*tmpnode -> entity);
 		list[tmpnode -> entity -> index] = tmpnode;
 		tmpnode = tmpnode -> next;
 	}
@@ -556,12 +557,12 @@ struct taexpr_list_header * return_list_append(struct subexpr_info * value)
      if(value != NULL)
          expr_header = value_list_append(value);
      
-     struct triargexpr_list *ret_list = (struct triargexpr_list *)malloc(sizeof(struct triargexpr_list));
+     struct triargexpr_list *ret_list = (struct triargexpr_list *)calloc(1, sizeof(struct triargexpr_list));
      int ret_index = insert_triargexpr(ret_expr);
      ret_list->entity = gtriargexpr_table + ret_index;
      ret_list->prev = ret_list->next = NULL;
      
-     struct taexpr_list_header *ret_header = (struct taexpr_list_header *)malloc(sizeof(struct taexpr_list_header));
+     struct taexpr_list_header *ret_header = (struct taexpr_list_header *)calloc(1, sizeof(struct taexpr_list_header));
      ret_header->head = ret_header->tail = ret_list;
      ret_header->nextlist = NULL;
      
