@@ -1036,7 +1036,9 @@ static void flush_global_var()
 			store_var(v_info, index);
 	}
 }
-
+/* the flush and reload just deal with the consitent between reg 
+   and mem, so the clear global reg, the local reg and the temp 
+   reg should be solved in caller save */
 static void reload_global_var()
 {
 	int index;
@@ -2386,7 +2388,13 @@ static void gen_per_code(struct triargexpr * expr)
                     vinfo = get_info_from_index(focus->var_map_index);
                     if((vinfo->reg_addr >= 4 && vinfo->reg_addr <= 15) || vinfo->reg_addr == 28)
                     {
-                        gen_mem_rri_code(store, vinfo -> reg_addr, REG_FP, -1, caller_save_index - saved_reg_count * WORD, WORD);
+						/* the dirty global var has been stored in flush global var, so here I
+						   don't need to store the clear reg, just reload it later is OK. */
+						if(!is_global(focus->var_map_index) && is_id_var(focus->var_map_index)
+								&& reg_dpt[vinfo->reg_addr].dirty)/* the array and string is clear global var, just store var */
+							store_var(vinfo, vinfo -> reg_addr);
+						else
+							gen_mem_rri_code(store, vinfo -> reg_addr, REG_FP, -1, caller_save_index - saved_reg_count * WORD, WORD);
                         saved_reg[saved_reg_count++] = vinfo->reg_addr;
                     }
 					focus = focus -> next;
@@ -2397,6 +2405,25 @@ static void gen_per_code(struct triargexpr * expr)
 				struct mach_arg caller_arg1, caller_arg2;
 				for(saved_reg_count = saved_reg_count - 1; saved_reg_count >= 0; saved_reg_count --)/* can be optimized some */
 				{
+					int reg_num = saved_reg[saved_reg_count];
+					int var_index = reg_dpt[reg_num].content;/* the reg_dpt won't change during funcall */
+					vinfo = get_info_from_index(var_index);
+					if(is_global(var_index))/* load clear global var, may be array and const string */
+					{
+						if(!reg_dpt[reg_num].dirty)/* the dirty one will be solved in reload global var */
+						{
+							if(is_array(var_index) || is_conststr_byno(cur_func_info -> func_symt, var_index))
+								load_pointer(var_index, reg_num, 0, -1);
+							else load_var(vinfo, reg_num); 
+						}
+						continue;
+					}
+					if(is_id_var(var_index))/* there won't be any array or const string in local reg */
+					{
+						load_var(vinfo, reg_num);
+						reg_dpt[reg_num].dirty = 0;/* the register is consistent with the mem now */
+						continue;
+					}/* or else the temp vars are all in caller save zoon, just load them */
 					caller_arg1.type = Mach_Reg;
 					caller_arg2.type = Mach_Imm;
 					caller_arg1.reg = REG_FP;
@@ -2593,6 +2620,7 @@ static void print_mach_tail(FILE * out_buf)
 	}
 	fprintf(out_buf, "\t.size\t%s, .-%s\n", cur_func_info -> name, cur_func_info -> name);
 }
+
 static void print_mach_code(FILE * out_buf)
 {
 	int index;
