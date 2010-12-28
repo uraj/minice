@@ -1031,6 +1031,7 @@ static void flush_global_var()
 		if(is_reg_disabled(index))
 			continue;
 		v_info = get_info_from_index(reg_dpt[index].content);
+		
 		if(is_global(reg_dpt[index].content) && reg_dpt[index].dirty)
 			store_var(v_info, index);
 	}
@@ -1049,7 +1050,7 @@ static void reload_global_var()
 		{
 			load_var(v_info, index);
 			reg_dpt[index].dirty = 0;
-		}
+		}	
 	}
 }
 
@@ -2383,8 +2384,16 @@ static void gen_per_code(struct triargexpr * expr)
                 }
                 insert_buncond_code(expr->arg1.idname, 1);
                 /* restore caller save */
+
+				struct mach_arg caller_arg1, caller_arg2;
 				for(saved_reg_count = saved_reg_count - 1; saved_reg_count >= 0; saved_reg_count --)
-                    gen_mem_rri_code(load, saved_reg[saved_reg_count], REG_FP, -1, caller_save_index - saved_reg_count * WORD, WORD);           /* resotre */
+				{
+					caller_arg1.type = Mach_Reg;
+					caller_arg2.type = Mach_Imm;
+					caller_arg1.reg = REG_FP;
+					caller_arg2.imme = caller_save_index - saved_reg_count * WORD;
+					insert_mem_code(LDW , saved_reg[saved_reg_count], caller_arg1 , caller_arg2 , 0, -1, NO, 0);
+				}
 				reload_global_var();//MARK TAOTAOTHERIPPER
 				if(dest_index != -1)//The r0 won't be changed during the restore above	
 				{
