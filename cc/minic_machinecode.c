@@ -2479,7 +2479,8 @@ static void gen_per_code(struct triargexpr * expr)
 					while(((src >> lsb) & 1) == 0)
 						++lsb;
 					mach_src.imme = (src >> lsb) & 0x1ff;
-					insert_dp_code(MOV, reg, mach_src, null, 32-lsb, RR);
+                    mach_src.imme = ((uint64_t)(mach_src.imme) << 32 | mach_src.imme) >> (32 - lsb);
+					insert_dp_code(MOV, reg, mach_src, null, 0, NO);
 					lsb += 9;
 
 					mach_base.reg = reg;
@@ -2490,7 +2491,8 @@ static void gen_per_code(struct triargexpr * expr)
 						if(lsb >= 32)
 							break;
 						mach_src.imme = (src >> lsb) & 0x1ff;
-						insert_dp_code(OR, reg, mach_base, mach_src, 32-lsb, RR);
+                        mach_src.imme = ((uint64_t)(mach_src.imme) << 32 | mach_src.imme) >> (32 - lsb);
+						insert_dp_code(OR, reg, mach_base, mach_src, 0, NO);
 						lsb += 9;
 					}
 				}
