@@ -1,6 +1,7 @@
 #ifndef __MINIC_TRIARGTABLE_H_
 #define __MINIC_TRIARGTABLE_H_
 
+/*TAOTAOTHERIPPER MARK*/
 #include "minic_triargexpr.h"
 
 #define INITIALFUNCSIZE 30
