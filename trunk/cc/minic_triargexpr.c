@@ -385,12 +385,6 @@ struct subexpr_info triargexpr_gen(struct ast* root)
                 expr.arg1.type = ExprArg;
                 expr.arg1.expr = subexpr_arithval_gen(&lsub);
             }
-            if(root->right)
-            {
-                ++level;
-                triargexpr_gen(root->right);
-                --level;
-            }
             expr.op = root->op;
             expr.width = get_opresult_width(root->ast_typetree);
             expr.stride = 1;
@@ -399,6 +393,14 @@ struct subexpr_info triargexpr_gen(struct ast* root)
             ret.subexpr_arg.expr = insert_triargexpr(expr);
             ret.subexpr_arg.type = ExprArg;
             ret.arithtype = 1;
+            
+            if(root->right)
+            {
+                ++level;
+                triargexpr_gen(root->right);
+                --level;
+            }
+
             break;
         case Return:
             ++level;
