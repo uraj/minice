@@ -776,7 +776,7 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                          break;
                     analyse_arg(&(temp->entity->arg2) , USE , i);
                     if(is_mapid_available(get_arg_index(temp->entity->arg1)) == 1)
-                         analyse_arg(temp->entity->arg1 , USE , i);
+                         analyse_arg(&(temp->entity->arg1) , USE , i);
                     break;
 
                     /*一元操作*/

@@ -1695,7 +1695,7 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
                     gen_mov_rsrd_code(arg1_info->reg_addr , arg2_info->reg_addr);
           }
           else if(is_arg2_array == 1 && is_arg2_g == 0)//局部数组
-               gen_dp_rri_code(SUB , arg1_info->reg_addr , FP , arg2_info->mem_addr);
+               gen_dp_rri_code(SUB , arg1_info->reg_addr , REG_FP , arg2_info->mem_addr);
           else if(is_arg2_cstr == 1)//常量字符串，把首地址给它
                load_pointer(arg2_index , arg1_info->reg_addr , 0 , -1);
           else
@@ -1730,7 +1730,7 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
                int is_arg2_g = is_global(arg2_index);
                int is_arg2_cstr = is_conststr_byno(cur_func_info->func_symt , arg2_index);
                if(is_arg2_array == 1 && is_arg2_g == 0)//局部数组
-                    gen_dp_rri_code(SUB , rd , FP , arg2_info->mem_addr);
+                    gen_dp_rri_code(SUB , rd , REG_FP , arg2_info->mem_addr);
                if(is_arg2_cstr == 1)//常量字符串，把首地址给它
                     load_pointer(arg2_index , rd , 0 , -1);
                else
