@@ -45,7 +45,6 @@ void quicksort(int * beg, int * end)
     return;
 }
 
-
 int main()
 {
     int j, temp;
