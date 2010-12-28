@@ -23,7 +23,8 @@ static int window_size;
 static char des_reg_mark[32];
 static char src_reg_mark[32];
 
-static int success;
+static int scheduling_success;
+static int merge_success;
 
 static struct mach_code_list * new_code_node(struct mach_code * entity)
 {
@@ -73,7 +74,8 @@ static inline void set_cur_function(int func_index)
 	head = NULL;
 	gen_code_list();
 	window_size = 20;//MARK TAOTAOTHERIPPER. can be modified
-	success = 0;
+	scheduling_success = 0;
+	merge_success = 0;
 }
 
 #ifdef LARGEWINDOW
@@ -239,7 +241,7 @@ static void instruction_scheduling()
 					insert = search_inst(cur);
 					if(insert != NULL)
 					{
-						success ++;
+						scheduling_success ++;
 						//printf("here:");
 						//mcode_out(cur -> entity, stdout);
 						insert -> prev -> next = insert -> next;
@@ -257,28 +259,33 @@ static void instruction_scheduling()
 	}
 }
 
-#if 0
 static void merge_binary_operation()
 {
-	struct mach_code_list * last = NULL, * insert = NULL, * cur = head;
+	struct mach_code_list * unused = NULL, * cur = head;
 	while(cur != NULL)
 	{
 		/* if there is this kind of op the dest will occupy the reg 
 		   for only one one clock, so that won't affect register 
 		   allocation too much */ 
-		if(cur -> entity -> op_type == DP && cur -> entity -> optimize && cur -> next != NULL)
+		if(cur -> entity -> optimize && cur -> next != NULL)/* the one which can be optimized must have dest reg */
 		{
-			if(cur -> next -> op_type == DP 
-					&& cur -> next -> dp_op == MOV 
-					&& cur -> next -> entity -> arg2.type == Arg_Reg 
+			if(cur -> next -> entity -> op_type == DP 
+					&& cur -> next -> entity -> dp_op == MOV 
+					&& cur -> next -> entity -> arg2.type == Mach_Reg 
 					&& cur -> next -> entity -> arg2.reg == cur -> entity -> dest)
 			{
+				cur -> entity -> dest = cur -> next -> entity -> arg2.reg;
+				cur -> next -> prev = cur;
+				unused = cur -> next;
+				cur -> next = cur -> next -> next;
+				free(unused);
+				merge_success ++;
+				continue;/* the next may be mov, too */
 			}
 		}
 		cur = cur -> next;
 	}
 }
-#endif
 
 static void print_code_list(FILE * out_buf)
 {
@@ -294,12 +301,14 @@ void peephole(int func_index, FILE * out_buf)
 {
 	set_cur_function(func_index);
 	int former_success;
+	merge_binary_operation();
 	do
 	{
-		former_success = success;	
+		former_success = scheduling_success;	
 		instruction_scheduling();
-	}while(former_success != success);
+	}while(former_success != scheduling_success);
 	print_code_list(stdout);
-	//printf("scheduling success:%d\n", success);
+	//printf("scheduling success:%d\n", scheduling_success);
+	//printf("merge success:%d\n", merge_success);
 	free_code_list();
 }
