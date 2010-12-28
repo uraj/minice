@@ -2142,7 +2142,12 @@ static void gen_per_code(struct triargexpr * expr)
 					if(op_type == RSUB)
 						insert_dp_code(op_type, tempdest, binary_arg2, binary_arg1, 0, NO);
 					else
-						insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 0, NO);
+					{
+						if(arg1_flag == Arg_Imm)
+							insert_dp_code(op_type, tempdest, binary_arg2, binary_arg1, 0, NO);
+						else
+							insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 0, NO);
+					}
 				}
 
 				if(dest_flag != Arg_Reg)

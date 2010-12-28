@@ -120,6 +120,11 @@ static struct mach_code_list * search_inst(struct mach_code_list * cur)
 		src_reg_mark[cur -> next -> entity -> arg1.reg] = 1;
 	if(cur -> next -> entity -> arg2.type == Mach_Reg)
 		src_reg_mark[cur -> next -> entity -> arg2.reg] = 1;
+
+	if(cur -> next -> entity -> op_type == MEM && 
+			(cur -> next -> entity -> mem_op == STW || cur -> next -> entity -> mem_op == STB))/* special for next instrution is store */
+		src_reg_mark[cur -> next -> entity -> dest] = 1;
+
 	des_reg_mark[cur -> entity -> dest] = 1;
 	if(cur -> entity -> indexed == PREW || cur -> entity -> indexed == POST)
 		des_reg_mark[cur -> entity -> arg1.reg] = 1;/* must be reg here */
@@ -164,6 +169,8 @@ static struct mach_code_list * search_inst(struct mach_code_list * cur)
 							break;
 						case STW:
 						case STB:
+							return NULL;
+#if 0
 							if(des_reg_mark[cur -> entity -> dest] != 1
 									&& (cur -> entity -> arg1.type != Mach_Reg || des_reg_mark[cur -> entity -> arg1.reg] != 1)
 									&& (cur -> entity -> arg2.type != Mach_Reg || des_reg_mark[cur -> entity -> arg2.reg] != 1))
@@ -178,6 +185,7 @@ static struct mach_code_list * search_inst(struct mach_code_list * cur)
 							else
 								src_reg_mark[cur -> entity -> dest] = 1;/* special src */
 							break;
+#endif
 						default:
 							fprintf(stderr, "error mem type in instruction scheduling.\n");
 							exit(1);
@@ -222,12 +230,18 @@ static void instruction_scheduling()
 				if((cur -> next -> entity -> arg1.type == Mach_Reg 
 							&& cur -> next -> entity -> arg1.reg == cur -> entity -> dest) 
 						|| (cur -> next -> entity -> arg2.type == Mach_Reg 
-							&& cur -> next -> entity -> arg2.reg == cur -> entity -> dest))
+							&& cur -> next -> entity -> arg2.reg == cur -> entity -> dest)
+						|| (cur -> next -> entity -> op_type == MEM 
+							&& (cur -> next -> entity -> mem_op == STW 
+								|| cur -> next -> entity -> mem_op == STB)
+							&& cur -> next -> entity -> dest == cur -> entity -> dest))
 				{
 					insert = search_inst(cur);
 					if(insert != NULL)
 					{
 						success ++;
+						//printf("here:");
+						//mcode_out(cur -> entity, stdout);
 						insert -> prev -> next = insert -> next;
 						insert -> next -> prev = insert -> prev;
 						insert -> next = cur -> next;
@@ -286,6 +300,6 @@ void peephole(int func_index, FILE * out_buf)
 		instruction_scheduling();
 	}while(former_success != success);
 	print_code_list(stdout);
-	//printf("scheduling success:%d\n", success);
+	printf("scheduling success:%d\n", success);
 	free_code_list();
 }
