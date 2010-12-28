@@ -1064,7 +1064,9 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
           del1 = del2 = -1;
           flag_first = 1;
           int is_continue;//本条语句没有进行活跃变量分析，则置为1
-          var_list_copy(var_out + i , &show_list);
+          var_list_clear(add_list);
+          var_list_clear(next_del_list);
+          var_list_clear(del_list);
           if(option_show_active_var == 1)
                printf("\nblock (%d)\n" , i);
           while(temp_expr != DFS_array[i]->head->prev)

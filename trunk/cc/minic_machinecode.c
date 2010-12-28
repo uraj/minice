@@ -1439,10 +1439,10 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
                     except[3] = addr_reg;
                }
                //MOV addr_reg , arg2_reg << width_shift
-               //ADD addr_reg , addr_reg , arg1_info->mem_addr
+               //RSUB addr_reg , addr_reg , arg1_info->mem_addr
                //MEM dest_reg , [fp-] , addr_reg
                gen_mov_lshft_code(addr_reg , arg2_reg , width_shift);
-               gen_dp_rri_code(ADD , addr_reg , addr_reg , arg1_info->mem_addr);
+               gen_dp_rri_code(RSUB , addr_reg , addr_reg , arg1_info->mem_addr);
                gen_mem_rrr_code(type , dest_reg , REG_FP , -1 , addr_reg , 1 << width_shift);
           }
      }
