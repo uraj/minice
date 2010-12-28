@@ -4,7 +4,7 @@
 
 #include "fetch.h"
 
-int IFStage(RegFile * storage, PipeState * pipe_state, uint32_t special_entry)
+int IFStage(RegFile * storage, PipeState * pipe_state, uint32_t func_entry[])
 {
     static int quit = 0;
     uint32_t pc = storage->reg[PC];
@@ -42,8 +42,14 @@ int IFStage(RegFile * storage, PipeState * pipe_state, uint32_t special_entry)
             return 0;
         }
     }
-    else if(pc == special_entry)
-        instr = 0xffffffffU;
+    else if(pc == func_entry[PRINT_INT])
+        instr = 0xfffffff0U | PRINT_INT;
+    else if(pc == func_entry[PRINT_CHAR])
+        instr = 0xfffffff0U | PRINT_CHAR;
+    else if(pc == func_entry[PRINT_STRING])
+        instr = 0xfffffff0U | PRINT_STRING;
+    else if(pc == func_entry[PRINTLINE_INT])
+        instr = 0xfffffff0U | PRINTLINE_INT;
     else
     {
         readinfo = mem_read_instruction(pc, &instr);

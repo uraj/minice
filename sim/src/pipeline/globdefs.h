@@ -212,4 +212,11 @@ typedef struct
 #define LR 30
 #define PC 31
 
+/* special functions */
+#define PRINT_INT 0
+#define PRINT_CHAR 1
+#define PRINT_STRING 2
+#define PRINTLINE_INT 3
+#define MAIN 4
+
 #endif

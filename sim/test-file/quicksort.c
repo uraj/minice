@@ -1,5 +1,9 @@
-
-void __minic_print(int arg);
+#include <stdio.h>
+void __minic_print(int arg)
+{
+    printf("%d ", arg);
+    return;
+}
 
 void quicksort(int * beg, int * end)
 {
