@@ -58,8 +58,9 @@ static int cur_func_index;
 
 /* may only use bp sp lr and pc, so there is 29 registers can be used*/
 static const int max_reg_num = 23;
-static int cur_code_index;
+static int cur_code_index;/*cur_code_index 当前数目*/
 static int cur_code_bound;
+static const char optmz = 1 , un_optmz = 0;
 
 static int arglist_num_mark;//count arglist num, should be clear to zero after func call and pop arg
 static int caller_save_index;
@@ -226,6 +227,11 @@ static inline void insert_buncond_code(char * dest_label, char link)
 	new_code.branch_op = B;
 	new_code.dest_label = dest_label;
 	insert_code(new_code);
+}
+
+static inline void set_optmz(int index , char is_optmz)
+{
+	code_table_list[cur_func_index].table[index].optimize = is_optmz;
 }
 /*************************** insert code over *************************/
 
@@ -1413,7 +1419,15 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
                     gen_mem_rri_code(type, dest_reg, arg1_reg, 1, (expr->arg2.imme) << width_shift, 1 << width_shift);
                else//MEM dest_reg , [arg1_reg+] , arg2_reg << #width_shift
                     gen_mem_lshft_code(type , dest_reg , arg1_reg , 1 , arg2_reg , width_shift , 1 << width_shift);
-          }
+			   
+			   /*对于全局数组，如果目的操作数和数组名变量都在寄存器，而且下标不在内存中，可能可以优化*/
+			   if(dest_flag == Arg_Reg && arg2_flag != Arg_Mem)
+			   {
+				   struct var_info *expr_info = get_info_from_index(expr->index);
+				   if(expr_info != NULL && expr_info->ref_mark == 0)
+					   set_optmz(cur_code_index - 1 , optmz);
+			   }
+		  }
           else
           {
                arg1_reg = gen_tempreg(except , 4);
@@ -1426,6 +1440,7 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
                else//MEM dest_reg , [arg1_reg+] , arg2_reg << #width_shift
                     gen_mem_lshft_code(type , dest_reg , arg1_reg , 1 , arg2_reg , width_shift , 1 << width_shift);
           }
+		  
      }
      else if(is_array(arg1_index) == 1)//arg1是局部数组
      {
@@ -2116,6 +2131,7 @@ static void gen_per_code(struct triargexpr * expr)
 					else tempdest = gen_tempreg(except, ex_size);
 				}
 
+                /*error!! 立即数不能逻辑移位*/
 				if(arg1_flag != Arg_Imm && get_stride_from_index(arg1_index) == WORD)//only add and sub
 					insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 2, LL);
 				else if(arg2_flag != Arg_Imm && get_stride_from_index(arg2_index) == WORD)//only add

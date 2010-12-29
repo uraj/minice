@@ -5,7 +5,7 @@
 #include "minic_triargexpr.h"
 
 #define INITIALFUNCSIZE 30
-#define INITIALCODESIZE 100//should be ajusted to triargexpr.h
+#define INITIALCODESIZE 400//should be ajusted to triargexpr.h
 
 struct subexpr_info;
 
