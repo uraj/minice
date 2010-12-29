@@ -555,10 +555,11 @@ static void enter_func_push()
 	   mov fp, sp
 	   push lr
 	*/	
-	cur_sp = 0;
 	push_param(REG_FP);
 	gen_mov_rsrd_code(REG_FP, REG_SP);
+	cur_sp = 0;
 	push_param(REG_LR);
+	cur_sp += WORD;
 }
 
 static void leave_func_pop()
