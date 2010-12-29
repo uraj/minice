@@ -842,14 +842,6 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
             (3) Return 0;
             如果a是局部变量，(1)和(2)都没必要做，这也符合活跃变量的做法；但如果a是全局变量，(1)不用做但(2)必须做，这按照普通的活跃变量分析是无法解决的，所以只需要让a在(3)之后也是活跃的，就可以解决这个问题。当然这么做会加大寄存器分配的负担，但是本着全局变量尽量少用的原则，又考虑到可用寄存器十分充足，所以折中了一下。
            */
-          if(is_end_block(i) == 1)//该block可能是结尾block，此时将该函数中所有可能被定值的全局变量都放到var_out里面
-          {
-               int j;
-               int global_var_num = get_globalvar_num();
-               for(j = 0 ; j < global_var_num ; j++)
-                    if(defed_gvar[j] == 1)
-                         var_list_append(var_out + i , j);
-          }
           var_list_sort(def + i , def_size[i]);//when DEFs and USEs are made
           var_list_sort(use + i , use_size[i]);//sort them so that we can op
           var_list_del_repeate(def + i);
@@ -897,6 +889,24 @@ static void solve_equa_ud()//求解活跃变量方程组
 	 var_list_copy(var_in , &begin_var_list);
      for(i = 0 ; i < g_block_num ; i++)//解方程组后，def，use和var_in都没用了
      {
+          if(is_end_block(i) == 1)//该block可能是结尾block，此时将该函数中所有可能被定值的全局变量都放到var_out里面
+          {
+               int j;
+               struct var_list g_def;
+               g_def.head = g.tail = NULL;
+               int global_var_num = get_globalvar_num();
+               int count = 0;
+               for(j = 0 ; j < global_var_num ; j++)
+               {
+                    if(defed_gvar[j] == 1)
+                    {
+                         count++;
+                         var_list_append(&g_def , j);
+                    }
+               }
+               var_list_sort(&g_def , count);
+               var_list_merge(&g_def , var_out + i);
+          }
           if(option_show_active_var == 1)
           {
                printf("DEF %d :" , i);
@@ -1058,6 +1068,8 @@ int is_assign(struct triargexpr *expr , int dest_index)//判断一个赋值语�
           return 0;
      return 1;
 }
+
+//static 
 
 struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分析
 {
