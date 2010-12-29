@@ -474,7 +474,7 @@ static void prepare_temp_var_inmem()//gen addr at first
 	}
 	offset_from_sp += (WORD * get_max_func_varlist());
 	caller_save_index = offset_from_sp;/* the caller save register should be stored from low addr to high addr */
-	cur_sp += offset_from_sp;
+	cur_sp += offset_from_sp;/* in fact only record how many ids are saved in mem */
 	
 	if(offset_from_sp > 0)//sub sp
 	{
@@ -554,10 +554,10 @@ static void enter_func_push()
 	   push fp	; so that the param index should begin from 4
 	   mov fp, sp
 	   push lr
-	*/
+	*/	
+	cur_sp = 0;
 	push_param(REG_FP);
 	gen_mov_rsrd_code(REG_FP, REG_SP);
-	cur_sp = 0;
 	push_param(REG_LR);
 }
 
@@ -673,8 +673,10 @@ static inline void load_pointer(int var_index, int reg_num, int imm_offset, int 
 			offset_arg.type = Mach_Imm;
 			offset_arg.imme = imm_offset;
 			if(get_stride_from_index(var_index) == WORD)
-				insert_dp_code(ADD, reg_num, src_reg, offset_arg, 2, LL);
-			else insert_dp_code(ADD, reg_num, src_reg, offset_arg, 0, NO);
+				offset_arg.imme *= WORD;
+			else
+				offset_arg.imme *= BYTE;
+			insert_dp_code(ADD, reg_num, src_reg, offset_arg, 0, NO);
 		}
 		else if(reg_offset != -1)
 		{
@@ -735,7 +737,6 @@ static inline void push_param(int reg_num)
 	tmp_sp.reg = REG_SP;
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = WORD;
-	cur_sp += WORD;//just in case
 	insert_mem_code(STW, reg_num, tmp_sp, tmp_offset, 0, -1, NO, PREW);	
 }
 
@@ -746,7 +747,6 @@ static inline void pop_param_to_reg(int reg_num)
 	tmp_sp.reg = REG_SP;
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = WORD;
-	cur_sp -= WORD;
 	insert_mem_code(LDW, reg_num, tmp_sp, tmp_offset, 0, 1, NO, POST);
 }
 
@@ -757,7 +757,6 @@ static inline void pop_param(int param_num)
 	tmp_sp.reg = REG_SP;
 	tmp_offset.type = Mach_Imm;
 	tmp_offset.imme = WORD * param_num;
-	cur_sp -= (WORD * param_num);
 	insert_dp_code(ADD, REG_SP, tmp_sp, tmp_offset, 1, NO);
 }
 
@@ -1825,7 +1824,15 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 							}
 						}
 						if(get_stride_from_index(id_index) == WORD)
-							insert_dp_code(ADD, dest_reg, array_head, array_offset, 2, LL);
+						{
+							if(array_offset.type == Mach_Reg)
+								insert_dp_code(ADD, dest_reg, array_head, array_offset, 2, LL);
+							else
+							{
+								array_offset.imme *= WORD;
+								insert_dp_code(ADD, dest_reg, array_head, array_offset, 0, NO);
+							}
+						}
 						else insert_dp_code(ADD, dest_reg, array_head, array_offset, 0, NO);
 						if(tmp_inner_mark == 1)
 							restore_tempreg(array_offset.reg);
@@ -2133,9 +2140,25 @@ static void gen_per_code(struct triargexpr * expr)
 
                 /*error!! 立即数不能逻辑移位*/
 				if(arg1_flag != Arg_Imm && get_stride_from_index(arg1_index) == WORD)//only add and sub
-					insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 2, LL);
+				{
+					if(binary_arg2.type == Mach_Imm)
+					{
+						binary_arg2.imme *= WORD;
+						insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 0, NO);
+					}
+					else
+						insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 2, LL);
+				}
 				else if(arg2_flag != Arg_Imm && get_stride_from_index(arg2_index) == WORD)//only add
-					insert_dp_code(op_type, tempdest, binary_arg2, binary_arg1, 2, LL);
+				{
+					if(binary_arg1.type == Mach_Imm)
+					{
+						binary_arg1.imme *= WORD;
+						insert_dp_code(op_type, tempdest, binary_arg2, binary_arg1, 0, NO);
+					}
+					else
+						insert_dp_code(op_type, tempdest, binary_arg2, binary_arg1, 2, LL);
+				}
 				else
 				{
 					if(op_type == RSUB)
@@ -2372,11 +2395,11 @@ static void gen_per_code(struct triargexpr * expr)
 			{
                 flush_global_var();//MARK TAOTAOTHERIPPER
 				/* caller save */
-                struct var_list_node * focus = expr -> arg2.func_actvar_list -> head;
+                struct var_list_node * focus = expr -> actvar_list -> head;
                 struct var_info * vinfo = NULL;
                 char saved_reg[32];
                 int saved_reg_count = 0;
-                while(focus != NULL && focus != expr -> arg2.func_actvar_list -> tail -> next)
+                while(focus != NULL && focus != expr -> actvar_list -> tail -> next)
                 {
                     vinfo = get_info_from_index(focus->var_map_index);
                     if((vinfo->reg_addr >= 4 && vinfo->reg_addr <= 15) || vinfo->reg_addr == 28)
@@ -2453,11 +2476,19 @@ static void gen_per_code(struct triargexpr * expr)
 					/* restore tempreg */;
 
                     if(arglist_num_mark < 4)
-                        load_var(arg1_info, arglist_num_mark);
+					{
+						if(is_array(arg1_index))
+							load_pointer(arg1_index, arglist_num_mark, 0, -1);
+						else
+							load_var(arg1_info, arglist_num_mark);
+					}
                     else
                     {
                         int tempreg = gen_tempreg(NULL, 0);
-                        load_var(arg1_info, tempreg);
+						if(is_array(arg1_index))
+							load_pointer(arg1_index, tempreg, 0, -1);
+						else
+							load_var(arg1_info, tempreg);
                         push_param(tempreg); /* push into stack */
                         restore_tempreg(tempreg);
                     }
@@ -2537,7 +2568,6 @@ static void gen_per_code(struct triargexpr * expr)
                       else            /* arg1_flag == Arg_Imm */
                            gen_mov_rsim_code(0, expr->arg1.imme);
                  }
-
 				flush_global_var();
 				free_temp_var_inmem();
 				callee_save_pop();
