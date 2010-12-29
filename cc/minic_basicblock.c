@@ -13,6 +13,8 @@ static struct basic_block ** entry_index_to_block;//waste some space, but is mor
 static int cur_func_index;
 static struct basic_block_list * DFS_list = NULL;
 
+char * defed_gvar;
+
 struct search_res
 {
 	int expr_index;
@@ -27,6 +29,7 @@ static inline void new_temp_list(int size)//called first
 	entry_index_to_block = malloc(sizeof(struct basic_block *) * size);
 	memset(flag_list, 0, size * sizeof(char));
 	memset(entry_index_to_block, 0, size * sizeof(struct basic_block *));
+	defed_gvar = calloc(get_globalvar_num(), sizeof(char));/* should be free after active variable analyse */
 	/* to make sure */
 }
 
@@ -78,10 +81,12 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 		switch(expr.op)
 		{
 			case Assign:					 /* = */
-				/*
-				   if(expr.arg1.type == ExprArg)
-						insert_tempvar(expr.arg1.expr);
-				*/
+				if(expr.arg1.type == IdArg)/* TAOTAOTHERIPPER MARK,  mark the assigned global var */
+				{
+					int var_index = get_index_of_id(expr.arg1.idname);/* the id has been prepared well */
+					if(is_global(var_index))
+						defed_gvar[var_index] = 1;
+				}
 				if(expr.arg2.type == ExprArg)/* mark */
 					insert_tempvar(expr.arg2.expr, 0);//will be removed as a kind of optimizing later
 				break;//Current now, don't treat assign reference as real reference, can be optimizing some, and will be optimized some
@@ -236,7 +241,7 @@ static inline struct basic_block * new_block()
 	newblock -> prev = NULL;
 	newblock -> next = NULL;
 	newblock -> head = NULL;
-	newblock -> tail = NULL;	
+	newblock -> tail = NULL;
 	return newblock;
 }
 
@@ -549,7 +554,7 @@ struct basic_block * make_fd(int function_index)
 {
 	cur_func_index = function_index;
 	new_var_map(function_index);//********************************
-	new_temp_list(table_list[function_index] -> expr_num);	
+	new_temp_list(table_list[function_index] -> expr_num);		
 	g_block_num = 0;
 	scan_for_entry(table_list[function_index] -> table, table_list[function_index] -> expr_num);
 	struct basic_block * head = make_block(table_list[function_index] -> head);
@@ -601,3 +606,9 @@ void recover_triargexpr(struct basic_block * block_head)
 	DFS_array = NULL;
 }
 
+int is_end_block(int block_index)
+{
+	if(DFS_array[block_index] -> next == NULL)
+		return 1;
+	return 0;
+}

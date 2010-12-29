@@ -35,7 +35,6 @@ enum mem
 struct Reg_Dpt
 {
 	int content;
-	int dirty;
 };
 
 static struct ralloc_info alloc_reg;
@@ -78,6 +77,7 @@ static int gen_tempreg(int * except, int size);
 static inline void restore_tempreg(int temp_reg);
 static inline void load_var(struct var_info * v_info, int reg_num);
 static inline void store_var(struct var_info * v_info, int reg_num);
+static inline void load_pointer(int var_index, int reg_num, int imm_offset, int reg_offset);
 
 /****************************** initial begin ***************************/
 static inline void set_cur_function(int func_index)
@@ -102,10 +102,7 @@ static inline void set_cur_function(int func_index)
 	code_table_list[func_index].table = calloc(cur_code_bound, sizeof(struct mach_code));  
 	code_table_list[func_index].code_num = 0;
 	for(index = 0; index < 31; index ++)
-	{
 		reg_dpt[index].content = REG_UNUSED;
-		reg_dpt[index].dirty = 0;
-	}
 	null.type = Unused;//used for unused arg
 	arglist_num_mark = 0;
 }
@@ -118,6 +115,8 @@ static inline void leave_cur_function()
 		free(global_var_label);
 	global_var_label_offset = NULL;
 	global_var_label = NULL;
+	free(defed_gvar);
+	defed_gvar = NULL;
 }
 /*************************** initial end *******************************/
 
@@ -238,7 +237,6 @@ static inline void gen_mov_rsrd_code(int rd , int rs)
      struct mach_arg src_arg;
      src_arg.type = Mach_Reg;
      src_arg.reg = rs;
-     reg_dpt[rd].dirty = 1;
      insert_dp_code(MOV , rd , src_arg , null , 0 , NO);
 }
 
@@ -248,7 +246,6 @@ static inline void gen_mov_rsim_code(int rd , int imme)
      struct mach_arg src_arg;
      src_arg.type = Mach_Imm;
      src_arg.imme = imme;
-     reg_dpt[rd].dirty = 1;
      insert_dp_code(MOV , rd , src_arg , null , 0 , NO);
 }
 
@@ -258,7 +255,6 @@ static inline void gen_mov_lshft_code(int rd , int rs , int imme)
      struct mach_arg src_arg;
      src_arg.type = Mach_Reg;
      src_arg.reg = rs;
-     reg_dpt[rd].dirty = 1;
      insert_dp_code(MOV , rd , src_arg , null , imme , LL);
 }
 
@@ -270,7 +266,6 @@ static inline void gen_rsub_rri_code(int rd , int rs1 , int imme)
      arg1.reg = rs1;
      arg2.type = Mach_Imm;
      arg2.imme = imme;
-     reg_dpt[rd].dirty = 1;
      insert_dp_code(RSUB , rd , arg1, arg2, 0 , NO);
 }
 
@@ -297,8 +292,6 @@ static inline void gen_mem_rrr_code(enum mem type , int rd , int rs1 , int off ,
      arg1.reg = rs1;
      arg2.reg = rs2;
      insert_mem_code(mem_op , rd , arg1 , arg2 , 0 , off , NO, 0);
-     if(type == load)
-          reg_dpt[rd].dirty = 1;
 }
 
 /*LDB/LDW rd , [rs1(off)] , rs2<<imme*/
@@ -324,8 +317,6 @@ static inline void gen_mem_lshft_code(enum mem type , int rd, int rs1, int off, 
      arg1.reg = rs1;
      arg2.reg = rs2;
      insert_mem_code(mem_op , rd , arg1 , arg2 , imme , off , LL, 0);
-     if(type == load)
-          reg_dpt[rd].dirty = 1;
 }
 
 /*LDB/LDW rd , [rs(off)] , #imme*/
@@ -352,8 +343,6 @@ static inline void gen_mem_rri_code(enum mem type , int rd , int rs1 , int off ,
      arg1.reg = rs1;
      arg2.imme = imme;
      insert_mem_code(mem_op , rd , arg1 , arg2 , 0 , off , NO, 0);
-     if(type == load)
-          reg_dpt[rd].dirty = 1;
 }
 
 /*LDB/LDW/STB/STW rd , [rs]*/
@@ -378,8 +367,6 @@ static inline void gen_mem_rr_code(enum mem type , int rd, int rs1, int width)
      arg1.type = Mach_Reg;
      arg1.reg = rs1;
      insert_mem_code(mem_op , rd , arg1 , null , 0 , 0 , NO, 0);
-     if(type == load)
-          reg_dpt[rd].dirty = 1;
 }
 
 /*OP rd , rs , #imme*/
@@ -390,7 +377,6 @@ static inline void gen_dp_rri_code(enum dp_op_type op , int rd , int rs , int im
      arg2.imme = imme;
      arg1.type = Mach_Reg;
      arg1.reg = rs;
-     reg_dpt[rd].dirty = 1;
      insert_dp_code(op, rd, arg1, arg2, 0, NO);
 }
 
@@ -493,30 +479,44 @@ static void prepare_temp_var_inmem()//gen addr at first
 		tmp_offset.imme = offset_from_sp;
 		insert_dp_code(SUB, REG_SP, tmp_sp, tmp_offset, 0, NO);
 	}
-
-	for(index = 0; index < cur_ref_var_num; index ++)//second scan, prepare data for first four params
+	/* just here */ /* TAOTAOTHERIPPER MARK */
+	struct var_list_node * cur = begin_var_list.head;
+	int id_index;
+	struct var_info * id_info;
+	while(cur != NULL && cur != begin_var_list.tail -> next)
 	{
-		if(is_id_var(index))//only the arg in register can reach here
+		id_index = cur -> var_map_index;
+		id_info = get_info_from_index(id_index);
+		if(alloc_reg.result[id_index] != -1)
 		{
-			if(is_arglist_byno(cur_func_info -> func_symt, index))
+			if(is_array(id_index) || is_conststr_byno(cur_func_info -> func_symt, id_index))
 			{
-				tmp_v_info = get_info_from_index(index);
+				load_pointer(id_index, alloc_reg.result[id_index], 0, -1);
+				continue;
+			}
+			if(is_global(id_index))
+			{
+				ref_global_var(id_index);//global var prepared when first used
+				load_var(id_info, alloc_reg.result[id_index]);
+				continue;
+			}
+			if(is_arglist_byno(cur_func_info -> func_symt, id_index))
+			{
 				param_rank = get_arglist_rank(cur_func_info -> func_symt, index);
 				if(param_rank > param_count - 4)
-				{
-					if(alloc_reg.result[index] != -1)
-					{
-						gen_mov_rsrd_code(alloc_reg.result[index], (param_count - param_rank));//the arg must be active in the entrance of the function
-						reg_dpt[alloc_reg.result[index]].dirty = 1;
-					}
-					else
-					{
-						if(is_active_var(index))//may be the param is in mem because it has never been refed in the function
-							store_var(tmp_v_info, (param_count - param_rank));
-					}
-				}
+					gen_mov_rsrd_code(alloc_reg.result[id_index], (param_count - param_rank));
+				else
+					load_var(id_info, alloc_reg.result[id_index]);
 			}
-		}/* if the param is in r0 ~ r3, just alloc mem in stack like other local var */
+		}
+		else
+		{
+			if(is_arglist_byno(cur_func_info -> func_symt, id_index))
+			{
+				if(is_active_var(id_index))//may be the param is in mem because it has never been refed in the function
+					store_var(id_info, (param_count - param_rank));
+			}
+		}
 	}
 }
 
@@ -858,10 +858,11 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 				if(index == except[ex])
 					break;
 			}
+			int reg_content  = reg_dpt[index].content;
 			switch(outlop)
 			{
 				case 0:
-					if(is_reg_saved(index) && reg_dpt[index].content == REG_UNUSED && ex == size)
+					if(is_reg_saved(index) && reg_content == REG_UNUSED && ex == size)
 					{
 						shadow_reg_dpt[index] = reg_dpt[index];
 						reg_dpt[index].content = REG_TEMP;//-2 means tmp_reg
@@ -869,7 +870,7 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 					}
 					break;
 				case 1:
-					if(is_reg_saved(index) && !is_global(reg_dpt[index].content) && !reg_dpt[index].dirty && ex == size)
+					if((is_array(reg_content) || is_conststr_byno(cur_func_info -> func_symt, reg_content)) && ex == size)
 					{
 						shadow_reg_dpt[index] = reg_dpt[index];
 						reg_dpt[index].content = REG_TEMP;
@@ -877,35 +878,27 @@ static int gen_tempreg(int * except, int size)//general an temp reg for the var 
 					}
 					break;
 				case 2:
-					if(is_reg_saved(index) && !is_global(reg_dpt[index].content) && is_id_var(reg_dpt[index].content) && ex == size)
+					if(!is_global(reg_content) && is_id_var(reg_content) && ex == size)
 					{
-						store_var(get_info_from_index(reg_dpt[index].content), index);
+						store_var(get_info_from_index(reg_content), index);
 						shadow_reg_dpt[index] = reg_dpt[index];
 						reg_dpt[index].content = REG_TEMP;
 						return index;
 					}
 					break;
 				case 3:
-					if(!is_global(reg_dpt[index].content) && ex == size)//include the regs which haven't been saved
+					if(!is_global(reg_content) && ex == size)//include the regs which haven't been saved
 					{
-						push_param(index);
+						push_param(reg_content);
 						shadow_reg_dpt[index] = reg_dpt[index];
 						reg_dpt[index].content = REG_TEMP;
 						return index;
 					}
 					break;
 				case 4:
-					if(ex == size && !reg_dpt[index].dirty)
-					{
-						shadow_reg_dpt[index] = reg_dpt[index];
-						reg_dpt[index].content = REG_TEMP;
-						return index;
-					}
-					break;
-				case 5:
 					if(ex == size)
 					{
-						store_global_var(get_info_from_index(reg_dpt[index].content), index);
+						store_global_var(get_info_from_index(reg_content), index);
 						shadow_reg_dpt[index] = reg_dpt[index];
 						reg_dpt[index].content = REG_TEMP;
 						return index;
@@ -927,32 +920,34 @@ static inline void restore_tempreg(int temp_reg)
 		/*fprintf(stderr, "error when restore tempreg invalid temp reg\n");*/
 		return;
 	}
-	if(is_reg_saved(temp_reg) && shadow_reg_dpt[temp_reg].content == REG_UNUSED)
-		;
-	else if(is_reg_saved(temp_reg) && !is_global(shadow_reg_dpt[temp_reg].content) && !shadow_reg_dpt[temp_reg].dirty)
-		;
-	else if(is_reg_saved(temp_reg) && !is_global(shadow_reg_dpt[temp_reg].content) && is_id_var(shadow_reg_dpt[temp_reg].content))	
-		load_var(get_info_from_index(shadow_reg_dpt[temp_reg].content), temp_reg);
-	else if(!is_global(shadow_reg_dpt[temp_reg].content))
+	int reg_content = shadow_reg_dpt[temp_reg].content;
+	if(is_reg_saved(temp_reg) && reg_content == REG_UNUSED)
+		;	
+	else if(is_array(reg_content) || is_conststr_byno(cur_func_info -> func_symt, reg_content))
+		load_pointer(reg_content, temp_reg, 0, -1);
+	else if(!is_global(reg_content) && is_id_var(reg_content))
+		load_var(get_info_from_index(reg_content), temp_reg);
+	else if(!is_global(reg_content))
 		pop_param_to_reg(temp_reg);
 	else
-		load_global_var(get_info_from_index(shadow_reg_dpt[temp_reg].content), temp_reg);
-	shadow_reg_dpt[temp_reg].dirty = 0;//has updated once
+		load_global_var(get_info_from_index(reg_content), temp_reg);
 	reg_dpt[temp_reg] = shadow_reg_dpt[temp_reg];
 	shadow_reg_dpt[temp_reg].content = -1;
-	shadow_reg_dpt[temp_reg].dirty = 0;
 }
 /*************************** get temp reg end ************************/
 
 /*************************** prepare arg beg *****************************/
-static inline void check_reg(int reg_num)//must deal with dirty and has_refed before
+static inline void check_reg(int reg_num)
 {
 	int var_index = reg_dpt[reg_num].content;
 	if(var_index != REG_UNUSED)
 	{
-		struct var_info * tmp_info = get_info_from_index(var_index);
-		if(is_global(var_index) && reg_dpt[reg_num].dirty)//the reg with string cann't be dirty, so the index here can only be g_var
-			store_global_var(tmp_info, reg_num);
+		struct var_info * tmp_info = get_info_from_index(var_index);	
+		if(is_global(var_index))
+		{
+			if(!is_array(var_index) && !is_conststr_byno(cur_func_info -> func_symt, var_index))
+				store_global_var(tmp_info, reg_num);
+		}
 		tmp_info -> reg_addr = -1;
 	}
 }
@@ -968,7 +963,8 @@ static inline enum Arg_Flag mach_prepare_arg(int arg_index, struct var_info * ar
 	if(is_global(arg_index))
 		ref_global_var(arg_index);//global var prepared when first used
 	
-	if(alloc_reg.result[arg_index] != -1)
+	if(alloc_reg.result[arg_index] != -1)/* for the refed var, it must be in the register now,
+										  or else it is allocated in the memory. */
 	{
 		flag = Arg_Reg;
 		if(arg_info -> reg_addr == -1)
@@ -976,8 +972,8 @@ static inline enum Arg_Flag mach_prepare_arg(int arg_index, struct var_info * ar
 			arg_info -> reg_addr = alloc_reg.result[arg_index];
 			check_reg(arg_info -> reg_addr);//if global var in reg, should store to mem
 			reg_dpt[arg_info -> reg_addr].content = arg_index;
-			reg_dpt[arg_info -> reg_addr].dirty = 0;
-			if(is_array(arg_index) && is_global(arg_index))
+			/*
+			if(is_array(arg_index) && is_global(arg_index))//just in case
 				load_pointer(arg_index, alloc_reg.result[arg_index], 0, -1);
 			else if(is_conststr_byno(cur_func_info -> func_symt, arg_index))
 				load_pointer(arg_index, alloc_reg.result[arg_index], 0, -1);
@@ -999,13 +995,11 @@ static inline enum Arg_Flag mach_prepare_arg(int arg_index, struct var_info * ar
 						}
 					}
 				}
-			}
+			}*/
 		}
 	}
 	else
-	{
 		flag = Arg_Mem;
-	}
 	return flag;
 }
 
@@ -1026,13 +1020,15 @@ static void flush_global_var()
 {
 	int index;
 	struct var_info * v_info;
+	int reg_content;
 	for(index = 0; index < TOTAL_REG_NUM; index ++)
 	{
 		if(is_reg_disabled(index))
 			continue;
-		v_info = get_info_from_index(reg_dpt[index].content);
-		
-		if(is_global(reg_dpt[index].content) && reg_dpt[index].dirty)
+		reg_content = reg_dpt[index].content;
+		v_info = get_info_from_index(reg_content);
+		if(!is_array(reg_content) && !is_conststr_byno(cur_func_info -> func_symt, reg_content) 
+				&& is_global(reg_content))
 			store_var(v_info, index);
 	}
 }
@@ -1043,23 +1039,24 @@ static void reload_global_var()
 {
 	int index;
 	struct var_info * v_info;
+	int reg_content;
 	for(index = 0; index < TOTAL_REG_NUM; index ++)
 	{
 		if(is_reg_disabled(index))
 			continue;
-		v_info = get_info_from_index(reg_dpt[index].content);
-		if(is_global(reg_dpt[index].content) && reg_dpt[index].dirty)
-		{
+		reg_content = reg_dpt[index].content;
+		v_info = get_info_from_index(reg_content);
+		if(!is_array(reg_content) && !is_conststr_byno(cur_func_info -> func_symt, reg_content) 
+				&& is_global(reg_content))
 			load_var(v_info, index);
-			reg_dpt[index].dirty = 0;
-		}	
 	}
 }
 
 static void flush_pointer_entity(enum mem type, struct var_list * entity_list)
 {
 	struct var_info * v_info;
-	int index;	
+	int index;
+	int reg_content;
 	if(entity_list == NULL)
 		return;
 	else if(entity_list -> head == NULL)
@@ -1068,16 +1065,15 @@ static void flush_pointer_entity(enum mem type, struct var_list * entity_list)
 		{
 			if(is_reg_disabled(index))
 				continue;
-			v_info = get_info_from_index(reg_dpt[index].content);
-			if(is_id_var(reg_dpt[index].content) && reg_dpt[index].dirty)
+			reg_content = reg_dpt[index].content;
+			v_info = get_info_from_index(reg_content);
+			if(is_id_var(reg_dpt[index].content) && !is_array(reg_content) 
+				&& !is_conststr_byno(cur_func_info -> func_symt, reg_content))
 			{
 				if(type == load)
 					load_var(v_info, index);
 				else
-				{
 					store_var(v_info, index);
-					reg_dpt[index].dirty = 0;
-				}
 			}
 		}
 	}
@@ -1091,19 +1087,17 @@ static void flush_pointer_entity(enum mem type, struct var_list * entity_list)
 			{
 				if(is_reg_disabled(index))
 					continue;
-				if(reg_dpt[index].content == tmp -> var_map_index)
+				reg_content = reg_dpt[index].content;
+				if(reg_content  == tmp -> var_map_index)
 				{
 					v_info = get_info_from_index(tmp -> var_map_index);
-					struct value_info * array_info = get_valueinfo_byno(cur_func_info -> func_symt, tmp -> var_map_index);
-					if(reg_dpt[index].dirty && array_info -> type -> type != Array)
+					if(is_id_var(reg_dpt[index].content) && !is_array(reg_content) 
+							&& !is_conststr_byno(cur_func_info -> func_symt, reg_content))
 					{
 						if(type == load)
 							load_var(v_info, index);
 						else
-						{
 							store_var(v_info, index);
-							reg_dpt[index].dirty = 0;
-						}
 					}
 				}
 			}
@@ -2103,10 +2097,7 @@ static void gen_per_code(struct triargexpr * expr)
 
 				int tempdest;
 				if(dest_flag == Arg_Reg)
-				{
-					reg_dpt[dest_info -> reg_addr].dirty = 1;
 					tempdest = dest_info -> reg_addr;
-				}
 				else
 				{
 					if(mark1)
@@ -2365,12 +2356,11 @@ static void gen_per_code(struct triargexpr * expr)
                     vinfo = get_info_from_index(focus->var_map_index);
                     if((vinfo->reg_addr >= 4 && vinfo->reg_addr <= 15) || vinfo->reg_addr == 28)
                     {
-						/* the dirty global var has been stored in flush global var, so here I
+						/* the global var has been stored in flush global var, so here I
 						   don't need to store the clear reg, just reload it later is OK. */
-						if(!is_global(focus->var_map_index))
+						if(!is_global(focus->var_map_index))/* the array and string is clear global var, just store var */
 						{
-							if(is_id_var(focus->var_map_index)
-								&& reg_dpt[vinfo->reg_addr].dirty)/* the array and string is clear global var, just store var */
+							if(is_id_var(focus->var_map_index))
 								store_var(vinfo, vinfo -> reg_addr);
 							else
 								gen_mem_rri_code(store, vinfo -> reg_addr, REG_FP, -1, caller_save_index - saved_reg_count * WORD, WORD);
@@ -2388,20 +2378,14 @@ static void gen_per_code(struct triargexpr * expr)
 					int reg_num = saved_reg[saved_reg_count];
 					int var_index = reg_dpt[reg_num].content;/* the reg_dpt won't change during funcall */
 					vinfo = get_info_from_index(var_index);
-					if(is_global(var_index))/* load clear global var, may be array and const string */
+					if(is_array(var_index) || is_conststr_byno(cur_func_info -> func_symt, var_index))/* load clear global var, may be array and const string */
 					{
-						if(!reg_dpt[reg_num].dirty)/* the dirty one will be solved in reload global var */
-						{
-							if(is_array(var_index) || is_conststr_byno(cur_func_info -> func_symt, var_index))
-								load_pointer(var_index, reg_num, 0, -1);
-							else load_var(vinfo, reg_num); 
-						}
+						load_pointer(var_index, reg_num, 0, -1);
 						continue;
 					}
 					if(is_id_var(var_index))/* there won't be any array or const string in local reg */
 					{
 						load_var(vinfo, reg_num);
-						reg_dpt[reg_num].dirty = 0;/* the register is consistent with the mem now */
 						continue;
 					}/* or else the temp vars are all in caller save zoon, just load them */
 					caller_arg1.type = Mach_Reg;
@@ -2414,10 +2398,7 @@ static void gen_per_code(struct triargexpr * expr)
 				if(dest_index != -1)//The r0 won't be changed during the restore above	
 				{
 					if(dest_flag == Arg_Reg)
-					{
 						gen_mov_rsrd_code(dest_info -> reg_addr, 0);
-						reg_dpt[dest_info -> reg_addr].dirty = 1;
-					}
 					else
 						store_var(dest_info, 0);
 				}
@@ -2512,8 +2493,6 @@ static void gen_per_code(struct triargexpr * expr)
 					store_var(dest_info, reg);
 					restore_tempreg(reg);
 				}
-				else
-					reg_dpt[dest_info -> reg_addr].dirty = 1;
 
 				break;
 			}

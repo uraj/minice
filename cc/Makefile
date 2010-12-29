@@ -11,7 +11,7 @@ minic_asmout.o: minic_asmout.h minic_asmout.c minic_machinecode.h
 	gcc minic_asmout.c $(CFLAGS) -o $@
 minic_machinecode.o:minic_machinecode.h minic_machinecode.c  minic_asmout.h minic_basicblock.h minic_flowanalyse.h minic_aliasanalyse.h minic_varmapping.h minic_regalloc.h minic_typedef.h
 	gcc minic_machinecode.c $(CFLAGS) -o $@
-minic_flowanalyse.o:minic_flowanalyse.h minic_flowanalyse.c minic_basicblock.h minic_symtable.h
+minic_flowanalyse.o:minic_flowanalyse.h minic_flowanalyse.c minic_basicblock.h minic_symtable.h minic_triargexpr.h
 	gcc minic_flowanalyse.c $(CFLAGS) -o $@
 minic_ast.o:minic_ast.h minic_ast.c minic_typedef.h
 	gcc minic_ast.c $(CFLAGS) -o $@

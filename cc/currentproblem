@@ -86,3 +86,4 @@ consider this case:
 29.Const string on the right side of equals sign
 30.Some optimize when caller save//Done
 31.The pointer as parameter may need some flush.
+32.Bug for quicksort.

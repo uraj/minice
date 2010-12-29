@@ -3,6 +3,7 @@
 
 #include "minic_basicblock.h"
 #include "minic_symtable.h"
+#include "minic_triargexpr.h"
 
 #define DEFINE 0
 #define USE 1
@@ -48,7 +49,7 @@ extern struct var_list *var_list_inter(struct var_list *inter , struct var_list 
 
 /*analyse*/
 extern int get_max_func_varlist();
-extern int is_assign(struct triargexpr *expr , int dest_index);//判断一个赋值语句是否有必要分析
+extern int is_assign(struct triargexpr * expr , int dest_index);//判断一个赋值语句是否有必要分析
 extern struct var_list *analyse_actvar(int *expr_num , int func_index);//活跃变量分析
 extern void free_all(struct var_list *all_var_lists);//free all memory
 extern int is_active_var(int mapid);//给定mapid，判断它是否在活跃变量里面
