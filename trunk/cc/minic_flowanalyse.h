@@ -22,6 +22,8 @@ extern struct triargtable **table_list;
 extern int option_show_active_var;
 extern int option_show_flow_debug;
 extern struct var_list begin_var_list;//程序开头处活跃的变量
+extern struct var_list def_g_list;//当前函数中所有可能被定值过的全局变量
+extern int def_g_num;//当前函数中所有可能被定值过的全局变量
 
 /*var_list_node*/
 extern struct var_list_node *var_list_node_new();

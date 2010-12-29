@@ -1141,6 +1141,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
           while(temp_expr != DFS_array[i]->head->prev)
           {
                is_continue = 0;
+               temp_expr->entity->actvar_list = NULL;
                switch(temp_expr->entity->op)
                {
                case Assign:       //arg1 = arg2
@@ -1319,8 +1320,6 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                          if(count > sg_max_func_varlist)
                               sg_max_func_varlist = count;
                }
-               else
-                    temp_expr->entity->actvar_list = NULL;
                
                if(option_show_flow_debug == 1)
                {
