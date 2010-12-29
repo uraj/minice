@@ -869,6 +869,23 @@ static void solve_equa_ud()//求解活跃变量方程组
                //var_out[Bi] = +var_in[s];s属于NEXT[Bi]
                temp_block = DFS_array[i]->next;
                var_list_clear(var_out + i);//clear the v_out of the block before op
+               
+               if(is_end_block(i) == 1)//该block可能是结尾block，此时将该函数中所有可能被定值的全局变量都放到var_out里面
+               {
+                    int j;
+                    int global_var_num = get_globalvar_num();
+                    int count = 0;
+                    for(j = 0 ; j < global_var_num ; j++)
+                    {
+                         if(defed_gvar[j] == 1)
+                         {
+                              count++;
+                              var_list_append(var_out + i , j);
+                         }
+                    }
+                    var_list_sort(var_out + i , count);
+               }
+               
                while(temp_block != NULL)
                {
                     next = temp_block->entity->index;
@@ -889,24 +906,6 @@ static void solve_equa_ud()//求解活跃变量方程组
 	 var_list_copy(var_in , &begin_var_list);
      for(i = 0 ; i < g_block_num ; i++)//解方程组后，def，use和var_in都没用了
      {
-          if(is_end_block(i) == 1)//该block可能是结尾block，此时将该函数中所有可能被定值的全局变量都放到var_out里面
-          {
-               int j;
-               struct var_list g_def;
-               g_def.head = g_def.tail = NULL;
-               int global_var_num = get_globalvar_num();
-               int count = 0;
-               for(j = 0 ; j < global_var_num ; j++)
-               {
-                    if(defed_gvar[j] == 1)
-                    {
-                         count++;
-                         var_list_append(&g_def , j);
-                    }
-               }
-               var_list_sort(&g_def , count);
-               var_list_merge(&g_def , var_out + i);
-          }
           if(option_show_active_var == 1)
           {
                printf("DEF %d :" , i);
@@ -1164,7 +1163,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                          else if(last_expr->op == Deref)
                          {
                               add1 = -1;
-                              add2 = get_index_of_arg(&(last_expr->arg2) , NULL);
+                              add2 = get_index_of_arg(&(last_expr->arg1) , NULL);
                               struct var_list temp_list;
                               temp_list.head = temp_list.tail = NULL;
                               make_change_list(add1 , add2 , &temp_list);
@@ -1252,8 +1251,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     make_change_list(add1 , add2 , add_list);
                     if(temp_expr->entity->op == Deref)//引用的*p，需要把它所有可能对应的实体都置成活跃
                     {
-                         struct triargexpr_list *temp_expr_node = cur_func_triarg_table->index_to_list[temp_expr->entity->arg1.expr];/*TAOTAOTHERIPPER MARK */
-                         point_list = temp_expr_node->pointer_entity;
+                         point_list = temp_expr->pointer_entity;
                          add_list = var_list_merge(point_list , add_list);
                     }
                     var_list_copy(next_del_list , del_list);
