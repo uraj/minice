@@ -2006,12 +2006,12 @@ static int get_2_power(int num , int *remain)
      }
      if((res = is_2_power(num + 1)) != -1 )
      {
-          (*remain) = 1;
+          (*remain) = -1;
           return res;
      }
      if((res = is_2_power(num - 1)) != -1 )
      {
-          (*remain) = -1;
+          (*remain) = 1;
           return res;
      }
      return -1;
