@@ -6,6 +6,7 @@
 #include <string.h>
 
 //#define LARGEWINDOW
+#define MORE_OPTIMIZE
 
 struct mach_code_list
 {
@@ -172,23 +173,21 @@ static struct mach_code_list * search_inst(struct mach_code_list * cur)
 							break;
 						case STW:
 						case STB:
-							return NULL;
+							//return NULL;
 #if 0
 							if(des_reg_mark[cur -> entity -> dest] != 1
 									&& (cur -> entity -> arg1.type != Mach_Reg || des_reg_mark[cur -> entity -> arg1.reg] != 1)
 									&& (cur -> entity -> arg2.type != Mach_Reg || des_reg_mark[cur -> entity -> arg2.reg] != 1))
-							{
 								if(cur -> entity -> indexed != PREW && cur -> entity -> indexed != POST)
 									return cur;
 								if(src_reg_mark[cur -> entity -> arg1.reg] != 1)/* must in reg here */
 									return cur;
 								else
-									des_reg_mark[cur -> entity -> arg1.reg] = 1;/* special dest */
-							}
-							else
+#endif
+									if(cur -> entity -> indexed == PREW || cur -> entity -> indexed == POST)
+										des_reg_mark[cur -> entity -> arg1.reg] = 1;/* special dest */
 								src_reg_mark[cur -> entity -> dest] = 1;/* special src */
 							break;
-#endif
 						default:
 							fprintf(stderr, "error mem type in instruction scheduling.\n");
 							exit(1);
