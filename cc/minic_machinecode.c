@@ -517,6 +517,7 @@ static void prepare_temp_var_inmem()//gen addr at first
 					store_var(id_info, (param_count - param_rank));
 			}
 		}
+		cur = cur -> next;
 	}
 }
 

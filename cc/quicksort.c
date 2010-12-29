@@ -152,6 +152,6 @@ int main()
     quicksort(a, a + 99);
     for(j = 0; j < 100; ++j)
         printline_int(a[j]);
-    return 0;
+    return;
 }
 
