@@ -1419,14 +1419,6 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
                     gen_mem_rri_code(type, dest_reg, arg1_reg, 1, (expr->arg2.imme) << width_shift, 1 << width_shift);
                else//MEM dest_reg , [arg1_reg+] , arg2_reg << #width_shift
                     gen_mem_lshft_code(type , dest_reg , arg1_reg , 1 , arg2_reg , width_shift , 1 << width_shift);
-			   
-			   /*对于全局数组，如果目的操作数和数组名变量都在寄存器，而且下标不在内存中，可能可以优化*/
-			   if(dest_flag == Arg_Reg && arg2_flag != Arg_Mem)
-			   {
-				   struct var_info *expr_info = get_info_from_index(expr->index);
-				   if(expr_info != NULL && expr_info->ref_mark == 0)
-					   set_optmz(cur_code_index - 1 , optmz);
-			   }
 		  }
           else
           {
@@ -1495,6 +1487,15 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
 
      for(i = temp_reg_size ; i >= 0 ; i--)//恢复所有临时寄存器，注意顺序。
           restore_tempreg(temp_reg[i]);
+
+     /*如果没有产生临时寄存器，可能可以优化*/
+     if(temp_reg_size == -1)
+     {
+          struct var_info *expr_info = get_info_from_index(expr->index);
+          if(expr_info != NULL && expr_info->ref_mark == 0)
+               set_optmz(cur_code_index - 1 , optmz);
+     }
+     
      return dest_reg;
 }
 
@@ -1570,6 +1571,14 @@ static int gen_deref_code(enum mem type, struct triargexpr *expr, struct var_inf
           restore_tempreg(temp_reg[i]);
      if(type == store)
           flush_pointer_entity(load , expr_node->pointer_entity);
+
+     /*如果没有产生临时寄存器，而且是load类型，可能可以优化*/
+     if(temp_reg_size == -1 && type == load)
+     {
+          struct var_info *expr_info = get_info_from_index(expr->index);
+          if(expr_info != NULL && expr_info->ref_mark == 0)
+               set_optmz(cur_code_index - 1 , optmz);
+     }
 
      return dest_reg;
 }
