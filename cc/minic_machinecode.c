@@ -61,6 +61,7 @@ static const int max_reg_num = 23;
 static int cur_code_index;/*cur_code_index 当前数目*/
 static int cur_code_bound;
 static const char optmz = 1 , un_optmz = 0;
+static int is_combine = 1;
 
 static int arglist_num_mark;//count arglist num, should be clear to zero after func call and pop arg
 static int caller_save_index;
@@ -1463,6 +1464,18 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
 
      for(i = temp_reg_size ; i >= 0 ; i--)//恢复所有临时寄存器，注意顺序。
           restore_tempreg(temp_reg[i]);
+
+     /*如果没有产生临时寄存器，可能可以优化*/
+     if(is_combine == 1)
+     {
+          if(temp_reg_size == -1)
+          {
+               struct var_info *expr_info = get_info_from_index(expr->index);
+               if(expr_info != NULL && expr_info->ref_mark == 0)
+                    set_optmz(cur_code_index - 1 , optmz);
+          }
+     }
+     
      return dest_reg;
 }
 
@@ -1539,6 +1552,17 @@ static int gen_deref_code(enum mem type, struct triargexpr *expr, struct var_inf
      if(type == store)
           flush_pointer_entity(load , expr_node->pointer_entity);
 
+     /*如果没有产生临时寄存器，而且是load类型，可能可以优化*/
+     if(is_combine == 1)
+     {
+          if(temp_reg_size == -1 && type == load)
+          {
+               struct var_info *expr_info = get_info_from_index(expr->index);
+               if(expr_info != NULL && expr_info->ref_mark == 0)
+                    set_optmz(cur_code_index - 1 , optmz);
+          }
+     }
+     
      return dest_reg;
 }
 
@@ -1863,6 +1887,16 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 		store_var(dest_info, dest_reg);
 		restore_tempreg(dest_reg);
 	}
+    /*如果没有产生临时寄存器，可能可以优化*/
+     if(is_combine == 1)
+     {
+          if(tmp_mark == 0)
+          {
+               struct var_info *expr_info = get_info_from_index(expr->index);
+               if(expr_info != NULL && expr_info->ref_mark == 0)
+                    set_optmz(cur_code_index - 1 , optmz);
+          }
+     }
 }
 
 static void gen_per_code(struct triargexpr * expr)
@@ -2152,6 +2186,16 @@ static void gen_per_code(struct triargexpr * expr)
 					restore_tempreg(tempreg2);
 				if(mark1)
 					restore_tempreg(tempreg1);
+                /*如果没有产生临时寄存器，可能可以优化*/
+                if(is_combine == 1)
+                {
+                     if(dest_flag == Arg_Reg && mark1 == 0 && mark2 == 0)
+                     {
+                          struct var_info *expr_info = get_info_from_index(expr->index);
+                          if(expr_info != NULL && expr_info->ref_mark == 0)
+                               set_optmz(cur_code_index - 1 , optmz);
+                     }
+                }
 				break;
 			}
             
