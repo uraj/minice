@@ -247,7 +247,7 @@ static inline void gen_mov_rsrd_code(int rd , int rs)
      struct mach_arg src_arg;
      src_arg.type = Mach_Reg;
      src_arg.reg = rs;
-     insert_dp_code(MOV , rd , src_arg , null , 0 , NO);
+     insert_dp_code(MOV , rd , null , src_arg , 0 , NO);
 }
 
 /*MOV rd , #imme*/
@@ -256,7 +256,7 @@ static inline void gen_mov_rsim_code(int rd , int imme)
      struct mach_arg src_arg;
      src_arg.type = Mach_Imm;
      src_arg.imme = imme;
-     insert_dp_code(MOV , rd , src_arg , null , 0 , NO);
+     insert_dp_code(MOV , rd , null , src_arg , 0 , NO);
 }
 
 /*MOV rd , rs << #imme*/
