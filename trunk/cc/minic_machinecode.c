@@ -234,6 +234,8 @@ static inline void insert_buncond_code(char * dest_label, char link)
 static inline void set_optmz(int index , char is_optmz)
 {
 	code_table_list[cur_func_index].table[index].optimize = is_optmz;
+    printf("**");
+    mcode_out(code_table_list[cur_func_index].table + index , stdout);
 }
 /*************************** insert code over *************************/
 
@@ -1477,7 +1479,8 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
      {
           if(temp_reg_size == -1)
           {
-               struct var_info *expr_info = get_info_from_index(expr->index);
+               int index = get_index_of_temp(expr->index);
+               struct var_info *expr_info = get_info_from_index(index);
                if(expr_info != NULL && expr_info->ref_mark == 0)
                     set_optmz(cur_code_index - 1 , optmz);
           }
@@ -1564,7 +1567,8 @@ static int gen_deref_code(enum mem type, struct triargexpr *expr, struct var_inf
      {
           if(temp_reg_size == -1 && type == load)
           {
-               struct var_info *expr_info = get_info_from_index(expr->index);
+               int index = get_index_of_temp(expr->index);
+               struct var_info *expr_info = get_info_from_index(index);
                if(expr_info != NULL && expr_info->ref_mark == 0)
                     set_optmz(cur_code_index - 1 , optmz);
           }
@@ -1899,7 +1903,8 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
      {
           if(tmp_mark == 0)
           {
-               struct var_info *expr_info = get_info_from_index(expr->index);
+               int index = get_index_of_temp(expr->index);
+               struct var_info *expr_info = get_info_from_index(index);
                if(expr_info != NULL && expr_info->ref_mark == 0)
                     set_optmz(cur_code_index - 1 , optmz);
           }
@@ -2199,7 +2204,8 @@ static void gen_per_code(struct triargexpr * expr)
                 {
                      if(dest_flag == Arg_Reg && arg1_flag != Arg_Mem && arg2_flag != Arg_Mem)
                      {
-                          struct var_info *expr_info = get_info_from_index(expr->index);
+                          int index = get_index_of_temp(expr->index);
+                          struct var_info *expr_info = get_info_from_index(index);
                           if(expr_info != NULL && expr_info->ref_mark == 0)
                                set_optmz(cur_code_index - 1 , optmz);
                      }
@@ -2334,7 +2340,8 @@ static void gen_per_code(struct triargexpr * expr)
                 {
                      if(dest_flag == Arg_Reg && arg1_flag != Arg_Mem)
                      {
-                          struct var_info *expr_info = get_info_from_index(expr->index);
+                          int index = get_index_of_temp(expr->index);
+                          struct var_info *expr_info = get_info_from_index(index);
                           if(expr_info != NULL && expr_info->ref_mark == 0)
                                set_optmz(cur_code_index - 1 , optmz);
                      }
@@ -2592,7 +2599,8 @@ static void gen_per_code(struct triargexpr * expr)
                 {
                      if(dest_flag == Arg_Reg)
                      {
-                          struct var_info *expr_info = get_info_from_index(expr->index);
+                          int index = get_index_of_temp(expr->index);
+                          struct var_info *expr_info = get_info_from_index(index);
                           if(expr_info != NULL && expr_info->ref_mark == 0)
                                set_optmz(cur_code_index - 1 , optmz);
                      }
