@@ -857,8 +857,6 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
           if(option_show_flow_debug == 1)
                printf("\n");
      }
-     begin_var_list.head = begin_var_list.tail = NULL;
-	 var_list_copy(var_in , &begin_var_list);
      free(def_size);
      free(use_size);
 }
@@ -895,6 +893,8 @@ static void solve_equa_ud()//求解活跃变量方程组
                }
           }
      }
+     begin_var_list.head = begin_var_list.tail = NULL;
+	 var_list_copy(var_in , &begin_var_list);
      for(i = 0 ; i < g_block_num ; i++)//解方程组后，def，use和var_in都没用了
      {
           if(option_show_active_var == 1)
