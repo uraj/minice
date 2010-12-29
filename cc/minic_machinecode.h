@@ -3,7 +3,7 @@
 #include "minic_flowanalyse.h"
 #include <stdint.h>
 #include <stdio.h>
-//#define PEEPHOLE
+#define PEEPHOLE
 //#define MACH_DEBUG
 
 #define REG_SP 29
