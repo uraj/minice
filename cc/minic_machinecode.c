@@ -1987,6 +1987,36 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
      }
 }
 
+static int is_2_power(int num)
+{
+     int i;
+     for(i = 0 ; i < 32 ; i++)
+          if(num == (1 << i))
+               return i;
+     return -1;
+}
+
+static int get_2_power(int num , int *remain)
+{
+     int res;
+     if((res = is_2_power(num)) != -1 )
+     {
+          (*remain) = 0;
+          return res;
+     }
+     if((res = is_2_power(num + 1)) != -1 )
+     {
+          (*remain) = 1;
+          return res;
+     }
+     if((res = is_2_power(num - 1)) != -1 )
+     {
+          (*remain) = -1;
+          return res;
+     }
+     return -1;
+}
+
 static void gen_per_code(struct triargexpr * expr)
 {
 	check_is_jump_dest(expr -> index);
@@ -2259,9 +2289,42 @@ static void gen_per_code(struct triargexpr * expr)
 					else
 					{
 						if(arg1_flag == Arg_Imm)
-							insert_dp_code(op_type, tempdest, binary_arg2, binary_arg1, 0, NO);
+                        {
+                             int power , remain;
+                             power = get_2_power(binary_arg1.imme , &remain);
+                             if(op_type == MUL && power != -1)
+                             {
+                                  if(remain == 0)//MOV tempdest , reg2 << power
+                                       insert_dp_code(MOV , tempdest , null , binary_arg2 , power , LL);
+                                  else if(remain == 1)//ADD tempdest , reg2 , reg2 << power
+                                       insert_dp_code(ADD , tempdest , binary_arg2 , binary_arg2 , power , LL);
+                                  else if(remain == -1)//RSUB tempdest , reg2 , reg2 << power
+                                       insert_dp_code(RSUB , tempdest , binary_arg2 , binary_arg2 , power , LL);
+                             }
+                             else
+                                  insert_dp_code(op_type, tempdest, binary_arg2, binary_arg1, 0, NO);
+                        }
 						else
-							insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 0, NO);
+                        {
+                             if(arg2_flag == Arg_Imm)
+                             {
+                                  int power , remain;
+                                  power = get_2_power(binary_arg2.imme , &remain);
+                                  if(op_type == MUL && power != -1)
+                                  {
+                                       if(remain == 0)//MOV tempdest , reg1 << power
+                                            insert_dp_code(MOV , tempdest , null , binary_arg1 , power , LL);
+                                       else if(remain == 1)//ADD tempdest , reg1 , reg1 << power
+                                            insert_dp_code(ADD , tempdest , binary_arg1 , binary_arg1 , power , LL);
+                                       else if(remain == -1)//RSUB tempdest , reg1 , reg1 << power
+                                            insert_dp_code(RSUB , tempdest , binary_arg1 , binary_arg1 , power , LL);
+                                  }
+                                  else
+                                       insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 0, NO);
+                             }
+                             else
+                                  insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 0, NO);
+                        }
 					}
 				}
 
@@ -2278,7 +2341,7 @@ static void gen_per_code(struct triargexpr * expr)
                 /*三个操作数都是寄存器或立即数，可能可以优化*/
                 if(is_combine == 1)
                 {
-                     if(dest_flag == Arg_Reg && arg1_flag != Arg_Mem && arg2_flag != Arg_Mem)
+                     if(dest_flag == Arg_Reg && mark1 == 0 && mark2 == 0)
                      {
                           int index = get_index_of_temp(expr->index);
                           struct var_info *expr_info = get_info_from_index(index);
