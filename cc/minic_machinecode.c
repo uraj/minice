@@ -133,6 +133,7 @@ static inline int insert_code(struct mach_code newcode)
         free(code_table_list[cur_func_index].table);
 		code_table_list[cur_func_index].table = tmp_table_list;
     }
+	newcode.optimize = 0;
 	code_table_list[cur_func_index].code_num ++;
 	code_table_list[cur_func_index].table[cur_code_index++] = newcode;
 #ifdef MACH_DEBUG
@@ -234,8 +235,6 @@ static inline void insert_buncond_code(char * dest_label, char link)
 static inline void set_optmz(int index , char is_optmz)
 {
 	code_table_list[cur_func_index].table[index].optimize = is_optmz;
-    printf("**");
-    mcode_out(code_table_list[cur_func_index].table + index , stdout);
 }
 /*************************** insert code over *************************/
 
@@ -1098,6 +1097,83 @@ static void flush_pointer_entity(enum mem type, struct var_list * entity_list)
 		}
 	}
 }
+#if 0
+static caller_save()
+
+static flush_for_func(enum mem type, struct var_list * entity_list)
+{
+	struct var_info * v_info;
+	int index;
+	int reg_content;
+	if(entity_list == NULL)
+		return;
+	else if(entity_list -> head == NULL)
+	{
+		for(index = 0; index < TOTAL_REG_NUM; index ++)
+		{
+			if(is_reg_disabled(index))
+				continue;
+			reg_content = reg_dpt[index].content;
+			v_info = get_info_from_index(reg_content);
+			if(is_global(reg_dpt[index].content) && !is_array(reg_content) 
+				&& !is_conststr_byno(cur_func_info -> func_symt, reg_content))
+			{
+				if(type == load)
+					load_var(v_info, index);
+				else
+					store_var(v_info, index);
+			}
+		}
+	}
+	else
+	{
+		struct var_list_node * tmp;
+		tmp = entity_list -> head;
+		while(tmp != entity_list -> tail -> next)
+		{
+			for(index = 0; index < TOTAL_REG_NUM; index ++)
+			{
+				if(is_reg_disabled(index))
+					continue;
+				reg_content = reg_dpt[index].content;
+				if(reg_content  == tmp -> var_map_index)
+				{
+					v_info = get_info_from_index(tmp -> var_map_index);
+					if(is_id_var(reg_dpt[index].content) && !is_array(reg_content) 
+							&& !is_conststr_byno(cur_func_info -> func_symt, reg_content))
+					{
+						if(type == load)
+							load_var(v_info, index);
+						else
+							store_var(v_info, index);
+					}
+				}
+			}
+			tmp = tmp -> next;
+		}
+	}
+	while(focus != NULL && focus != expr -> actvar_list -> tail -> next)
+                {
+                    vinfo = get_info_from_index(focus->var_map_index);
+                    if((vinfo->reg_addr >= 4 && vinfo->reg_addr <= 15) || vinfo->reg_addr == 28)
+                    {
+						/* the global var has been stored in flush global var, so here I
+						   don't need to store the clear reg, just reload it later is OK. */
+						if(is_array(focus->var_map_index) || is_conststr_byno(cur_func_info -> func_symt, focus->var_map_index))
+							saved_reg[saved_reg_count++] = vinfo->reg_addr;
+						else if(!is_global(focus->var_map_index))/* the array and string is clear global var, just store var */
+						{
+							if(is_id_var(focus->var_map_index))
+								store_var(vinfo, vinfo -> reg_addr);
+							else
+								gen_mem_rri_code(store, vinfo -> reg_addr, REG_FP, -1, caller_save_index - saved_reg_count * WORD, WORD);
+							saved_reg[saved_reg_count++] = vinfo->reg_addr;	
+						}
+                    }
+					focus = focus -> next;
+                }
+}
+#endif
 /**************************** flush pointer entity end ***************************/
 
 

@@ -87,8 +87,12 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 					if(is_global(var_index))
 						defed_gvar[var_index] = 1;
 				}
-				if(expr.arg2.type == ExprArg)/* mark */
-					insert_tempvar(expr.arg2.expr, 0);//will be removed as a kind of optimizing later
+				if(expr.arg2.type == ExprArg)
+				{
+					if(expr.arg1.type != ExprArg)/* mark */
+						insert_tempvar(expr.arg2.expr, 0);//will be removed as a kind of optimizing later
+					else insert_tempvar(expr.arg2.expr, 1);
+				}
 				break;//Current now, don't treat assign reference as real reference, can be optimizing some, and will be optimized some
 			case Eq:                         /* == */
 			case Neq:                        /* != */

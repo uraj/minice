@@ -266,7 +266,7 @@ static void merge_binary_operation()
 	{
 		/* if there is this kind of op the dest will occupy the reg 
 		   for only one one clock, so that won't affect register 
-		   allocation too much */ 
+		   allocation too much */
 		if(cur -> entity -> optimize && cur -> next != NULL)/* the one which can be optimized must have dest reg */
 		{
 			if(cur -> next -> entity -> op_type == DP 
@@ -274,13 +274,12 @@ static void merge_binary_operation()
 					&& cur -> next -> entity -> arg2.type == Mach_Reg 
 					&& cur -> next -> entity -> arg2.reg == cur -> entity -> dest)
 			{
-				cur -> entity -> dest = cur -> next -> entity -> arg2.reg;
+				cur -> entity -> dest = cur -> next -> entity -> dest;
 				cur -> next -> prev = cur;
 				unused = cur -> next;
 				cur -> next = cur -> next -> next;
 				free(unused);
 				merge_success ++;
-				continue;/* the next may be mov, too */
 			}
 		}
 		cur = cur -> next;
@@ -308,7 +307,7 @@ void peephole(int func_index, FILE * out_buf)
 		instruction_scheduling();
 	}while(former_success != scheduling_success);
 	print_code_list(out_buf);
-	printf("scheduling success:%d\n", scheduling_success);
+	//printf("scheduling success:%d\n", scheduling_success);
 	//printf("merge success:%d\n", merge_success);
 	free_code_list();
 }

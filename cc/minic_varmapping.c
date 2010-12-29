@@ -104,7 +104,7 @@ int insert_tempvar(int exprindex, int isrefed)
 	}
 	var_info_table[exprindex + cur_var_id_num] = new_var_info();
 	var_info_table[exprindex + cur_var_id_num] -> index = map_bridge_cur_index + cur_var_id_num;
-	var_info_table[exprindex + cur_var_id_num] -> ref_mark = isrefed; 
+	var_info_table[exprindex + cur_var_id_num] -> ref_mark = isrefed;
 	//malloc the flags in the var_info_table
     if(map_bridge_cur_index >= map_bridge_bound)
     {
