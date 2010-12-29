@@ -15,7 +15,7 @@ struct triarg
         char* idname;
         int expr; /* use index of the triargexpr, not the address */
         int imme;
-		struct var_list *func_actvar_list;
+		struct var_list *func_flush_list;
     };
 };
 
