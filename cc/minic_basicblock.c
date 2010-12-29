@@ -501,6 +501,7 @@ static struct search_res search_block(struct basic_block * block)
 				uncond_jump.arg1.expr = tmp_res.expr_index;
 				uncond_jump.arg2.type = ExprArg;
 				uncond_jump.arg2.expr = -1;
+				uncond_jump.actvar_list = NULL;
 				struct triargexpr_list * uncond_node = basicblock_insert_triargexpr(uncond_jump);
 				block -> tail -> next = uncond_node;
 				uncond_node -> prev = block -> tail;
@@ -537,6 +538,7 @@ static struct search_res search_block(struct basic_block * block)
 					uncond_jump.arg1.expr = tmp_res.expr_index;
 					uncond_jump.arg2.type = ExprArg;
 					uncond_jump.arg2.expr = -1;
+					uncond_jump.actvar_list = NULL;
 					struct triargexpr_list * uncond_node = basicblock_insert_triargexpr(uncond_jump);
 					block -> tail -> next = uncond_node;
 					uncond_node -> prev = block -> tail;

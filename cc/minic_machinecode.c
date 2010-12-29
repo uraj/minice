@@ -227,6 +227,7 @@ static inline void insert_buncond_code(char * dest_label, char link)
 	new_code.op_type = BRANCH;
 	new_code.branch_op = B;
 	new_code.dest_label = dest_label;
+	new_code.link = link;
 	insert_code(new_code);
 }
 
@@ -959,10 +960,15 @@ static inline void update_reg_content(struct triargexpr * expr)
 	if(active_list == NULL)
 		return;
 	struct var_list_node * tmp_node = active_list -> head;
+	struct var_info * tmp_info;
 	while(tmp_node != NULL && tmp_node != active_list -> tail -> next)
 	{
 		if(alloc_reg.result[tmp_node -> var_map_index] != -1)
+		{
+			tmp_info = get_info_from_index(tmp_node -> var_map_index);
 			reg_dpt[alloc_reg.result[tmp_node -> var_map_index]].content = tmp_node -> var_map_index;
+			tmp_info -> reg_addr = alloc_reg.result[tmp_node -> var_map_index];
+		}
 		tmp_node = tmp_node -> next;
 	}	
 }
@@ -1019,6 +1025,7 @@ static void flush_global_var()
 /* the flush and reload just deal with the consitent between reg 
    and mem, so the clear global reg, the local reg and the temp 
    reg should be solved in caller save */
+
 static void reload_global_var()
 {
 	int index;
@@ -1051,7 +1058,7 @@ static void flush_pointer_entity(enum mem type, struct var_list * entity_list)
 				continue;
 			reg_content = reg_dpt[index].content;
 			v_info = get_info_from_index(reg_content);
-			if(is_id_var(reg_dpt[index].content) && !is_array(reg_content) 
+			if(is_global(reg_dpt[index].content) && !is_array(reg_content) 
 				&& !is_conststr_byno(cur_func_info -> func_symt, reg_content))
 			{
 				if(type == load)
@@ -2419,7 +2426,7 @@ static void gen_per_code(struct triargexpr * expr)
 		
 		case Funcall:                    /* () */
 			{
-                flush_global_var();//MARK TAOTAOTHERIPPER
+                flush_pointer_entity(store, expr -> arg2.func_flush_list);//MARK TAOTAOTHERIPPER
 				/* caller save */
                 struct var_list_node * focus = expr -> actvar_list -> head;
                 struct var_info * vinfo = NULL;
@@ -2472,8 +2479,8 @@ static void gen_per_code(struct triargexpr * expr)
 					caller_arg2.imme = caller_save_index - saved_reg_count * WORD;
 					insert_mem_code(LDW , saved_reg[saved_reg_count], caller_arg1 , caller_arg2 , 0, -1, NO, 0);
 				}
-				reload_global_var();//MARK TAOTAOTHERIPPER
-				if(dest_index != -1)//The r0 won't be changed during the restore above	
+				
+                flush_pointer_entity(store, expr -> arg2.func_flush_list);//MARK TAOTAOTHERIPPERif(dest_index != -1)//The r0 won't be changed during the restore above	
 				{
 					if(dest_flag == Arg_Reg)
 						gen_mov_rsrd_code(dest_info -> reg_addr, 0);
