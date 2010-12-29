@@ -492,6 +492,8 @@ static void prepare_temp_var_inmem()//gen addr at first
 			if(is_array(id_index) || is_conststr_byno(cur_func_info -> func_symt, id_index))
 			{
 				load_pointer(id_index, alloc_reg.result[id_index], 0, -1);
+				id_info -> reg_addr = alloc_reg.result[id_index];
+				reg_dpt[alloc_reg.result[id_index]].content = id_index;
 				cur = cur -> next;
 				continue;
 			}
@@ -499,16 +501,20 @@ static void prepare_temp_var_inmem()//gen addr at first
 			{
 				ref_global_var(id_index);//global var prepared when first used
 				load_var(id_info, alloc_reg.result[id_index]);
+				id_info -> reg_addr = alloc_reg.result[id_index];
+				reg_dpt[alloc_reg.result[id_index]].content = id_index;
 				cur = cur -> next;
 				continue;
 			}
 			if(is_arglist_byno(cur_func_info -> func_symt, id_index))
 			{
-				param_rank = get_arglist_rank(cur_func_info -> func_symt, index);
+				param_rank = get_arglist_rank(cur_func_info -> func_symt, id_index);
 				if(param_rank > param_count - 4)
 					gen_mov_rsrd_code(alloc_reg.result[id_index], (param_count - param_rank));
 				else
 					load_var(id_info, alloc_reg.result[id_index]);
+				reg_dpt[alloc_reg.result[id_index]].content = id_index;
+				id_info -> reg_addr = alloc_reg.result[id_index];
 			}
 		}
 		else
@@ -2361,17 +2367,20 @@ static void gen_per_code(struct triargexpr * expr)
                     {
 						/* the global var has been stored in flush global var, so here I
 						   don't need to store the clear reg, just reload it later is OK. */
-						if(!is_global(focus->var_map_index))/* the array and string is clear global var, just store var */
+						if(is_array(focus->var_map_index) || is_conststr_byno(cur_func_info -> func_symt, focus->var_map_index))
+							saved_reg[saved_reg_count++] = vinfo->reg_addr;
+						else if(!is_global(focus->var_map_index))/* the array and string is clear global var, just store var */
 						{
 							if(is_id_var(focus->var_map_index))
 								store_var(vinfo, vinfo -> reg_addr);
 							else
 								gen_mem_rri_code(store, vinfo -> reg_addr, REG_FP, -1, caller_save_index - saved_reg_count * WORD, WORD);
-							saved_reg[saved_reg_count++] = vinfo->reg_addr;
+							saved_reg[saved_reg_count++] = vinfo->reg_addr;	
 						}
                     }
 					focus = focus -> next;
                 }
+
                 insert_buncond_code(expr->arg1.idname, 1);
                 /* restore caller save */
 
@@ -2381,6 +2390,7 @@ static void gen_per_code(struct triargexpr * expr)
 					int reg_num = saved_reg[saved_reg_count];
 					int var_index = reg_dpt[reg_num].content;/* the reg_dpt won't change during funcall */
 					vinfo = get_info_from_index(var_index);
+
 					if(is_array(var_index) || is_conststr_byno(cur_func_info -> func_symt, var_index))/* load clear global var, may be array and const string */
 					{
 						load_pointer(var_index, reg_num, 0, -1);
