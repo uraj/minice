@@ -711,7 +711,7 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
           }
      }
      var_list_sort(&def_g_list , def_g_num);
-     
+     struct var_list_node *temp_node;
      struct triargexpr_list *temp;
      for(i = 0 ; i < g_block_num ; i++)
      {
@@ -837,6 +837,17 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                     analyse_arg(&(temp->entity->arg1) , USE , i);
                     break;
 
+               case Funcall:
+                    temp_node = def_g_list.head;
+                    if(temp_node == NULL)
+                         break;
+                    while(temp_node != def_g_list.tail->next)
+                    {
+                         analyse_map_index(temp_node->var_map_index , USE , i);
+                         temp_node = temp_node->next;
+                    }
+                    break;
+                    
                     /*大立即数等等*/
                default:
                     analyse_expr_index(temp->entity->index , DEFINE , i);
