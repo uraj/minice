@@ -1,0 +1,60 @@
+\documentclass[12pt,a4paper,Flow]{report}
+\usepackage[left=2.8cm,right=2.8cm,top=2.5cm,bottom=2cm]{geometry}
+\usepackage[BoldFont]{xeCJK}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{indentfirst}
+\usepackage{fancyhdr}
+\usepackage[toc,header,title]{appendix}
+\usepackage{color,xcolor}
+\usepackage{listings}
+\usepackage{tikz}
+\defaultfontfeatures{Mapping=tex-text}
+\definecolor{llgray}{rgb}{0.9,0.9,0.9}
+\lstloadlanguages{[ansi]c}
+\lstset{
+  language=python,tabsize=4,keepspaces=true,
+  xleftmargin=2em,xrightmargin=2em,aboveskip=1em,
+  frame=none,
+  commentstyle=\color{red}\itshape, % blue comments
+  keywordstyle=\color{blue}\bfseries,
+  backgroundcolor=\color{llgray},
+  breakindent=22pt,
+  numbers=left,stepnumber=1,numberstyle=\tiny,
+  basicstyle=\footnotesize,
+  showspaces=false,
+  showstringspaces=false, % show explicit string spaces
+  flexiblecolumns=false,%true,
+  breaklines=true,breakautoindent=true,breakindent=4em,
+  escapeinside={/*@}{@*/}
+}
+\usepackage[a4paper,CJKbookmarks,bookmarks=true,bookmarksopen=true]{hyperref}%很强大的一个东西
+\hypersetup{
+  pdftitle={},
+  pdfauthor={Wang Pei},
+  pdfkeywords={},
+  bookmarksnumbered,
+  breaklinks=true,
+  pdfview=FitV,       % Or try pdfstartview={FitV}, This lead to uncorre
+  urlcolor=cyan,
+  colorlinks=true,
+  citecolor=magenta,          %citeref's color
+  linkcolor=blue,
+}
+\usepackage{titlesec}
+\titleformat{\chapter}{\centering\huge}{\textbf{第}\thechapter{} \textbf{章}}{1em}{\textbf}
+\renewcommand\contentsname{目录}
+\renewcommand{\appendixpagename}{附录}
+\renewcommand{\appendixname}{附录}
+\setmainfont{DejaVu Sans}
+\setCJKmainfont[BoldFont=WenQuanYi Micro Hei]{SimSun}
+
+\begin{document}
+\title{\textbf{}}
+\author{}
+\date{}
+\maketitle
+\tableofcontents
+\newpage
+\end{document}
