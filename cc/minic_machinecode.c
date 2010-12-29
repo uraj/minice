@@ -2481,6 +2481,7 @@ static void gen_per_code(struct triargexpr * expr)
 				}
 				
                 flush_pointer_entity(store, expr -> arg2.func_flush_list);//MARK TAOTAOTHERIPPERif(dest_index != -1)//The r0 won't be changed during the restore above	
+				if(dest_index != -1)
 				{
 					if(dest_flag == Arg_Reg)
 						gen_mov_rsrd_code(dest_info -> reg_addr, 0);
