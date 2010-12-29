@@ -295,7 +295,23 @@ internal_decls : declaration internal_decls
                |
                ;
 
-statement_list : statement statement_list { $$ = stmt_list_merge($1, $2); }
+statement_list : statement statement_list { $$ = stmt_list_merge($1, $2);  
+				 /*if($$ == NULL)
+				 {
+					 printf("head:");
+					 printf("empty\n");
+					 printf("tail:");
+					 printf("empty\n");
+				 }
+				 else
+				 {
+					 printf("head:");
+					 print_triargexpr(* $$ -> head -> entity);
+					 printf("tail:");
+					 print_triargexpr(* $$ -> tail -> entity);
+				 }
+				 printf("\n");*/
+				 }
                | { $$ = NULL; }
                ;
 
@@ -776,7 +792,7 @@ int main(int argc, char* argv[])
     char *asm_out_name;
     asm_out_name = strdup(filename);
     asm_out_name[strlen(filename) - 1] = 's';
-    FILE *asm_out_file = fopen(asm_out_name , "w");
+    FILE *asm_out_file = stdout;//fopen(asm_out_name , "w");
     if(asm_out_file == NULL)
     {
          fprintf(stderr , "无法生成汇编文件！\n");
