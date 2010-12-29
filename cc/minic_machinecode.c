@@ -492,12 +492,14 @@ static void prepare_temp_var_inmem()//gen addr at first
 			if(is_array(id_index) || is_conststr_byno(cur_func_info -> func_symt, id_index))
 			{
 				load_pointer(id_index, alloc_reg.result[id_index], 0, -1);
+				cur = cur -> next;
 				continue;
 			}
 			if(is_global(id_index))
 			{
 				ref_global_var(id_index);//global var prepared when first used
 				load_var(id_info, alloc_reg.result[id_index]);
+				cur = cur -> next;
 				continue;
 			}
 			if(is_arglist_byno(cur_func_info -> func_symt, id_index))
