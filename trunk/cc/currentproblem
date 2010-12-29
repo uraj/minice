@@ -90,8 +90,8 @@ consider this case:
 
 
 1、triargtable。
-2、machinecode.c:2134，立即数不能逻辑移位。
-3、sp计算有问题，返回加的和一开始减的不一致，遇到的几个都是返回时少了8。
+2、machinecode.c:2134，立即数不能逻辑移位。//Done
+3、sp计算有问题，返回加的和一开始减的不一致，遇到的几个都是返回时少了8。//Done
 4、pointer_entity在flush的时候，可以不考虑链为空（也就是所有变量都要刷新）的情况，
 5、arglist a，a是局部数组，要把a的地址给r0，而不是a[0]。
 		   现在是ldw r0, [fp-], a.mem_addr;
