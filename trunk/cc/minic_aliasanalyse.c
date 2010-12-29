@@ -571,6 +571,7 @@ static void generate_entity_for_each(struct triargexpr_list * tmp_node)
 				tmp_node -> pointer_entity = var_list_copy(tmp_out[arg1_info -> no], tmp_node -> pointer_entity);
 			}
 			break;
+		case Arglist:
 		case Deref:
 			/*The arg1 can be any thing*/
 			if(expr -> arg1.type == IdArg)//must be a pointer or an array
