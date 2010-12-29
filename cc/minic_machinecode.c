@@ -952,20 +952,20 @@ static inline void restore_tempreg(int temp_reg)
 /*************************** get temp reg end ************************/
 
 /*************************** prepare arg beg *****************************/
-static inline void check_reg(int reg_num)
+static inline void update_reg_content(struct triargexpr * expr)
 {
-	int var_index = reg_dpt[reg_num].content;
-	if(var_index != REG_UNUSED)
+	struct var_list * active_list = expr -> actvar_list;
+	if(active_list == NULL)
+		return;
+	struct var_list_node * tmp_node = active_list -> head;
+	while(tmp_node != NULL && tmp_node != active_list -> tail -> next)
 	{
-		struct var_info * tmp_info = get_info_from_index(var_index);	
-		if(is_global(var_index))
-		{
-			if(!is_array(var_index) && !is_conststr_byno(cur_func_info -> func_symt, var_index))
-				store_global_var(tmp_info, reg_num);
-		}
-		tmp_info -> reg_addr = -1;
-	}
+		if(alloc_reg.result[tmp_node -> var_map_index] != -1)
+			reg_dpt[alloc_reg.result[tmp_node -> var_map_index]].content = tmp_node -> var_map_index;
+		tmp_node = tmp_node -> next;
+	}	
 }
+
 
 static inline enum Arg_Flag mach_prepare_arg(int arg_index, struct var_info * arg_info, int arg_type)/* arg_type : 0=>dest, 1=>normal *///ref_global_var!!!
 {
@@ -980,39 +980,7 @@ static inline enum Arg_Flag mach_prepare_arg(int arg_index, struct var_info * ar
 	
 	if(alloc_reg.result[arg_index] != -1)/* for the refed var, it must be in the register now,
 										  or else it is allocated in the memory. */
-	{
-		flag = Arg_Reg;
-		if(arg_info -> reg_addr == -1)
-		{
-			arg_info -> reg_addr = alloc_reg.result[arg_index];
-			check_reg(arg_info -> reg_addr);//if global var in reg, should store to mem
-			reg_dpt[arg_info -> reg_addr].content = arg_index;
-			/*
-			if(is_array(arg_index) && is_global(arg_index))//just in case
-				load_pointer(arg_index, alloc_reg.result[arg_index], 0, -1);
-			else if(is_conststr_byno(cur_func_info -> func_symt, arg_index))
-				load_pointer(arg_index, alloc_reg.result[arg_index], 0, -1);
-			else if(arg_type == 1)
-			{
-				if(is_global(arg_index))
-					load_global_var(get_info_from_index(arg_index) , alloc_reg.result[arg_index]);//if global var as arg, should load
-				else if(is_arglist_byno(cur_func_info -> func_symt, arg_index))
-				{
-					int param_count = get_param_counts(cur_func_info -> func_symt);
-					int param_rank;
-					if(param_count >= 4)
-					{
-						param_rank = get_arglist_rank(cur_func_info -> func_symt, arg_index);//MARK TAOTAOTHERIPPER
-						if(param_rank <= param_count - 4)
-						{
-							arg_info -> mem_addr = (- param_rank) * WORD;
-							load_var(get_info_from_index(arg_index), alloc_reg.result[arg_index]);
-						}
-					}
-				}
-			}*/
-		}
-	}
+		flag = Arg_Reg;	
 	else
 		flag = Arg_Mem;
 	return flag;
@@ -1419,6 +1387,14 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
                     gen_mem_rri_code(type, dest_reg, arg1_reg, 1, (expr->arg2.imme) << width_shift, 1 << width_shift);
                else//MEM dest_reg , [arg1_reg+] , arg2_reg << #width_shift
                     gen_mem_lshft_code(type , dest_reg , arg1_reg , 1 , arg2_reg , width_shift , 1 << width_shift);
+			   
+			   /*对于全局数组，如果目的操作数和数组名变量都在寄存器，而且下标不在内存中，可能可以优化*/
+			   if(dest_flag == Arg_Reg && arg2_flag != Arg_Mem)
+			   {
+				   struct var_info *expr_info = get_info_from_index(expr->index);
+				   if(expr_info != NULL && expr_info->ref_mark == 0)
+					   set_optmz(cur_code_index - 1 , optmz);
+			   }
 		  }
           else
           {
@@ -1487,15 +1463,6 @@ static int gen_array_code(enum mem type, struct triargexpr *expr, struct var_inf
 
      for(i = temp_reg_size ; i >= 0 ; i--)//恢复所有临时寄存器，注意顺序。
           restore_tempreg(temp_reg[i]);
-
-     /*如果没有产生临时寄存器，可能可以优化*/
-     if(temp_reg_size == -1)
-     {
-          struct var_info *expr_info = get_info_from_index(expr->index);
-          if(expr_info != NULL && expr_info->ref_mark == 0)
-               set_optmz(cur_code_index - 1 , optmz);
-     }
-     
      return dest_reg;
 }
 
@@ -1571,14 +1538,6 @@ static int gen_deref_code(enum mem type, struct triargexpr *expr, struct var_inf
           restore_tempreg(temp_reg[i]);
      if(type == store)
           flush_pointer_entity(load , expr_node->pointer_entity);
-
-     /*如果没有产生临时寄存器，而且是load类型，可能可以优化*/
-     if(temp_reg_size == -1 && type == load)
-     {
-          struct var_info *expr_info = get_info_from_index(expr->index);
-          if(expr_info != NULL && expr_info->ref_mark == 0)
-               set_optmz(cur_code_index - 1 , optmz);
-     }
 
      return dest_reg;
 }
@@ -1909,6 +1868,8 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 static void gen_per_code(struct triargexpr * expr)
 {
 	check_is_jump_dest(expr -> index);
+
+	update_reg_content(expr);
 
 	int dest_index, arg1_index, arg2_index;
 	struct var_info * dest_info, * arg1_info, * arg2_info; 
