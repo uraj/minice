@@ -2186,10 +2186,11 @@ static void gen_per_code(struct triargexpr * expr)
 					restore_tempreg(tempreg2);
 				if(mark1)
 					restore_tempreg(tempreg1);
-                /*如果没有产生临时寄存器，可能可以优化*/
+                
+                /*三个操作数都是寄存器或立即数，可能可以优化*/
                 if(is_combine == 1)
                 {
-                     if(dest_flag == Arg_Reg && mark1 == 0 && mark2 == 0)
+                     if(dest_flag == Arg_Reg && arg1_flag != Arg_Mem && arg2_flag != Arg_Mem)
                      {
                           struct var_info *expr_info = get_info_from_index(expr->index);
                           if(expr_info != NULL && expr_info->ref_mark == 0)
@@ -2321,6 +2322,16 @@ static void gen_per_code(struct triargexpr * expr)
 					store_var(dest_info, dest_reg);
 					restore_tempreg(dest_reg);
 				}
+                /*两个操作数都是寄存器或立即数，可能可以优化*/
+                if(is_combine == 1)
+                {
+                     if(dest_flag == Arg_Reg && arg1_flag != Arg_Mem)
+                     {
+                          struct var_info *expr_info = get_info_from_index(expr->index);
+                          if(expr_info != NULL && expr_info->ref_mark == 0)
+                               set_optmz(cur_code_index - 1 , optmz);
+                     }
+                }
 				break;
 			}
 
@@ -2568,7 +2579,16 @@ static void gen_per_code(struct triargexpr * expr)
 					store_var(dest_info, reg);
 					restore_tempreg(reg);
 				}
-
+                /*目的操作数是寄存器，可能可以优化*/
+                if(is_combine == 1)
+                {
+                     if(dest_flag == Arg_Reg)
+                     {
+                          struct var_info *expr_info = get_info_from_index(expr->index);
+                          if(expr_info != NULL && expr_info->ref_mark == 0)
+                               set_optmz(cur_code_index - 1 , optmz);
+                     }
+                }
 				break;
 			}
         
