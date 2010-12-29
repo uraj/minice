@@ -537,10 +537,12 @@ struct taexpr_list_header * stmt_list_merge(struct taexpr_list_header * pre, str
      if(sub == NULL)
 		 return pre;
      patch_list_backpatch( pre->nextlist , sub->head->entity->index );
+	 /*
 	 printf("pre:");
 	 print_triargexpr(*pre->head->entity);
 	 printf("sub");
 	 print_triargexpr(*sub->head->entity);
+	 */
 	 //print_triargexpr(*pre -> head -> entity);
      pre->tail->next = sub->head;
      sub->head->prev = pre->tail;
