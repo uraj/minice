@@ -893,7 +893,7 @@ static void solve_equa_ud()//求解活跃变量方程组
           {
                int j;
                struct var_list g_def;
-               g_def.head = g.tail = NULL;
+               g_def.head = g_def.tail = NULL;
                int global_var_num = get_globalvar_num();
                int count = 0;
                for(j = 0 ; j < global_var_num ; j++)
