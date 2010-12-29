@@ -1086,13 +1086,14 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
      for(i = 0 ; i < s_expr_num ; i++)
           actvar_list[i].head = actvar_list[i].tail = NULL;
      
-     struct var_list show_list;//temp list of active varible
-     show_list.head = show_list.tail = NULL;
+     struct var_list flush_list;//temp list of active varible
+     flush_list.head = flush_list.tail = NULL;
      struct var_list *del_list = var_list_new();
      struct var_list *next_del_list = var_list_new();
      struct var_list *add_list = var_list_new();
      struct var_list *point_list = NULL;//deal with *p,or it is NULL
      struct triargexpr_list *temp_expr;
+     struct triargexpr *last_func_expr = NULL;
      /*
        分析步骤：
        1、对于赋值。arg1=arg2
@@ -1260,8 +1261,31 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     del1 = -1;
                     del2 = get_index_of_temp(temp_expr->entity->index);
                     make_change_list(del1 , del2 , next_del_list);
+
+                    if(temp_expr->entity->op == Arglist)//函数所有参数的pointer_entity合成一个链，用于caller保存指针实体
+                    {
+                         var_list_merge(temp_expr->pointer_entity , &flush_list);
+                    }
+                    
                     break;
 
+               case Funcall://将callee所有参数对应的pointer_entity以及def_g_list合成flush_list，放在该三元式的arg2里面
+                    var_list_merge(&def_g_list , &flush_list);
+                    if(last_func_expr != NULL)
+                    {
+                         last_func_expr->arg2.func_flush_list = var_list_new();
+                         last_func_expr->arg2.func_flush_list->head = flush_list.head;
+                         last_func_expr->arg2.func_flush_list->tail = flush_list.tail;
+                         flush_list.head = flush_list.tail = NULL;
+                    }
+                    last_func_expr = temp_expr->entity;
+                    
+                    /*Funcall的addlist就是def_g_list*/
+                    add_list = var_list_copy(&def_g_list , add_list);
+                    var_list_copy(next_del_list , del_list);
+                    var_list_clear(next_del_list);
+                    break;
+                    
                     /*大立即数*/
                default:
                     add1 = add2 = -1;
@@ -1292,12 +1316,12 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     count = add_actvar_info(actvar_list + act_list_index -1);
                     temp_expr->entity->actvar_list = (actvar_list + act_list_index -1);
                     if(temp_expr->entity->op == Funcall)
-                    {
-                         temp_expr->entity->arg2.func_flush_list = (actvar_list + act_list_index -1);
                          if(count > sg_max_func_varlist)
                               sg_max_func_varlist = count;
-                    }
                }
+               else
+                    temp_expr->entity->actvar_list = NULL;
+               
                if(option_show_flow_debug == 1)
                {
                     printf("del:");
@@ -1313,6 +1337,14 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                }
                temp_expr = temp_expr->prev;
           }
+     }
+     if(last_func_expr != NULL)
+     {
+          var_list_merge(&def_g_list , &flush_list);
+          last_func_expr->arg2.func_flush_list = var_list_new();
+          last_func_expr->arg2.func_flush_list->head = flush_list.head;
+          last_func_expr->arg2.func_flush_list->tail = flush_list.tail;
+          flush_list.head = flush_list.tail = NULL;
      }
      return actvar_list;
 }
