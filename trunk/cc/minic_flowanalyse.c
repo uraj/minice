@@ -32,6 +32,8 @@ static int s_expr_num;//the num of the tri-expressions
 static int sg_max_func_varlist = 0;//每条Funcall语句都会接有一条当前的活跃变量链
 
 struct var_list begin_var_list;//程序开头处活跃的变量
+struct var_list def_g_list;//当前函数中所有可能被定值过的全局变量
+int def_g_num;//当前函数中所有可能被定值过的全局变量
 
 static inline int compare (const void * a, const void * b) 
 {
@@ -694,11 +696,23 @@ static int get_arg_index(struct triarg arg)
 
 static void initial_active_var()//活跃变量分析的初始化部分def和use
 {
-     int i;
-     if(option_show_flow_debug == 1)
-          printf("id_num:%d\n" , g_var_id_num);
-     struct triargexpr_list *temp;
+     /*将本函数中所有可能定值的全局变量拉成一个链*/
+     def_g_num = 0;
      s_expr_num = 0;
+     def_g_list.head = def_g_list.tail = NULL;
+     int global_var_num = get_globalvar_num();
+     int i;
+     for(i = 0 ; i < global_var_num ; i++)
+     {
+          if(defed_gvar[i] == 1)
+          {
+               def_g_num++;
+               var_list_append(&def_g_list , i);
+          }
+     }
+     var_list_sort(&def_g_list , def_g_num);
+     
+     struct triargexpr_list *temp;
      for(i = 0 ; i < g_block_num ; i++)
      {
           if(option_show_flow_debug == 1)
@@ -872,18 +886,7 @@ static void solve_equa_ud()//求解活跃变量方程组
                
                if(is_end_block(i) == 1)//该block可能是结尾block，此时将该函数中所有可能被定值的全局变量都放到var_out里面
                {
-                    int j;
-                    int global_var_num = get_globalvar_num();
-                    int count = 0;
-                    for(j = 0 ; j < global_var_num ; j++)
-                    {
-                         if(defed_gvar[j] == 1)
-                         {
-                              count++;
-                              var_list_append(var_out + i , j);
-                         }
-                    }
-                    var_list_sort(var_out + i , count);
+                    var_list_copy(&def_g_list , var_out + i);
                }
                
                while(temp_block != NULL)
@@ -1067,8 +1070,6 @@ int is_assign(struct triargexpr *expr , int dest_index)//判断一个赋值语�
           return 0;
      return 1;
 }
-
-//static 
 
 struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分析
 {
@@ -1292,7 +1293,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     temp_expr->entity->actvar_list = (actvar_list + act_list_index -1);
                     if(temp_expr->entity->op == Funcall)
                     {
-                         temp_expr->entity->arg2.func_actvar_list = (actvar_list + act_list_index -1);
+                         temp_expr->entity->arg2.func_flush_list = (actvar_list + act_list_index -1);
                          if(count > sg_max_func_varlist)
                               sg_max_func_varlist = count;
                     }
