@@ -143,6 +143,7 @@ static struct mach_code_list * search_inst(struct mach_code_list * cur)
 #endif
 		switch(cur -> entity -> op_type)/* deal with normal arg later, deal with dest and special arg in switch */
 		{
+
 			case BRANCH:
 			case LABEL:
 			case CMP://MARK TAOTAOTHERIPPER, cmp must be above the branch
@@ -205,7 +206,7 @@ static struct mach_code_list * search_inst(struct mach_code_list * cur)
 					}
 					break;
 				}
-			default:
+			default:	
 				fprintf(stderr, "error op type in instruction scheduling.\n");
 				break;
 		}
@@ -242,8 +243,6 @@ static void instruction_scheduling()
 					if(insert != NULL)
 					{
 						scheduling_success ++;
-						//printf("here:");
-						//mcode_out(cur -> entity, stdout);
 						insert -> prev -> next = insert -> next;
 						insert -> next -> prev = insert -> prev;
 						insert -> next = cur -> next;
@@ -275,7 +274,7 @@ static void merge_binary_operation()
 					&& cur -> next -> entity -> arg2.reg == cur -> entity -> dest)
 			{
 				cur -> entity -> dest = cur -> next -> entity -> dest;
-				cur -> next -> prev = cur;
+				cur -> next -> next -> prev = cur;
 				unused = cur -> next;
 				cur -> next = cur -> next -> next;
 				free(unused);

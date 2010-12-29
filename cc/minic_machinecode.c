@@ -2238,6 +2238,7 @@ static void gen_per_code(struct triargexpr * expr)
 					binary_arg1.type = Mach_Reg;
 					binary_arg1.reg = tempreg1;
 				}
+
 				if(arg2_flag == Arg_Imm)
 				{
 					binary_arg2.type = Mach_Imm;
@@ -2302,7 +2303,18 @@ static void gen_per_code(struct triargexpr * expr)
                                        insert_dp_code(RSUB , tempdest , binary_arg2 , binary_arg2 , power , LL);
                              }
                              else
-                                  insert_dp_code(op_type, tempdest, binary_arg2, binary_arg1, 0, NO);
+							 {
+								 if(op_type == MUL)
+								 {
+									 tempreg1 = gen_tempreg(except, ex_size);
+									 mark1 = 1;
+									 except[ex_size++] = tempreg1;
+									 gen_mov_rsim_code(tempreg1, binary_arg1.imme);
+									 binary_arg1.type = Arg_Reg;
+									 binary_arg1.reg = tempreg1;
+								 }
+								 insert_dp_code(op_type, tempdest, binary_arg2, binary_arg1, 0, NO);
+							 }
                         }
 						else
                         {
@@ -2320,7 +2332,18 @@ static void gen_per_code(struct triargexpr * expr)
                                             insert_dp_code(RSUB , tempdest , binary_arg1 , binary_arg1 , power , LL);
                                   }
                                   else
-                                       insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 0, NO);
+								  {
+									  if(op_type == MUL)
+									  {
+										  tempreg2 = gen_tempreg(except, ex_size);
+										  mark2 = 1;
+										  except[ex_size++] = tempreg2;
+										  gen_mov_rsim_code(tempreg2, binary_arg2.imme);
+										  binary_arg2.type = Arg_Reg;
+										  binary_arg2.reg = tempreg2;
+									  }
+									  insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 0, NO);
+								  }
                              }
                              else
                                   insert_dp_code(op_type, tempdest, binary_arg1, binary_arg2, 0, NO);
@@ -2759,8 +2782,9 @@ static void gen_per_code(struct triargexpr * expr)
                            gen_mov_rsim_code(0, expr->arg1.imme);
                  }
 				flush_global_var();
-				free_temp_var_inmem();
-				callee_save_pop();
+				free_temp_var_inmem();	
+				if(strcmp(cur_func_info -> name, "main") != 0)/* TAOTAOTHERIPPER MARK */
+					callee_save_pop();
 				leave_func_pop();
                 insert_jump_code(REG_LR);
 				break;
@@ -2913,7 +2937,8 @@ void gen_machine_code(int func_index, FILE * out_buf)//Don't forget NULL at last
     printf("\n");
 #endif
 	enter_func_push();
-	callee_save_push();
+	if(strcmp(cur_func_info -> name, "main") != 0)/* TAOTAOTHERIPPER MARK */
+		callee_save_push();
 	prepare_temp_var_inmem();//alloc mem for temp var in stack
 	struct triargexpr_list * tmp_node = cur_table -> head;
 	while(tmp_node != NULL)//make tail's next to be NULL
