@@ -609,6 +609,8 @@ static void generate_entity_for_each(struct triargexpr_list * tmp_node)
 						break;
 				}
 			}
+			else
+				tmp_node -> pointer_entity = NULL;/* for Arglist */
 			break;
 		default:
 			break;
