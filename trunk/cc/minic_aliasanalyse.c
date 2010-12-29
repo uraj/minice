@@ -409,7 +409,7 @@ static struct entity_type search_entity(int exprnum, int ispointer)
 			}
 			if(expr.arg2.type == ExprArg)//number is better than -1
 			{
-				entity = search_entity(expr.arg1.expr, ispointer);
+				entity = search_entity(expr.arg2.expr, ispointer);
 				if(entity.ispointer == 1)
 				{
 					entity.ispointer = 3;
