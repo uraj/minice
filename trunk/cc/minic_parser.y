@@ -49,6 +49,7 @@ int table_list_bound;/*the capacity of the array current now*/
 
 struct mach_code_table * code_table_list;
 
+
 int g_table_list_size;/* size of the table list */
 int g_global_id_num = 0;/* total global id num, increase when insert global id */
 
@@ -62,7 +63,6 @@ struct triargexpr_list *ghead, *gtail;/*the tmp indirect table*/
 struct triargexpr *gtriargexpr_table;/*the tmp direct table*/
 int gtriargexpr_table_index;/*the current index of the direct table*/
 int gtriargexpr_table_bound;/*the current capacity of the direct table*/
-
 %}
 %locations
 %start program 

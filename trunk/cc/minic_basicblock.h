@@ -33,11 +33,12 @@ extern struct triargtable ** table_list;
 extern struct triargexpr * gtriargexpr_table;
 extern int gtriargexpr_table_index;
 extern int gtriargexpr_table_bound;
-	
+extern char * defed_gvar;	
 
 
 extern struct basic_block ** DFS_array;
 
 extern struct basic_block * make_fd(int function_index);//make the flow diagram for a function
 extern void recover_triargexpr(struct basic_block * block_head);//must do after make_fd and data analyse
+extern int is_end_block(int block_index);
 #endif

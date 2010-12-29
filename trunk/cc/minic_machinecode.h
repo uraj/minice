@@ -1,9 +1,10 @@
 #ifndef __MINIC_MACHINECODE_H__
 #define __MINIC_MACHINECODE_H__
+#include "minic_flowanalyse.h"
 #include <stdint.h>
 #include <stdio.h>
 //#define PEEPHOLE
-#define MACH_DEBUG
+//#define MACH_DEBUG
 
 #define REG_SP 29
 #define REG_FP 27
@@ -146,6 +147,8 @@ extern int g_table_list_size;
 extern struct mach_code_table * code_table_list;
 extern struct triargtable ** table_list;
 extern struct symbol_table * simb_table;  
+extern struct var_list begin_var_list;
+extern char * defed_gvar;
 
 extern void print_file_header(FILE * out_buf, char * filename);
 extern void print_file_tail(FILE * out_buf);

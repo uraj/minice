@@ -858,7 +858,7 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                printf("\n");
      }
      begin_var_list.head = begin_var_list.tail = NULL;
-     var_list_copy(var_in , &begin_var_list);
+	 var_list_copy(var_in , &begin_var_list);
      free(def_size);
      free(use_size);
 }
@@ -966,7 +966,7 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)
                return -1;
 /*          struct triargexpr_list *temp_expr_node = cur_func_triarg_table->index_to_list[arg->expr];
           struct triargexpr *temp_expr = temp_expr_node->entity;
-          if(temp_expr->op == Deref)//*p
+          if(temp_expr->op == Deref)p
           {
                struct var_list *temp_point_list = temp_expr_node->pointer_entity;
                if(dest == NULL)//此arg为引用编号(temp_point_list == NULL)
@@ -1240,7 +1240,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     make_change_list(add1 , add2 , add_list);
                     if(temp_expr->entity->op == Deref)//引用的*p，需要把它所有可能对应的实体都置成活跃
                     {
-                         struct triargexpr_list *temp_expr_node = cur_func_triarg_table->index_to_list[arg->expr];
+                         struct triargexpr_list *temp_expr_node = cur_func_triarg_table->index_to_list[temp_expr->entity->arg1.expr];/*TAOTAOTHERIPPER MARK */
                          point_list = temp_expr_node->pointer_entity;
                          add_list = var_list_merge(point_list , add_list);
                     }
