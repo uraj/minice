@@ -50,6 +50,8 @@ int IFStage(RegFile * storage, PipeState * pipe_state, uint32_t func_entry[])
         instr = 0xfffffff0U | PRINT_STRING;
     else if(pc == func_entry[PRINTLINE_INT])
         instr = 0xfffffff0U | PRINTLINE_INT;
+        else if(pc == func_entry[PRINTLINE_CHAR])
+        instr = 0xfffffff0U | PRINTLINE_CHAR;
     else
     {
         readinfo = mem_read_instruction(pc, &instr);

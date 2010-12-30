@@ -1,5 +1,6 @@
-#include <pipeline/decode.h>
-#include <pipeline/control.h>
+#include "decode.h"
+#include "control.h"
+#include <memory/memory.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -306,6 +307,9 @@ int IDStage(RegFile * storage, PipeState * pipe_state)
             }
             case PRINTLINE_INT:
                 printf("%d\n", data);
+                break;
+            case PRINTLINE_CHAR:
+                printf("%c\n", (char)(data & 0xff));
                 break;
             default:
                 fprintf(stderr, "Invalid instruction.\n");

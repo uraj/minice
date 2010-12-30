@@ -1,7 +1,9 @@
-#include <pipeline/memaccess.h>
+#include "memaccess.h"
 #include <memory/memory.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+extern int * gp_memaccess;
 
 int MEMStage(RegFile * storage, PipeState * pipe_state)
 {
@@ -25,6 +27,7 @@ int MEMStage(RegFile * storage, PipeState * pipe_state)
         return 0;
     else
     {
+        *gp_memaccess += 1;
         if(pipe_state->mem_in.load) /* load */
         {
             uint32_t data;

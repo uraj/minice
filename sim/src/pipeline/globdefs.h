@@ -217,6 +217,7 @@ typedef struct
 #define PRINT_CHAR 1
 #define PRINT_STRING 2
 #define PRINTLINE_INT 3
-#define MAIN 4
+#define PRINTLINE_CHAR 4
+#define MAIN 5
 
 #endif

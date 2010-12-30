@@ -1,19 +1,10 @@
-void __minic_print(int arg)
-{
-    return;
-}
-
-int test(int a)
-{
-    return a+1;
-}
+extern int printline_int(int x);
+extern int a[10000];
 
 int main()
 {
     int i, j, temp;
-    int a[5] = {5,2,4,3,1};
-    
-    for(i = 5; i >0; --i)
+    for(i = 10000; i >0; --i)
     {
         for(j = 0; j < i; ++j)
             if(a[j] > a[j+1])
@@ -23,8 +14,8 @@ int main()
                 a[j] = temp;
             }
     }
-    for(j = 0; j < 5; ++j)
-        __minic_print(a[j]);
+    for(j = 0; j < 10000; ++j)
+        printline_int(a[j]);
     return 0;
 }
 

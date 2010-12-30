@@ -15,9 +15,8 @@ typedef struct
     int instr_count;
     int cycle_count;
     int bubble_count;
-    int mem_read;
     int cache_miss;
-    int mem_write;
+    int mem_access;
     int cache_wb;
 } StatInfo;
 
@@ -36,6 +35,7 @@ const PipeState * gp_pipe = NULL;
 /* used by memory.h */
 int * gp_cachemiss = NULL;
 int * gp_cachewb = NULL;
+int * gp_memaccess = NULL;
 
 /* special functions */
 /* #define PRINT_INT 0 */
@@ -55,7 +55,8 @@ void simulate_init(RegFile * storage, PipeState * pipe_state, StatInfo * stat_in
     gp_pipe = pipe_state;
     gp_cachemiss = &(stat_info->cache_miss);
     gp_cachewb = &(stat_info->cache_wb);
-
+    gp_memaccess = &(stat_info->mem_access);
+    
     /* init cache */
     init_cache(LRU, Write_back);
     
@@ -111,6 +112,7 @@ StatInfo simulate(uint32_t * func_entry)
         stat_info.bubble_count += pipe_state.wb_in.bubble;  
         MEMStage(&storage, &pipe_state);
         EXStage(&storage, &pipe_state);
+//        stat_info.cycle_count += EXStage(&storage, &pipe_state);
         if(IDStage(&storage, &pipe_state) == 1)
         {
             pipe_state.ex_in.bubble = 1;
@@ -146,7 +148,7 @@ StatInfo simulate_db(uint32_t * func_entry)
         MEMStage(&storage, &pipe_state);
         pipe_state.wb_in.sinfo = pipe_state.mem_in.sinfo;
 
-        EXStage(&storage, &pipe_state);
+        stat_info.cycle_count += EXStage(&storage, &pipe_state);
         pipe_state.mem_in.sinfo = pipe_state.ex_in.sinfo;        
 
         if(IDStage(&storage, &pipe_state) == 1)
@@ -169,6 +171,7 @@ void print_stat_info(StatInfo * stat_info)
     fprintf(stderr, "Simulation Profile:\n\tclock-cycle count: %d\n", stat_info->cycle_count);
     fprintf(stderr, "\tinstrcutin count: %d\n", stat_info->instr_count);
     fprintf(stderr, "\tbubble count: %d\n", stat_info->bubble_count);
+    fprintf(stderr, "\tmemory access: %d\n", stat_info->mem_access);
     fprintf(stderr, "\tcache miss: %d\n", stat_info->cache_miss);
     fprintf(stderr, "\tcache writeback: %d\n", stat_info->cache_wb);
     return;
@@ -229,11 +232,12 @@ int main(int argc, char * argv[])
     Elf32_Ehdr ehdr = get_elf_hdr(elf);
     load_elf_segments(elf, ehdr);
     
-    uint32_t func_entry[5];
+    uint32_t func_entry[7];
     func_entry[PRINT_INT] = get_func_entry(elf, ehdr, "print_int");
     func_entry[PRINT_CHAR] = get_func_entry(elf, ehdr, "print_char");
     func_entry[PRINT_STRING] = get_func_entry(elf, ehdr, "print_string");
     func_entry[PRINTLINE_INT] = get_func_entry(elf, ehdr, "printline_int");
+    func_entry[PRINTLINE_CHAR] = get_func_entry(elf, ehdr, "printline_char");
     func_entry[MAIN] = get_func_entry(elf, ehdr, "main");
     
     fclose(elf);
