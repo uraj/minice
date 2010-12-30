@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
+
 void new_table_list()
 {
     table_list =
@@ -97,7 +98,7 @@ void free_table(struct triargtable * oldtable)
 
 void new_global_table()//init a new global table
 {
-	gtriargexpr_table = malloc(sizeof(struct triargexpr) * INITIALCODESIZE);
+	gtriargexpr_table = malloc(sizeof(struct triargexpr ) * INITIALCODESIZE);
 	ghead = NULL;
 	gtail = NULL;
 	gtriargexpr_table_bound = INITIALCODESIZE;
