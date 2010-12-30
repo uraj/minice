@@ -180,7 +180,7 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 						if(tmp_node -> next == NULL )
 							table[i].arg1.expr = -1;//the end of the function
 						else
-							table[i].arg1.expr = tmp_node -> next -> entity -> index;
+							table[i].arg1.expr = tmp_node -> next -> entity_index;
 						if(expr.arg2.expr != -1)//the destination never changed
 							flag_list[expr.arg2.expr] = 0;//cancel the entry
 						if(table[i].arg1.expr != -1)
@@ -224,7 +224,7 @@ static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for en
 						if(tmp_node -> next == NULL )
 							table[i].arg1.expr = -1;//the end of the function
 						else
-							table[i].arg1.expr = tmp_node -> next -> entity -> index;
+							table[i].arg1.expr = tmp_node -> next -> entity_index;
 						if(expr.arg2.expr != -1)//the destination never changed
 							flag_list[expr.arg2.expr] = 0;//cancel the entry
 						if(table[i].arg1.expr != -1)
@@ -271,26 +271,28 @@ static struct basic_block * make_block(struct triargexpr_list * entrance)//gener
 {
 	if(entrance == NULL)
 		return NULL;
-	if(entry_index_to_block[entrance -> entity -> index] != NULL)//had reached
-		return entry_index_to_block[entrance -> entity -> index];
-
-	if(entrance -> entity -> op == UncondJump)//no use block
+	if(entry_index_to_block[entrance -> entity_index] != NULL)//had reached
+		return entry_index_to_block[entrance -> entity_index];
+	
+	struct triargexpr * expr;
+	expr = get_tae_entity(entrance, cur_func_index);/* TAOTAOTHERIPPER MARK */
+	
+	if(expr -> op == UncondJump)//no use block
 	{
-		if(entrance -> entity -> arg1.expr == -1)//jump to the end of the function
+		if(expr -> arg1.expr == -1)//jump to the end of the function
 			return NULL;
-		return make_block(table_list[cur_func_index] -> index_to_list[entrance -> entity -> arg1.expr]);
+		return make_block(table_list[cur_func_index] -> index_to_list[expr -> arg1.expr]);
 	}
 
 	struct basic_block * newblock = new_block();
 	struct basic_block * childblock;
 
-	entry_index_to_block[entrance -> entity -> index] = newblock;//mark reached
+	entry_index_to_block[entrance -> entity_index] = newblock;//mark reached
 
 	newblock -> head = entrance;
 	struct triargexpr_list * p_cur_expr = entrance;
-	struct triargexpr * expr;
 	newblock -> tail = p_cur_expr;//change every loop
-	expr = p_cur_expr -> entity;	
+
 	while(1)
 	{
 		switch(expr -> op)
@@ -358,7 +360,7 @@ static struct basic_block * make_block(struct triargexpr_list * entrance)//gener
 		p_cur_expr = p_cur_expr -> next;
 		if(p_cur_expr == NULL)//to the end of the function
 			break;
-		expr = p_cur_expr -> entity;//update
+		expr = get_tae_entity(p_cur_expr, cur_func_index);//update
 		if(flag_list[expr -> index] == 1)//is an entry, but the first expr is sure to be an entry
 		{
 			childblock = make_block(p_cur_expr);
@@ -402,23 +404,25 @@ static void trans_to_array()//DFS_array should be free later
 	}
 	DFS_list = NULL;
 
+	struct triargexpr * tail_expr;
 	for(index = 0; index < g_block_num; index++)
 	{
-		switch(DFS_array[index] -> tail -> entity -> op)
+		tail_expr = get_tae_entity(DFS_array[index] -> tail, cur_func_index);
+		switch(tail_expr -> op)
 		{
 			case UncondJump:
-				if(DFS_array[index] -> tail -> entity -> arg1.expr != -1)
-					DFS_array[index] -> tail -> entity -> arg1.expr = 
+				if(tail_expr -> arg1.expr != -1)
+					tail_expr -> arg1.expr = 
 						DFS_array[index] -> next -> entity -> index;//There must be only one next
 				break;
 			case FalseJump:
 			case TrueJump:
-				if(DFS_array[index] -> tail -> entity -> arg2.expr != -1)
+				if(tail_expr-> arg2.expr != -1)
 				{
 					struct basic_block_list * temp_node = DFS_array[index] -> next;
 					while(temp_node -> next != NULL)
 						temp_node = temp_node -> next;//There must be one or two
-					DFS_array[index] -> tail -> entity -> arg2.expr = temp_node -> entity -> index;
+					tail_expr -> arg2.expr = temp_node -> entity -> index;
 				}
 				break;
 			default: break;
@@ -437,7 +441,7 @@ static void print_fd()
 		struct triargexpr_list * expr = DFS_array[index] -> head; 
 		while(expr != NULL)
 		{
-			print_triargexpr(*(expr -> entity));
+			print_triargexpr(*get_tae_entity(expr, cur_func_index));
 			expr = expr -> next;
 		}
 		struct basic_block_list * next_list_node = DFS_array[index] -> next;
@@ -471,7 +475,7 @@ static struct triargexpr_list * basicblock_insert_triargexpr(struct triargexpr e
 	table_list[cur_func_index] -> expr_num = gtriargexpr_table_index;
 	table_list[cur_func_index] -> table_bound = gtriargexpr_table_bound;
 	struct triargexpr_list * new_node = calloc(1, sizeof(struct triargexpr_list));
-	new_node -> entity = &(table_list[cur_func_index] -> table[index]);
+	new_node -> entity_index = index;
 	new_node -> prev = NULL;
 	new_node -> next = NULL;
 	new_node -> pointer_entity = NULL;
@@ -481,7 +485,7 @@ static struct triargexpr_list * basicblock_insert_triargexpr(struct triargexpr e
 static struct search_res search_block(struct basic_block * block)
 {
 	struct search_res res;
-	res.expr_index = block -> head -> entity -> index;	
+	res.expr_index = block -> head -> entity_index;	
 	if(DFS_array[block -> index] == NULL)
 	{
 		res.reached_before = 1;
@@ -490,7 +494,7 @@ static struct search_res search_block(struct basic_block * block)
 	res.reached_before = 0;
 	DFS_array[block -> index] = NULL;
 	linear_block_seq[cur_linear_block_index++] = block;
-	struct triargexpr * expr = block -> tail -> entity;
+	struct triargexpr * expr = get_tae_entity(block -> tail, cur_func_index);
 	struct search_res tmp_res;
 	switch(expr -> op)
 	{

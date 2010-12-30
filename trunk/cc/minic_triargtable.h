@@ -5,7 +5,7 @@
 #include "minic_triargexpr.h"
 
 #define INITIALFUNCSIZE 30
-#define INITIALCODESIZE 2000//should be ajusted to triargexpr.h
+#define INITIALCODESIZE 100//should be ajusted to triargexpr.h
 
 struct subexpr_info;
 
@@ -68,4 +68,6 @@ extern struct taexpr_list_header * stmt_list_merge(struct taexpr_list_header * p
 
 extern void print_table(struct triargtable * table);
 extern void print_list_header(struct taexpr_list_header * list);
+
+extern struct triargexpr * get_tae_entity(struct triargexpr_list * list_node, int func_index);
 #endif

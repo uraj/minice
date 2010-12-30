@@ -9,6 +9,7 @@
 //#define TRANS_DEBUG		/*Use to debug trans*/	//must be uncommented with POINTER_DEBUG
 //#define ENTITY_DEBUG	/*Use to debug entity list*/
 static int cur_var_id_num;
+static int cur_func_index;
 static struct var_list *** pointer_in;
 static struct var_list *** pointer_out;
 static struct value_info * cur_func_info;
@@ -36,6 +37,7 @@ static void print_list(struct var_list ** old_list)
 
 static inline void set_cur_function(int function_index)
 {
+	cur_func_index = function_index;
 	cur_var_id_num = table_list[function_index] -> var_id_num;
 	cur_func_info = symt_search(simb_table ,table_list[function_index] -> funcname);
 	cur_expr_table = table_list[function_index] -> table;
@@ -435,7 +437,7 @@ static struct entity_type search_entity(int exprnum, int ispointer)
 
 static void trans(struct triargexpr_list * temp_node)
 {
-	struct triargexpr * expr = temp_node -> entity;
+	struct triargexpr * expr = get_tae_entity(temp_node, cur_func_index);
 	if(expr -> op == Assign)
 	{
 		if(expr -> arg1.type == IdArg)
@@ -501,7 +503,7 @@ static void trans_in_to_out(struct basic_block * block)//update
 	{
 		trans(temp_node);
 #ifdef TRANS_DEBUG
-		print_triargexpr(*(temp_node -> entity));
+		print_triargexpr(*get_tae_entity(temp_node, cur_func_index));
 		print_list(tmp_out);
 #endif
 		temp_node = temp_node -> next;
@@ -557,7 +559,7 @@ static void generate_in_out_for_all()
 
 static void generate_entity_for_each(struct triargexpr_list * tmp_node)
 {
-	struct triargexpr * expr = tmp_node -> entity;
+	struct triargexpr * expr = get_tae_entity(tmp_node, cur_func_index);
 	struct value_info * arg1_info; 
 	struct entity_type entity;
 	switch(expr -> op)
@@ -582,8 +584,7 @@ static void generate_entity_for_each(struct triargexpr_list * tmp_node)
 					tmp_node -> pointer_entity = var_list_new();
 					tmp_node -> pointer_entity = var_list_copy(tmp_out[arg1_info -> no], tmp_node -> pointer_entity);
 				}
-				else
-					tmp_node -> pointer_entity = NULL;
+				else tmp_node -> pointer_entity = NULL;
 			}
 			else if(expr -> arg1.type == ExprArg)
 			{
@@ -636,7 +637,7 @@ static void generate_entity_for_all()
 			trans(temp_node);
 			generate_entity_for_each(temp_node);
 #ifdef ENTITY_DEBUG
-			print_triargexpr(*(temp_node -> entity));
+			print_triargexpr(*get_tae_entity(temp_node, cur_func_index));
 			var_list_print(temp_node -> pointer_entity);
 			printf("\n");
 #endif

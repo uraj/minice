@@ -20,6 +20,7 @@ struct actvar_change
 static struct symbol_table *cur_func_sym_table;
 static struct value_info *cur_func_vinfo;
 static struct triargtable *cur_func_triarg_table;
+static int cur_func_index;
 
 static struct var_list *var_in;
 static struct var_list *var_out;
@@ -567,7 +568,7 @@ static inline void analyse_arg(struct triarg *arg , int type , int block_index)/
                return;
           i = get_index_of_temp(arg->expr);
 //          struct triargexpr_list *temp_expr_node = cur_func_triarg_table->index_to_list[arg->expr];
-//          struct triargexpr *temp_expr = temp_expr_node->entity;
+//          struct triargexpr *temp_expr = get_tae_entity(temp_expr_node, cur_func_index);
 //          int change = 0;
 //          if(temp_expr->op == Deref)//*p
 //          {
@@ -641,7 +642,7 @@ static void initial_func_var(int func_index)//通过函数index获得当前函�
      cur_func_vinfo = symt_search(simb_table ,table_list[func_index]->funcname);
      cur_func_sym_table = cur_func_vinfo->func_symt;
      cur_func_triarg_table = table_list[func_index];
-     
+	 cur_func_index = func_index;
      /*由于一个数组变量的所有数组元素对应定值点的map_id构成的链ref_point在形成时没有排序去重，所以这里补充了这个工作。*/
      /*int total_id_num = simb_table->id_num + cur_func_sym_table->id_num;
      int i;
@@ -748,7 +749,7 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                 a)首先，如果arg1是标号(k)而且k没有map_id，这意味着这个位置是一个逻辑条件指令，需要向上看一步，分析该三元式；
                 b)分析本条条件跳转指令。
             3、对于a+b、a-b、*p、a[i]、+a、-a、&a以及所有逻辑指令；
-                a)如果expr->entity->index没有map_id，说明这一句话从来没被引用过，没必要生成代码，也就没必要分析；
+                a)如果expr->entity_index没有map_id，说明这一句话从来没被引用过，没必要生成代码，也就没必要分析；
                 b)分析本条语句。
             4、对于Funcall，引用分析所有def_g_list中的mapid；
             5、其他语句，根据要分析的操作数个数和位置，分以下几种情况：
@@ -758,23 +759,24 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
           while(temp != NULL)
           {
                /**/
-//               print_triargexpr(*(temp->entity));
-//               int k = get_index_of_temp(temp->entity->index);
+//               print_triargexpr(*get_tae_entity(temp, cur_func_index));
+//               int k = get_index_of_temp(temp->entity_index);
                s_expr_num ++;
-//               printf("      mapid:%d->expr:%d\n" , k , temp->entity->index);
+//               printf("      mapid:%d->expr:%d\n" , k , temp->entity_index);
                /**/
-               switch(temp->entity->op)
+			   struct triargexpr * expr = get_tae_entity(temp, cur_func_index); 
+               switch(expr->op)
                {
                     /*赋值语句*/
                case Assign:
-                    analyse_expr_index(temp->entity->index , DEFINE , i);
-                    analyse_arg(&(temp->entity->arg1) , DEFINE , i);
-                    analyse_arg(&(temp->entity->arg2) , USE , i);
-                    if(temp->entity->arg1.type == ExprArg && get_index_of_temp(temp->entity->arg1.expr) == -1)
+                    analyse_expr_index(temp->entity_index , DEFINE , i);
+                    analyse_arg(&(expr->arg1) , DEFINE , i);
+                    analyse_arg(&(expr->arg2) , USE , i);
+                    if(expr->arg1.type == ExprArg && get_index_of_temp(expr->arg1.expr) == -1)
                     {
-                         int last_index = temp->entity->arg1.expr;
+                         int last_index = expr->arg1.expr;
                          struct triargexpr_list *last_expr_node = cur_func_triarg_table->index_to_list[last_index];
-                         struct triargexpr *last_expr = last_expr_node->entity;
+                         struct triargexpr *last_expr = get_tae_entity(last_expr_node, cur_func_index);
                          if(last_expr->op == Subscript)
                          {
                               analyse_arg(&(last_expr->arg1) , USE , i);
@@ -798,11 +800,11 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                case Minus:
                case Mul:
                case Subscript:
-                    if(get_index_of_temp(temp->entity->index) == -1)
+                    if(get_index_of_temp(temp->entity_index) == -1)
                          break;
-                    analyse_expr_index(temp->entity->index , DEFINE , i);
-                    analyse_arg(&(temp->entity->arg1) , USE , i);
-                    analyse_arg(&(temp->entity->arg2) , USE , i);
+                    analyse_expr_index(temp->entity_index , DEFINE , i);
+                    analyse_arg(&(expr->arg1) , USE , i);
+                    analyse_arg(&(expr->arg2) , USE , i);
                     break;
 
                     /*一元操作*/
@@ -811,31 +813,31 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                case Uminus:
                case Ref:
                case Deref:
-                    if(get_index_of_temp(temp->entity->index) == -1)
+                    if(get_index_of_temp(temp->entity_index) == -1)
                          break;
                case Plusplus:
                case Minusminus:
-                    analyse_expr_index(temp->entity->index , DEFINE , i);
-                    analyse_arg(&(temp->entity->arg1) , USE , i);
+                    analyse_expr_index(temp->entity_index , DEFINE , i);
+                    analyse_arg(&(expr->arg1) , USE , i);
                     break;
 
                     /*跳转及函数相关语句*/
                case TrueJump:
                case FalseJump://逻辑跳转要往上看一步
-                    if(get_arg_index(temp->entity->arg1) == -1)
+                    if(get_arg_index(expr->arg1) == -1)
                     {
-                         int last_index = temp->entity->arg1.expr;
+                         int last_index = expr->arg1.expr;
                          struct triargexpr_list *last_expr_node = cur_func_triarg_table->index_to_list[last_index];
-                         struct triargexpr *last_expr = last_expr_node->entity;
+                         struct triargexpr *last_expr = get_tae_entity(last_expr_node, cur_func_index);
                          analyse_arg(&(last_expr->arg1) , USE , i);
                          analyse_arg(&(last_expr->arg2) , USE , i);
                     }
                     else
-                         analyse_arg(&(temp->entity->arg1) , USE , i);
+                         analyse_arg(&(expr->arg1) , USE , i);
                     break;
                case Arglist:
                case Return:
-                    analyse_arg(&(temp->entity->arg1) , USE , i);
+                    analyse_arg(&(expr->arg1) , USE , i);
                     break;
 
                case Funcall:
@@ -851,12 +853,12 @@ static void initial_active_var()//活跃变量分析的初始化部分def和use
                     
                     /*大立即数等等*/
                default:
-                    analyse_expr_index(temp->entity->index , DEFINE , i);
+                    analyse_expr_index(temp->entity_index , DEFINE , i);
                     break;
                }
                if(option_show_flow_debug == 1)
                {
-                    print_triargexpr(*(temp->entity));
+                    print_triargexpr(*get_tae_entity(temp, cur_func_index));
                     printf("\n");
                }
                temp = temp->next;
@@ -989,7 +991,7 @@ static inline int get_index_of_arg(struct triarg *arg , struct var_list **dest)
           if(arg->expr == -1)
                return -1;
 /*          struct triargexpr_list *temp_expr_node = cur_func_triarg_table->index_to_list[arg->expr];
-          struct triargexpr *temp_expr = temp_expr_node->entity;
+          struct triargexpr *temp_expr = get_tae_entity(temp_expr_node, cur_func_index);
           if(temp_expr->op == Deref)p
           {
                struct var_list *temp_point_list = temp_expr_node->pointer_entity;
@@ -1115,7 +1117,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
            a)首先，如果arg1是标号(k)而且k没有map_id，这意味着这个位置是一个逻辑条件指令，需要向上看一步，分析该三元式；
            b)分析本条条件跳转指令。
        3、对于a+b、a-b、*p、a[i]、+a、-a、&a以及所有逻辑指令;
-           a)如果expr->entity->index没有map_id，说明这一句话从来没被引用过，没必要生成代码，也就没必要分析；
+           a)如果expr->entity_index没有map_id，说明这一句话从来没被引用过，没必要生成代码，也就没必要分析；
            b)分析本条语句。
        4、其他语句，根据要分析的操作数个数和位置，分以下几种情况：
            a)a++、a--
@@ -1153,18 +1155,19 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
           while(temp_expr != DFS_array[i]->head->prev)
           {
                is_continue = 0;
-               temp_expr->entity->actvar_list = NULL;
-               switch(temp_expr->entity->op)
+			   struct triargexpr * expr_entity = get_tae_entity(temp_expr, cur_func_index);
+               expr_entity->actvar_list = NULL;
+               switch(expr_entity->op)
                {
                case Assign:       //arg1 = arg2
-                    add2 =  get_index_of_arg(&(temp_expr->entity->arg2) , NULL);
+                    add2 =  get_index_of_arg(&(expr_entity->arg2) , NULL);
                     add1 = -1;
                     make_change_list(add1 , add2 , add_list);
-                    if(temp_expr->entity->arg1.type == ExprArg && get_index_of_temp(temp_expr->entity->arg1.expr) == -1)
+                    if(expr_entity->arg1.type == ExprArg && get_index_of_temp(expr_entity->arg1.expr) == -1)
                     {//arg1是三元式编号，而且没被引用过。说明其对应三元式可能是a[i]或者*p
-                         int last_index = temp_expr->entity->arg1.expr;
+                         int last_index = expr_entity->arg1.expr;
                          struct triargexpr_list *last_expr_node = cur_func_triarg_table->index_to_list[last_index];
-                         struct triargexpr *last_expr = last_expr_node->entity;
+                         struct triargexpr *last_expr = get_tae_entity(last_expr_node, cur_func_index);
                          if(last_expr->op == Subscript)//是a[i]或者*p的话，要往上看一步
                          {
                               add1 = get_index_of_arg(&(last_expr->arg1) , NULL);
@@ -1188,8 +1191,8 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     }
                     var_list_copy(next_del_list , del_list);
                     
-                    del1 = get_index_of_arg(&(temp_expr->entity->arg1) , NULL);
-                    del2 = get_index_of_temp(temp_expr->entity->index);
+                    del1 = get_index_of_arg(&(expr_entity->arg1) , NULL);
+                    del2 = get_index_of_temp(temp_expr->entity_index);
                     make_change_list(del1 , del2 , next_del_list);
                     //next_del_list = var_list_merge(point_list , next_del_list);
                     point_list = NULL;
@@ -1208,18 +1211,18 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                case Minus:       //-
                case Mul:         //*
                case Subscript:   //[]
-                    if(get_index_of_temp(temp_expr->entity->index) == -1)
+                    if(get_index_of_temp(temp_expr->entity_index) == -1)
                     {
                          is_continue = 1;
                          break;
                     }
-                    add1 = get_index_of_arg(&(temp_expr->entity->arg1) , NULL);
-                    add2 = get_index_of_arg(&(temp_expr->entity->arg2) , NULL);
+                    add1 = get_index_of_arg(&(expr_entity->arg1) , NULL);
+                    add2 = get_index_of_arg(&(expr_entity->arg2) , NULL);
                     make_change_list(add1 , add2 , add_list);
                     var_list_copy(next_del_list , del_list);
                     
                     del1 = -1;
-                    del2 = get_index_of_temp(temp_expr->entity->index);
+                    del2 = get_index_of_temp(temp_expr->entity_index);
                     make_change_list(del1 , del2 , next_del_list);
                     break;
 
@@ -1227,13 +1230,13 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                case FalseJump:   //if true jump
                case TrueJump:    //if false jump
                     add1 = -1;
-                    add2 = get_index_of_arg(&(temp_expr->entity->arg1) , NULL);
+                    add2 = get_index_of_arg(&(expr_entity->arg1) , NULL);
                     make_change_list(add1 , add2 , add_list);
-                    if(temp_expr->entity->arg1.type == ExprArg && get_index_of_temp(temp_expr->entity->arg1.expr) == -1)
+                    if(expr_entity->arg1.type == ExprArg && get_index_of_temp(expr_entity->arg1.expr) == -1)
                     {//条件是逻辑判断，需要向上看一步
-                         int last_index = temp_expr->entity->arg1.expr;
+                         int last_index = expr_entity->arg1.expr;
                          struct triargexpr_list *last_expr_node = cur_func_triarg_table->index_to_list[last_index];
-                         struct triargexpr *last_expr = last_expr_node->entity;
+                         struct triargexpr *last_expr = get_tae_entity(last_expr_node, cur_func_index);
                          add1 = get_index_of_arg(&(last_expr->arg1) , NULL);
                          add2 = get_index_of_arg(&(last_expr->arg2) , NULL);
                          struct var_list temp_list;
@@ -1252,7 +1255,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                case Uminus:      //-
                case Ref:         //&
                case Deref:       //*
-                    if(get_index_of_temp(temp_expr->entity->index) == -1)
+                    if(get_index_of_temp(temp_expr->entity_index) == -1)
                     {
                          is_continue = 1;
                          break;
@@ -1262,9 +1265,9 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                case Arglist:     //parameters
                case Return:      //return
                     add1 = -1;
-                    add2 = get_index_of_arg(&(temp_expr->entity->arg1) , NULL);
+                    add2 = get_index_of_arg(&(expr_entity->arg1) , NULL);
                     make_change_list(add1 , add2 , add_list);
-                    if(temp_expr->entity->op == Deref)//引用的*p，需要把它所有可能对应的实体都置成活跃
+                    if(expr_entity->op == Deref)//引用的*p，需要把它所有可能对应的实体都置成活跃
                     {
                          point_list = temp_expr->pointer_entity;
                          add_list = var_list_merge(point_list , add_list);
@@ -1272,10 +1275,10 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     var_list_copy(next_del_list , del_list);
                     
                     del1 = -1;
-                    del2 = get_index_of_temp(temp_expr->entity->index);
+                    del2 = get_index_of_temp(temp_expr->entity_index);
                     make_change_list(del1 , del2 , next_del_list);
 
-                    if(temp_expr->entity->op == Arglist)//函数所有参数的pointer_entity合成一个链，用于caller保存指针实体
+                    if(expr_entity->op == Arglist)//函数所有参数的pointer_entity合成一个链，用于caller保存指针实体
                     {
                          var_list_merge(temp_expr->pointer_entity , &flush_list);
                     }
@@ -1291,7 +1294,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                          last_func_expr->arg2.func_flush_list->tail = flush_list.tail;
                          flush_list.head = flush_list.tail = NULL;
                     }
-                    last_func_expr = temp_expr->entity;
+                    last_func_expr = expr_entity;
                     
                     /*Funcall的addlist就是def_g_list*/
                     add_list = var_list_copy(&def_g_list , add_list);
@@ -1306,7 +1309,7 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     var_list_copy(next_del_list , del_list);
                     
                     del1 = -1;
-                    del2 = get_index_of_temp(temp_expr->entity->index);
+                    del2 = get_index_of_temp(temp_expr->entity_index);
                     make_change_list(del1 , del2 , next_del_list);
                     break;
                }
@@ -1327,8 +1330,8 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                     }
                     //         after_make_actvarlist:
                     count = add_actvar_info(actvar_list + act_list_index -1);
-                    temp_expr->entity->actvar_list = (actvar_list + act_list_index -1);
-                    if(temp_expr->entity->op == Funcall)
+                    expr_entity->actvar_list = (actvar_list + act_list_index -1);
+                    if(expr_entity->op == Funcall)
                          if(count > sg_max_func_varlist)
                               sg_max_func_varlist = count;
                }
@@ -1342,9 +1345,9 @@ struct var_list *analyse_actvar(int *expr_num , int func_index)//活跃变量分
                }
                if(option_show_active_var == 1)
                {
-                    print_triargexpr(*(temp_expr->entity));
-                    printf("\t[%d]active varible:" , temp_expr->entity->index);
-                    var_list_print(temp_expr->entity->actvar_list);
+                    print_triargexpr(*(expr_entity));
+                    printf("\t[%d]active varible:" , temp_expr->entity_index);
+                    var_list_print(expr_entity->actvar_list);
                }
                temp_expr = temp_expr->prev;
           }

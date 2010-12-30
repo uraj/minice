@@ -31,8 +31,9 @@ struct triargexpr
 
 struct triargexpr_list
 {
-    struct triargexpr* entity;
-    struct var_list * pointer_entity;  
+    //struct triargexpr* entity;
+    int entity_index;
+	struct var_list * pointer_entity;  
 	struct triargexpr_list* prev;
     struct triargexpr_list* next;
 };

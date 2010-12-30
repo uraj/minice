@@ -1336,7 +1336,7 @@ static inline void gen_cj_expr(struct triargexpr *expr)
      {
           /*先得到作为条件的三元式，生成它的代码。*/
           struct triargexpr_list *cond_expr_node = cur_table->index_to_list[expr->arg1.expr];
-          struct triargexpr *cond_expr = cond_expr_node->entity;
+          struct triargexpr *cond_expr = get_tae_entity(cond_expr_node, cur_func_index);
           int restore_reg[2] , i;
           gen_cmp_code(cond_expr , restore_reg);
           
@@ -1709,7 +1709,7 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
                if(arg1->type == ExprArg)
                {
                     struct triargexpr_list *last_expr_node = cur_table->index_to_list[arg1->expr];
-                    struct triargexpr *last_expr = last_expr_node->entity;
+                    struct triargexpr *last_expr = get_tae_entity(last_expr_node, cur_func_index);
                     
                     if(last_expr->op == Subscript)
                     {
@@ -2943,7 +2943,7 @@ void gen_machine_code(int func_index, FILE * out_buf)//Don't forget NULL at last
 	struct triargexpr_list * tmp_node = cur_table -> head;
 	while(tmp_node != NULL)//make tail's next to be NULL
 	{
-		struct triargexpr * expr = tmp_node -> entity;
+		struct triargexpr * expr = get_tae_entity(tmp_node, cur_func_index);
 		gen_per_code(expr);
 		tmp_node = tmp_node -> next;
 	}

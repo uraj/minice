@@ -5,6 +5,11 @@
 #include <stdio.h>
 
 
+struct triargexpr * get_tae_entity(struct triargexpr_list * list_node, int func_index)
+{
+	return &(table_list[func_index] -> table[list_node -> entity_index]);
+}
+
 void new_table_list()
 {
     table_list =
@@ -51,8 +56,7 @@ struct triargexpr_list ** new_index_to_list()//Malloc and redirect, be free in f
 	struct triargexpr_list * tmpnode = ghead;
 	while(tmpnode != NULL)
 	{
-		//print_triargexpr(*tmpnode -> entity);
-		list[tmpnode -> entity -> index] = tmpnode;
+		list[tmpnode -> entity_index] = tmpnode;
 		tmpnode = tmpnode -> next;
 	}
 	return list;
@@ -139,7 +143,7 @@ struct taexpr_list_header * new_taexprlist(int begin, int end)
 	int i = begin;
 	struct triargexpr_list *lastnode, *newnode;
 	newnode = (new_list -> head = malloc(sizeof(struct triargexpr_list)));
-	newnode -> entity = &gtriargexpr_table[i];
+	newnode -> entity_index = i;
 	newnode -> prev = NULL;
 	newnode -> next = NULL;
 	newnode -> pointer_entity = NULL;
@@ -148,7 +152,7 @@ struct taexpr_list_header * new_taexprlist(int begin, int end)
 	{
 		lastnode = newnode;
 		newnode = malloc(sizeof(struct triargexpr_list));
-		newnode -> entity = &gtriargexpr_table[i++];
+		newnode -> entity_index = i++;
 		newnode -> prev = lastnode;
 		lastnode -> next = newnode;
 		newnode -> next = NULL;
@@ -205,7 +209,7 @@ struct taexpr_list_header * if_else_list_merge(struct subexpr_info * condition, 
     int goto_index = insert_triargexpr(endtrue_goto);
     
     struct triargexpr_list * goto_list_node = malloc(sizeof(struct triargexpr_list));
-    goto_list_node -> entity = &gtriargexpr_table[goto_index];//if truestate is null, the goto can be delete auto
+    goto_list_node -> entity_index = goto_index;//if truestate is null, the goto can be delete auto
     
     condition_list -> nextlist = patch_list_append(condition_list -> nextlist, goto_index);
     
@@ -220,7 +224,7 @@ struct taexpr_list_header * if_else_list_merge(struct subexpr_info * condition, 
         else
         {
             condition_list -> nextlist = patch_list_merge(condition_list -> nextlist, truestate -> nextlist);
-            patch_list_backpatch(condition -> truelist, truestate -> head -> entity -> index);
+            patch_list_backpatch(condition -> truelist, truestate -> head -> entity_index);
             tmp_list -> next = truestate -> head;
             truestate -> head -> prev = tmp_list;
             tmp_list = truestate -> tail;
@@ -237,7 +241,7 @@ struct taexpr_list_header * if_else_list_merge(struct subexpr_info * condition, 
         else
         {         
             condition_list -> nextlist = patch_list_merge(condition_list -> nextlist, falsestate -> nextlist);
-            patch_list_backpatch(condition -> falselist, falsestate -> head -> entity -> index);
+            patch_list_backpatch(condition -> falselist, falsestate -> head -> entity_index);
             goto_list_node -> next = falsestate -> head;
             falsestate -> head -> prev = goto_list_node;
             condition_list -> tail = falsestate -> tail;
@@ -255,11 +259,11 @@ struct taexpr_list_header * if_else_list_merge(struct subexpr_info * condition, 
         if(falsestate == NULL)
             false_goto.arg2.expr = -1;
         else
-            false_goto.arg2.expr = falsestate -> head -> entity -> index;
+            false_goto.arg2.expr = falsestate -> head -> entity_index;
         int false_goto_index = insert_triargexpr(false_goto);
         
         struct triargexpr_list * false_goto_list_node = malloc(sizeof(struct triargexpr_list));
-        false_goto_list_node -> entity = &gtriargexpr_table[false_goto_index];
+        false_goto_list_node -> entity_index = false_goto_index;
         
         if(falsestate == NULL)
             condition_list -> nextlist = patch_list_append(condition_list -> nextlist, false_goto_index);
@@ -309,7 +313,7 @@ struct taexpr_list_header * if_list_merge(struct subexpr_info * condition, struc
             condition_list -> nextlist = patch_list_merge(condition_list -> nextlist, condition -> truelist);
         else
         {
-            patch_list_backpatch(condition -> truelist, truestate -> head -> entity -> index);//it seems that use index is better than pointer
+            patch_list_backpatch(condition -> truelist, truestate -> head -> entity_index);//it seems that use index is better than pointer
             condition_list -> nextlist = patch_list_merge(condition_list -> nextlist, truestate -> nextlist);
         }
         
@@ -343,7 +347,7 @@ struct taexpr_list_header * if_list_merge(struct subexpr_info * condition, struc
             condition_list -> nextlist = patch_list_append(truestate -> nextlist, false_goto_index);//should not free truestate -> nextlist
         
             struct triargexpr_list * false_goto_list_node = malloc(sizeof(struct triargexpr_list));
-            false_goto_list_node -> entity = &gtriargexpr_table[false_goto_index];
+            false_goto_list_node -> entity_index = false_goto_index;
         
             tmp_list -> next = false_goto_list_node;
             false_goto_list_node -> prev = tmp_list;
@@ -379,13 +383,13 @@ struct taexpr_list_header * while_list_merge(struct subexpr_info * condition, st
     int reloop_index = insert_triargexpr(reloop_goto);
         
     struct triargexpr_list * reloop_list_node = malloc(sizeof(struct triargexpr_list));
-    reloop_list_node -> entity = &gtriargexpr_table[reloop_index];
+    reloop_list_node -> entity_index = reloop_index;
     if(condition -> arithtype == 0)
     {
         if(loopbody == NULL)
             patch_list_backpatch(condition -> truelist, condition -> begin);
         else
-            patch_list_backpatch(condition -> truelist, loopbody -> head -> entity -> index);
+            patch_list_backpatch(condition -> truelist, loopbody -> head -> entity_index);
         
         condition_list -> nextlist = condition -> falselist;//shouldn't delete, should be deleted in backpatch
         
@@ -414,7 +418,7 @@ struct taexpr_list_header * while_list_merge(struct subexpr_info * condition, st
         int false_goto_index = insert_triargexpr(false_goto);
         
         struct triargexpr_list * false_goto_list_node = malloc(sizeof(struct triargexpr_list));
-        false_goto_list_node -> entity = &gtriargexpr_table[false_goto_index];
+        false_goto_list_node -> entity_index = false_goto_index;
         
         condition_list -> nextlist = patch_list_append(condition_list -> nextlist, false_goto_index);
         
@@ -454,7 +458,7 @@ struct taexpr_list_header * for_list_merge(struct subexpr_info * init_expr,struc
      goto_expr.arg1.type = ExprArg;
      goto_expr.arg1.expr = cond_expr_index;
      int goto_index = insert_triargexpr(goto_expr);//insert the UncondJump tri_expr to the table 
-     goto_expr_list->entity = gtriargexpr_table + goto_index;
+     goto_expr_list-> entity_index = goto_index;
      
      if(init_expr->arithtype == 0)//如果初始化表达式或者改变表达式是逻辑表达式，要把他们的truelist和falselist合并成nextlist，并回填
      {
@@ -476,7 +480,7 @@ struct taexpr_list_header * for_list_merge(struct subexpr_info * init_expr,struc
      if(loopbody == NULL)
           cond_true_to_index = change_expr->begin;
      else
-          cond_true_to_index = loopbody->head->entity->index;
+          cond_true_to_index = loopbody->head->entity_index;
      if(cond_expr->arithtype == 0)//condition is a bool expression
      {
           temp_header->nextlist = cond_expr->falselist;//the direct table's nextlist is the condition part's falselist
@@ -497,7 +501,7 @@ struct taexpr_list_header * for_list_merge(struct subexpr_info * init_expr,struc
           
           //将FalseJump arg1 nextlist封装成triargexpr_list，穿成链
           struct triargexpr_list * arith_goto_list = (struct triargexpr_list *)malloc(sizeof(struct triargexpr_list));
-          arith_goto_list->entity = gtriargexpr_table + arith_goto_index;
+          arith_goto_list->entity_index = arith_goto_index;
           temp_header->tail->next = arith_goto_list;//
           arith_goto_list->prev = temp_header->tail;
           temp_header->tail = arith_goto_list;
@@ -537,14 +541,8 @@ struct taexpr_list_header * stmt_list_merge(struct taexpr_list_header * pre, str
 		 return sub;
      if(sub == NULL)
 		 return pre;
-     patch_list_backpatch( pre->nextlist , sub->head->entity->index );
-	 /*
-	 printf("pre:");
-	 print_triargexpr(*pre->head->entity);
-	 printf("sub");
-	 print_triargexpr(*sub->head->entity);
-	 */
-	 //print_triargexpr(*pre -> head -> entity);
+     patch_list_backpatch( pre->nextlist , sub->head->entity_index );
+
      pre->tail->next = sub->head;
      sub->head->prev = pre->tail;
      pre->tail = sub->tail;
@@ -567,7 +565,7 @@ struct taexpr_list_header * return_list_append(struct subexpr_info * value)
      
      struct triargexpr_list *ret_list = (struct triargexpr_list *)calloc(1, sizeof(struct triargexpr_list));
      int ret_index = insert_triargexpr(ret_expr);
-     ret_list->entity = gtriargexpr_table + ret_index;
+     ret_list->entity_index = ret_index;
      ret_list->prev = ret_list->next = NULL;
      
      struct taexpr_list_header *ret_header = (struct taexpr_list_header *)calloc(1, sizeof(struct taexpr_list_header));
@@ -605,18 +603,18 @@ void print_table(struct triargtable *table)
     tmp = table -> head;
 	while(tmp != NULL)
     {
-        print_triargexpr(*(tmp -> entity));
+        print_triargexpr(table -> table[tmp -> entity_index]);
         tmp = tmp -> next;
     }
 	printf("%s end\n\n",table -> funcname);
 }
 
-extern void print_list_header(struct taexpr_list_header * list)
+extern void print_list_header(struct taexpr_list_header * list)/* can only be used when the triargexprs generate */
 {
     struct triargexpr_list *tmp = list -> head;
     while(tmp != NULL)
     {
-        print_triargexpr(*(tmp -> entity));
+        print_triargexpr(gtriargexpr_table[tmp -> entity_index]);
         tmp = tmp -> next;
     }
 }
