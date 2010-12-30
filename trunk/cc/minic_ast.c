@@ -74,22 +74,6 @@ struct leafval* new_var(const char* name)
     return l;
 }
 
-static void leaftype_printer(enum leaftype type)
-{
-    switch(type)
-    {
-        case Iconstleaf:
-            fprintf(stderr, "Integer");
-            break;
-        case Sconstleaf:
-            fprintf(stderr, "String");
-            break;
-        case Idleaf:
-            fprintf(stderr, "Id");
-            break;
-    }
-    return;
-}
 
 void op_printer(enum operator op, FILE* output_buff)
 {
@@ -198,7 +182,18 @@ void print_ast(struct ast* tree)
     {
         for(i = 0; i < level; ++i)
             fprintf(stderr, " ");
-        leaftype_printer(tree -> val -> ast_leaf_type);
+        switch(tree->val->ast_leaf_type)
+        {
+            case Iconstleaf:
+                fprintf(stderr, "Integer %d", tree->val->ival);
+                break;
+            case Sconstleaf:
+                fprintf(stderr, "String %s", tree->val->sval);
+                break;
+            case Idleaf:
+                fprintf(stderr, "Id %s", tree->val->sval);
+                break;
+        }
         printf("\n");
     }
     else
