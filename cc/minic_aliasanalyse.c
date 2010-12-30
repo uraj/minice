@@ -582,6 +582,8 @@ static void generate_entity_for_each(struct triargexpr_list * tmp_node)
 					tmp_node -> pointer_entity = var_list_new();
 					tmp_node -> pointer_entity = var_list_copy(tmp_out[arg1_info -> no], tmp_node -> pointer_entity);
 				}
+				else
+					tmp_node -> pointer_entity = NULL;
 			}
 			else if(expr -> arg1.type == ExprArg)
 			{
