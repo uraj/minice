@@ -305,7 +305,7 @@ void peephole(int func_index, FILE * out_buf)
 		instruction_scheduling();
 	}while(former_success != scheduling_success);
 	print_code_list(out_buf);
-	printf("scheduling success:%d\n", scheduling_success);
-	printf("merge success:%d\n", merge_success);
+	//printf("scheduling success:%d\n", scheduling_success);
+	//printf("merge success:%d\n", merge_success);
 	free_code_list();
 }
