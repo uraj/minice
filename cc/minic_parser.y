@@ -224,6 +224,7 @@ function_hdr : type_name id "(" parm_type_list ")" {
                                                    }
              | type_name "*" id "(" parm_type_list ")" {
                                                             curr_table = symt_new();
+
                                                             def_insert_func($3, parm_stack, simb_table, 
                                                                             curr_table, $1, Pointer);
 															strcpy($$, $3);
