@@ -1,5 +1,5 @@
 #include <stdio.h>
-void __minic_print(int arg)
+void print_int(int arg)
 {
     printf("%d ", arg);
     return;
@@ -150,7 +150,7 @@ int main()
     a[99] = 276;
     quicksort(a, a + 99);
     for(j = 0; j < 100; ++j)
-        __minic_print(a[j]);
+        print_int(a[j]);
     return 0;
 }
 
