@@ -301,13 +301,62 @@ C语言不区分逻辑值和算数值，因此像下面这样的代码是被允�
 (12) Return 0 
 \end{verbatim}
 \subsection{三元式的组织}
-我们采用三元式的原因之一，就是三元式利于调度。但是在实现具体的调度机制还是需要一些比较繁复的工作。
-比如在实现for循环时，
+我们采用三元式的原因之一，就是三元式利于调度。但是在实现具体的调度机制还是需要一些比较繁复的工作。比如在实现for循环时，
 \begin{lstlisting}
   for_stmt :
   FOR "(" expression ";" expression ";" expression ")" statement ;
 \end{lstlisting}
-表达式的规约顺序与最终三元式应该的顺序相差甚远。所以当语法分析到达这一步时，需要做一些调整工作。其他控制流的情况类似。
+表达式的规约顺序与最终三元式应该的顺序相差甚远。所以当语法分析到达这一步时，需要做一些调整工作。
+\subsubsection{三元式逻辑顺序的编排}
+\begin{enumerate}
+\item 表达式以下部分利用语法数处理。
+\item 表达式以上部分在文法中通过拉链回填处理并按序组织起表达式翻译所生成的三地值代码。
+\end{enumerate}
+其中拉链回填所需要的数据结构和重要函数：
+\begin{lstlisting}[language=c]
+struct taexpr_list_header
+{
+  struct triargexpr_list *head;
+  struct triargexpr_list *tail;
+  struct patch_list * nextlist;
+};
+struct taexpr_list_header * expr_list_gen(/**/);
+struct taexpr_list_header * value_list_append(/**/);
+struct taexpr_list_header * if_else_list_merge(/**/);
+struct taexpr_list_header * if_list_merge(/**/);
+struct taexpr_list_header * while_list_merge(/**/);
+struct taexpr_list_header * for_list_merge(/**/);
+struct taexpr_list_header * return_list_append(/**/);
+struct taexpr_list_header * stmt_list_merge(/**/);
+\end{lstlisting}
+对于每一个规约上来的statement都会产生一个此结构，用来记录该statement所对应的三地值代码以及该statement的nextilist。上面的函数则分别用来处理单个表达式、if-else语句、单if语句、while循环、for循环、return语句，以及各个statement之间的链接。
+
+\subsubsection{三元式存储方式}
+\begin{lstlisting}[language=c]
+struct triargtable
+{
+  char * funcname;
+  struct triargexpr_list *head, *tail;
+  struct triargexpr * table;
+  struct triargexpr_list ** index_to_list;
+  int expr_num;
+  int var_id_num;
+  int table_bound;
+};
+\end{lstlisting}
+此结构体用来保存每一个函数的中间代码，其中table数组中的三地址代码是以中间代码生成的顺序而保存的，因为在代码优化阶段可能要对中间代码的顺序进行大量的调度、删除或添加，所以我们用这个顺序的数组来保存三地址码实体，而用链表组织三地值代码的顺序，以下便是组织三地值代码顺序的链表结构体：
+\begin{lstlisting}[language=c]
+struct triargexpr_list
+{
+  int entity_index;
+  struct var_list * pointer_entity;  
+  struct triargexpr_list* prev;
+  struct triargexpr_list* next;
+};
+\end{lstlisting}
+其中entity\_index用来指示对应的三地址代码在顺序表中对应的标号，而pointer\_entity则是指针分析时返回的结果，用来记录每一个对指针所指内存进行操作的三地值代码中该指针可能对应的所有实体。\\
+\indent 因为需要建立链表节点和三地值代码实体的标号之间的双射，所以该结构体中存储了一个index\_to\_list数组，用来记录每一个三地值代码实体所对应的链表节点。
+
 \chapter{编译器后端}
 minic后端的任务有：
 \begin{enumerate}
@@ -358,8 +407,8 @@ result:
 (3)
 \end{verbatim}
 在基本块划分过程中，会通过判断条件跳转的两个后继节点是否是相同基本块来进行优化，因为不确定(3)号语句是否还是其它跳转的目标与句，所以无法直接删除跳转，但是可以直接把(1)(2)两条指令合为一条无条件跳转，这样一方面节省了一次条件判断，另一方面该无条件跳转可能会成为唯一能够跳转至后继基本块的跳转，则这种情况下，在尽本块恢复为顺序代码的过程中便会对该类无条件跳转进行删除。
-\item 流图的扫描，从基本块恢复为顺序代码，并对代码进行重排序。\\\indent
-  对流图进行深度优先搜索，并把基本块还原为重排后的三地址代码存入原来保存三地值代码的结构中。在此过程中，如果发现无条件跳转到的目的地，是该基本块的惟一后继，则对两个基本块进行合并，并删除多余的无条件跳转，这样如果后继基本块是另一基本块的直接后继，则该基本块最后会多产生一条无条件跳转语句，整个程序的无条件跳转数目不变。但是如果该无条件跳转是唯一能够跳到后继基本块的跳转，则此步骤优化了一步无条件跳转。
+\item 流图的扫描，从基本块恢复为顺序代码，并对代码进行重排序。对流图进行深度优先搜索，并把基本块还原为重排后的三地址代码存入原来保存三地值代码的结构中。在此过程中，如果发现无条件跳转到的目的地，是该基本块的惟一后继，则对两个基本块进行合并，并删除多余的无条件跳转，这样如果后继基本块是另一基本块的直接后继，则该基本块最后会多产生一条无条件跳转语句，整个程序的无条件跳转数目不变。但是如果该无条件跳转是唯一能够跳到后继基本块的跳转，则此步骤优化了一步无条件跳转。
+\item 虽然利用递归深搜的方式遍历代码生成基本块和流图有种种好处，但是递归开销就与程序中的跳转数目相关，当代码量较大时这确实也是我们不得不考虑的。但是基于我们的所有优化都是针对每一个函数的，也就是说我们遍历的代码是一个函数的所有代码，一般情况下每一个函数的代码不宜过长，所以递归开销应该不会太大，当然如果某一个函数有几万个跳转，而且存在一个极深的路径，那我们的编译器可能确实会对栈产生不小的负担。
 \end{enumerate}
 整个基本块划分过程，一方面充分利用两边扫描，对三元式尽可能地进行了数据分析；一方面又尽可能地对三元式进行了初步的化简，并删除了不可达代码，无用跳转等；另一方面还为数据流分析做好数据准备。
 \subsection{数据流分析}
@@ -425,8 +474,9 @@ result:
 \item 数据流分析之前先把本函数中所有可能定值的全局变量组织成集合gdef；
 \item 数据流方程改写为：
 \begin{displaymath}
-	var_{out}[Bi] = list+(+var_{in}[s]);s\in NEXT[Bi];如果Bi可以作为函数结束块，那么list为gdef，否则为空
+	var_{out}[Bi] = list+(+var_{in}[s]);s\in NEXT[Bi];
 \end{displaymath}
+如果Bi可以作为函数结束块，那么list为gdef，否则为空。
 \begin{displaymath}
 	var_{in}[Bi] = use[Bi] + (var_{out}[Bi] – def[Bi])
 \end{displaymath}
@@ -461,8 +511,9 @@ result:
 \indent 建立好了数据流方程，便要开始迭代求解是集合运算，这就涉及怎样表示集合。我们采用了有序链表来进行集合运算，简称链运算。以c=a并b为例，先将链排排成升序（我们采用的是先把链表复制到临时数组中，快排后在移回来），让NodeA指向a的首节点，NodeB指向b的首节点，如果前者键值大于后者，则将后者键值添加到c中，NodeB后拨；同理，如果前者键值小于后者，则将前者键值添加到c中，NodeA后拨； 如果前者键值等于后者，则将前者键值添加到c中，NodeA和NodeB都后拨。当一条链遍历完的时候，把另一条链所有剩下元素都添加到c中。如此以来就生成了有序的c链。同理交和减运算也都可以做到。这样的复杂度是O（NlogN），但是由于在活跃变量分析中使用链运算结果作为下一次运算的操作链的，所以排序是一劳永逸，单个链运算复杂度就是O（N）。\\
 \indent 活跃变量分析的迭代主要涉及：
 \begin{displaymath}
-	var_{out}[Bi] = list+(+var_{in}[s]);s\in NEXT[Bi];如果Bi可以作为函数结束块，那么list为gdef，否则为空
+	var_{out}[Bi] = list+(+var_{in}[s]);s\in NEXT[Bi];
 \end{displaymath}
+如果Bi可以作为函数结束块，那么list为gdef，否则为空。
 \begin{displaymath}
 	var_{in}[Bi] = use[Bi] + (var_{out}[Bi] – def[Bi])
 \end{displaymath}
@@ -496,8 +547,17 @@ result:
 \subsection{指针分析}
 由于在机器码生成阶段，对指针所指内存的赋值和引用都可能引起寄存器中数据与内存中数据的不一致，所以需要在对指针所指内存操作前需要通过对所有全局变量和局部变量的load、store来保证寄存器与内存的数据一致性。\\
 \indent 于是我们决定使用数据流分析的方法来进行优化，通过数据流分析来确定在数组的每一个引用点上该数组可能指向的变量，从而缩小需要保证寄存器内存一致性的变量的范围，从而减少内存别名操作的开销。\\
-\indent 算法设计方面，我们利用利用数据流分析的方法，
-	迭代方程：
+\indent 算法设计方面，我们利用数据流分析的方法，根据迭代方程：
+\begin{displaymath}
+  out[B] = trans_b(int[B])
+\end{displaymath}
+\begin{displaymath}
+  int[B]=\cup_{precursors{}of{}B} out[P]
+\end{displaymath}
+其中B是某个基本块，P是该基本块的前驱。如果B由语句$s_1.s_2, \cdots,s_k$组成，那么
+\begin{displaymath}
+  trans_B(S) = trans_{s_k}(trans_{s_{k-1}}(\cdots(trans_{s_1}(S))\cdots))
+\end{displaymath}
 具体实现时对*、[]、Arglist三种操作进行了分析
 \section{寄存器分配}
 \subsection{图染色算法}
@@ -690,12 +750,14 @@ or r, r, \#255<>8  & {\color{red}1111 1111} 0000 0000 0001 0100 1111 0000 \\
 \chapter{编译优化}
 在保证编译器正确性的基础上，我们额外做了一些编译优化工作。事实上在实现编译器后端的时候，我们就已经考虑了很多效率方面的问题，诸多细节方面的优化已经融入实现中。这一部分主要介绍三项比较有代表性的优化工作。
 \newpage
-\section{指令调度}
+\section{窥孔优化}
+由于人力有限，许多数据流分析阶段的优化不易完成，所以在数据流分析阶段只重点进行了活跃变量分析和指针分析，而其它冗余则需要在目标代码生成阶段尽可能消除，在目标代码生成后也要进行一些特定的冗余消除。同时因为本小组设计实现的sim模拟器的load指令的下一条指令如果出现数据相关，则不得不阻塞流水线一拍来等待mem阶段完成，所以在窥孔优化阶段进行一定的指令调度，尽可能地减少这种数据相关也非常必要。
+\subsection{指令调度}
 之前已经提到，minic是需要与MiniSim模拟器协同工作的。因此，根据MiniSim的实现，可以通过一些指令调度策略来提高模拟的性能。\\
 \indent MiniSim模拟五级流水结构，因此由于数据相关而产生的加载互锁是性能的一大瓶颈，我们的优化也主要针对这一情况。minicc通过将产生数据相关的load指令提前，可以有效减少加载互锁发生的次数。这里指令调度主要通过窥孔的方式实现。\\
 \indent 在目标代码生成后，按序对目标代码进行扫描，如果load语句与紧跟的一条语句存在数据相关，则把这两条这令看作一个整体，生成两个集合：定值寄存器集和引用寄存器集；之后向上看一条代码，如果该条代码的有可能修改的寄存器在引用寄存器集中或该条代码所需引用的寄存器在定植寄存器集中，则该条指令无法调度，把该条指令有可能修改的寄存器加入定值寄存器集，把可能引用的寄存器加入引用寄存器集中，继续看上一条代码。\\
-\indent	一旦发现与整个定植寄存器集和引用寄存器集不相关的指令便可以调度。其中如果遇到跳转指令或标号，说明基本块已到上界，停止调度；如果遇到stw指令，因为在目标代码阶段无法确定改指令修改的是否是load引用的内存，所以无法确定是否有数据相关，所以直接默认存在数据相关，把改制令纳入定植寄存器集及引用寄存器集中，继续看上一条指令。可以通过设定指令窗口大小，来设置最大向上看的步数，不过一般基本块都不会太大。
-\section{赋值操作与对应产生右值的操作的合并}
+\indent 一旦发现与整个定植寄存器集和引用寄存器集不相关的指令便可以调度。其中如果遇到跳转指令或标号，说明基本块已到上界，停止调度；如果遇到stw指令，因为在目标代码阶段无法确定改指令修改的是否是load引用的内存，所以无法确定是否有数据相关，所以直接默认存在数据相关，把改制令纳入定植寄存器集及引用寄存器集中，继续看上一条指令。可以通过设定指令窗口大小，来设置最大向上看的步数，不过一般基本块都不会太大。
+\subsection{赋值操作与对应产生右值的操作的合并}
 由于在中间代码生成阶段使用的是三元式，所以在充分利用三寄存器操作的指令上出现了一些困难，例如一个赋值操作：
 \begin{verbatim}
 	a = b + c
