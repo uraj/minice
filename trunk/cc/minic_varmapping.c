@@ -235,6 +235,17 @@ int is_array(int index)
 	return 0;
 }
 
+int is_pointer(int index)
+{
+	if(is_id_var(index))
+	{
+		struct value_info * id_info = get_valueinfo_byno(cur_func_info -> func_symt, index);
+		if(id_info -> type -> type == Pointer)
+			return 1;
+	}
+	return 0;
+}
+
 int get_ref_var_num()/* new and used, just mark */
 {
 	return map_bridge_cur_index + cur_var_id_num;
