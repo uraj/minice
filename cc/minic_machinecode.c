@@ -1051,9 +1051,9 @@ static void flush_pointer_entity(enum mem type, struct var_list * entity_list)
 	int reg_content;
 	if(entity_list == NULL)
 		return;
-	else if(entity_list -> head == NULL)
+	else if(entity_list -> head == NULL)/* if there is strange pointer, we just consider that the program is wrong */
 	{
-		for(index = 0; index < TOTAL_REG_NUM; index ++)
+		/*for(index = 0; index < TOTAL_REG_NUM; index ++)
 		{
 			if(is_reg_disabled(index))
 				continue;
@@ -1067,7 +1067,8 @@ static void flush_pointer_entity(enum mem type, struct var_list * entity_list)
 				else
 					store_var(v_info, index);
 			}
-		}
+		}*/
+		;
 	}
 	else
 	{

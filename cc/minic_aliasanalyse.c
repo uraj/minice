@@ -514,6 +514,19 @@ static void generate_in_out_for_all()
 {
 	int index;
 	//All in and out are empty at first
+#ifdef POINTER_OPTIMIZE
+	int arg_start, arg_end, arg_index, global_var_index, global_var_num  = get_globalvar_num();
+	get_arg_interval(cur_func_info -> func_symt , &arg_start , &arg_end);//获得该符号表的参数开始结束标号
+	for(arg_index = arg_start; arg_index <= arg_end; arg_index ++)
+	{
+		if(is_pointer(arg_index))
+		{
+			for(global_var_index = 0; global_var_index < global_var_num; global_var_index ++)
+				var_list_append(pointer_in[g_block_num - 1][arg_index], global_var_index);
+		}
+	}
+
+#endif
 
 	int change = 1;
 	while(change)
