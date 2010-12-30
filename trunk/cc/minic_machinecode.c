@@ -1230,12 +1230,12 @@ static inline int prtrtm_cond_expr(struct triargexpr *cond_expr)
           /*Eq<->Neq, Ge<->Nge, Le<->Nle*/
           switch(cond_expr->op)
           {
-          case Eq :cond_expr->op = Neq;break;
-          case Neq:cond_expr->op = Eq ;break;
-          case Ge :cond_expr->op = Nge;break;
-          case Nge:cond_expr->op = Ge ;break;
-          case Le :cond_expr->op = Nle;break;
-          case Nle:cond_expr->op = Le ;break;
+          case Eq :cond_expr->op = Eq ;break;
+          case Neq:cond_expr->op = Neq;break;
+          case Ge :cond_expr->op = Le ;break;
+          case Nge:cond_expr->op = Nle;break;
+          case Le :cond_expr->op = Ge ;break;
+          case Nle:cond_expr->op = Nge;break;
           default :break;
           }
      }
