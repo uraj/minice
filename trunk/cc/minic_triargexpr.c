@@ -157,7 +157,6 @@ struct subexpr_info triargexpr_gen(struct ast* root)
     }
 
     struct subexpr_info lsub, rsub;
-    int larith_index, rarith_index;
 
     switch(root->op)
     {
@@ -267,12 +266,8 @@ struct subexpr_info triargexpr_gen(struct ast* root)
         case Nge:
             ++level;
             lsub = triargexpr_gen(root->left);
-            if(!lsub.arithtype)
-                larith_index = subexpr_arithval_gen(&lsub);
             rsub = triargexpr_gen(root->right);
             --level;
-            if(!rsub.arithtype)
-                rarith_index = subexpr_arithval_gen(&rsub);
             
             expr.op = root->op;
             expr.width = 4;

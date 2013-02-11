@@ -49,6 +49,7 @@ static inline struct basic_block_list * basic_block_list_append(struct basic_blo
 	return newnode;
 }
 
+#ifdef MACH_DEBUG
 static struct triarg unary_search(struct triargexpr * table, struct triargexpr * expr)
 {
 	struct triarg tmp_arg;
@@ -69,6 +70,7 @@ static struct triarg unary_search(struct triargexpr * table, struct triargexpr *
 			return tmp_arg;
 	}
 }
+#endif
 
 static void scan_for_entry(struct triargexpr * table, int expr_num)//scan for entry and record them
 {

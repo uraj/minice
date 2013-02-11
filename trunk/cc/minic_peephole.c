@@ -221,7 +221,7 @@ static struct mach_code_list * search_inst(struct mach_code_list * cur)
 
 static void instruction_scheduling()
 {
-	struct mach_code_list * last = NULL, * insert = NULL, * cur = head;
+	struct mach_code_list * insert = NULL, * cur = head;
 	while(cur != NULL)
 	{
 		if(cur -> entity -> op_type == MEM 
@@ -252,7 +252,6 @@ static void instruction_scheduling()
 				}
 			}
 		}
-		last = cur;
 		cur = cur -> next;
 	}
 }

@@ -50,6 +50,7 @@ extern struct var_list *var_list_sub(struct var_list *sub, struct var_list *sube
 extern struct var_list *var_list_inter(struct var_list *inter , struct var_list *dest);//将inter和dest求交，结果放入dest中
 
 /*analyse*/
+struct triargexpr; /* foward declaration */
 extern int get_max_func_varlist();
 extern int is_assign(struct triargexpr * expr , int dest_index);//判断一个赋值语句是否有必要分析
 extern struct var_list *analyse_actvar(int *expr_num , int func_index);//活跃变量分析
