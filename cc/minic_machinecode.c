@@ -1023,6 +1023,8 @@ static void flush_global_var()
 			store_var(v_info, index);
 	}
 }
+
+#if 0
 /* the flush and reload just deal with the consitent between reg 
    and mem, so the clear global reg, the local reg and the temp 
    reg should be solved in caller save */
@@ -1043,6 +1045,7 @@ static void reload_global_var()
 			load_var(v_info, index);
 	}
 }
+#endif
 
 static void flush_pointer_entity(enum mem type, struct var_list * entity_list)
 {
@@ -1195,7 +1198,8 @@ static inline int get_index_of_arg(struct triarg *arg)
           return -2;
 }
 
-static inline enum Arg_Flag get_argflag(struct triarg *arg , struct var_info *arg_info)//****正确性待确认
+/* FIXME: Not sure if this is correct */
+static inline enum Arg_Flag get_argflag(struct triarg *arg , struct var_info *arg_info)
 {
      if(arg->type == ImmArg)
           return Arg_Imm;
@@ -1836,8 +1840,7 @@ static void gen_assign_arg_code(struct triarg *arg1 , struct triarg *arg2 , stru
 
 void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * dest_info, enum Arg_Flag dest_flag)
 {
-     int dest_reg, tmp_mark = 0, tmp_inner_mark = 0 , arg1_index;
-     struct var_info *arg1_info;
+    int dest_reg, tmp_mark = 0, tmp_inner_mark = 0 , arg1_index;
 	if(dest_flag == Arg_Reg)
 		dest_reg = dest_info -> reg_addr;
 	else
@@ -1849,7 +1852,6 @@ void gen_ref_code(struct triargexpr * expr, int dest_index, struct var_info * de
 	if(expr -> arg1.type == IdArg)
 	{
 		arg1_index = get_index_of_id(expr -> arg1.idname);
-		arg1_info = get_info_from_index(arg1_index);
 		/* the global var may hasn't been loaded yet */
 		load_pointer(arg1_index, dest_reg, 0, -1);
 	}
@@ -2854,12 +2856,14 @@ static void print_mach_tail(FILE * out_buf)
 	fprintf(out_buf, "\t.size\t%s, .-%s\n", cur_func_info -> name, cur_func_info -> name);
 }
 
+#ifdef MACH_DEBUG
 static void print_mach_code(FILE * out_buf)
 {
 	int index;
 	for(index = 0; index < code_table_list[cur_func_index].code_num; index++)
 		mcode_out(&code_table_list[cur_func_index].table[index], out_buf);
 }
+#endif
 
 void print_file_header(FILE * out_buf, char * filename)
 {
